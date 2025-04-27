@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "509019948756",
+    "project_id": "moji-todo",
+    "storage_bucket": "moji-todo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:509019948756:android:b1ef2f04fa9f4d20845d41",
+        "android_client_info": {
+          "package_name": "com.example.moji_todo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa59_tRROkxCnYJnk7uzy6zbQBG1POqfY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
