@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'Moji ToDo',
         theme: ThemeData(
           primaryColor: const Color(0xFF00C4FF),
