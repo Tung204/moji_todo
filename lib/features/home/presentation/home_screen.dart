@@ -1,27 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/home_cubit.dart';
+import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
-import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/navigation/navigation_manager.dart'; // Import NavigationManager
+import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
 import '../../tasks/domain/task_cubit.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Đặt currentIndex thành 0 (Pomodoro) khi vào HomeScreen
-    NavigationManager.currentIndex = 0;
-  }
 
   void _showTaskBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -148,7 +136,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               IconButton(
                                 icon: const Icon(Icons.play_circle_fill, color: Color(0xFFFF5733)),
                                 onPressed: () {
-                                  context.read<HomeCubit>().selectTask(task.title ?? 'Untitled Task');
+                                  context.read<HomeCubit>().selectTask(
+                                    task.title ?? 'Untitled Task',
+                                    task.estimatedPomodoros ?? 4,
+                                  );
                                   Navigator.pop(context);
                                 },
                               ),
@@ -170,11 +161,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    NavigationManager.currentIndex = 0;
+
     return BlocProvider(
       create: (context) => HomeCubit(),
       child: Scaffold(
         backgroundColor: const Color(0xFFE6F7FA),
-        appBar: const CustomAppBar(),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
+            ).createShader(bounds),
+            child: const Text(
+              'Moji-ToDo',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications, color: Colors.grey),
+              onPressed: () {},
+            ),
+          ],
+        ),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
@@ -207,10 +223,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   return Column(
                     children: [
                       PomodoroTimer(
-                        minutes: state.timerMinutes,
+                        timerSeconds: state.timerSeconds,
                         isRunning: state.isTimerRunning,
+                        isPaused: state.isPaused,
+                        currentSession: state.currentSession,
+                        totalSessions: state.totalSessions,
                         onStart: () {
                           context.read<HomeCubit>().startTimer();
+                        },
+                        onPause: () {
+                          context.read<HomeCubit>().pauseTimer();
+                        },
+                        onContinue: () {
+                          context.read<HomeCubit>().continueTimer();
+                        },
+                        onStop: () {
+                          context.read<HomeCubit>().stopTimer();
                         },
                       ),
                       const SizedBox(height: 16),
@@ -264,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 50),
             ],
           ),
         ),

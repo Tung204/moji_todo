@@ -13,6 +13,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
+      automaticallyImplyLeading: false, // Bỏ nút back
       title: ShaderMask(
         shaderCallback: (bounds) => const LinearGradient(
           colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],

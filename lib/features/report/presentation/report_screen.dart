@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/widgets/custom_app_bar.dart'; // Import CustomAppBar
+import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
-import '../../../core/navigation/navigation_manager.dart'; // Import NavigationManager
+import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
 
 class ReportScreen extends StatelessWidget {
@@ -9,7 +9,6 @@ class ReportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Đặt currentIndex cho Report
     NavigationManager.currentIndex = 3;
 
     return Scaffold(
