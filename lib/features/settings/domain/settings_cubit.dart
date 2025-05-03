@@ -8,10 +8,9 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> logout() async {
     try {
       await FirebaseAuth.instance.signOut();
-      emit(state.copyWith(isLoggedOut: true));
+      emit(state.copyWith(isLoggedOut: true, logoutError: null));
     } catch (e) {
-      // Xử lý lỗi đăng xuất nếu cần
-      emit(state.copyWith(isLoggedOut: false));
+      emit(state.copyWith(isLoggedOut: false, logoutError: e.toString()));
     }
   }
 }

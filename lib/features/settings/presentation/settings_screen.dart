@@ -17,7 +17,7 @@ class SettingsScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          automaticallyImplyLeading: false, // Bỏ nút back
+          automaticallyImplyLeading: false,
           title: const Text(
             'Settings',
             style: TextStyle(
@@ -93,6 +93,14 @@ class SettingsScreen extends StatelessWidget {
                   if (state.isLoggedOut) {
                     Navigator.pushReplacementNamed(context, AppRoutes.login);
                   }
+                  if (state.logoutError != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Logout failed: ${state.logoutError}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
                 builder: (context, state) {
                   return _buildSettingItem(
@@ -101,23 +109,25 @@ class SettingsScreen extends StatelessWidget {
                     title: 'Logout',
                     titleColor: Colors.red,
                     onTap: () {
+                      // Lưu context của SettingsScreen để dùng trong dialog
+                      final settingsCubit = context.read<SettingsCubit>();
                       showDialog(
                         context: context,
-                        builder: (BuildContext context) {
+                        builder: (dialogContext) {
                           return AlertDialog(
                             title: const Text('Confirm Logout'),
                             content: const Text('Are you sure you want to logout?'),
                             actions: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(dialogContext);
                                 },
                                 child: const Text('No'),
                               ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context);
-                                  context.read<SettingsCubit>().logout();
+                                  Navigator.pop(dialogContext);
+                                  settingsCubit.logout();
                                 },
                                 child: const Text(
                                   'Yes',
@@ -138,7 +148,7 @@ class SettingsScreen extends StatelessWidget {
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: 4,
           onTap: (index) {
-            if (index == 4) return; // Đã ở màn hình Settings, không làm gì
+            if (index == 4) return;
 
             switch (index) {
               case 0:

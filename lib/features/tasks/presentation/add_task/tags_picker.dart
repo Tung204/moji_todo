@@ -137,6 +137,7 @@ class _TagsPickerState extends State<TagsPicker> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

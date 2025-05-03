@@ -71,6 +71,7 @@ class _PriorityPickerState extends State<PriorityPicker> {
                 ),
               ],
             ),
+            const SizedBox(height: 25),
           ],
         ),
       ),
