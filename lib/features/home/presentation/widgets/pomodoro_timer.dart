@@ -1,85 +1,115 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/custom_button.dart';
 
 class PomodoroTimer extends StatelessWidget {
-  final int minutes;
+  final int timerSeconds;
   final bool isRunning;
+  final bool isPaused;
+  final int currentSession;
+  final int totalSessions;
   final VoidCallback onStart;
+  final VoidCallback onPause;
+  final VoidCallback onContinue;
+  final VoidCallback onStop;
 
   const PomodoroTimer({
     super.key,
-    required this.minutes,
+    required this.timerSeconds,
     required this.isRunning,
+    required this.isPaused,
+    required this.currentSession,
+    required this.totalSessions,
     required this.onStart,
+    required this.onPause,
+    required this.onContinue,
+    required this.onStop,
   });
 
   @override
   Widget build(BuildContext context) {
+    final minutes = timerSeconds ~/ 60;
+    final seconds = timerSeconds % 60;
+    final double progress = timerSeconds / (25 * 60); // Tiến độ vòng tròn (25 phút = 1500 giây)
+
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Timer Circle
-        Container(
-          width: 280,
-          height: 280,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFFF5733), width: 12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                blurRadius: 15,
-                spreadRadius: 5,
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: 300,
+              height: 300,
+              child: CircularProgressIndicator(
+                value: progress,
+                strokeWidth: 25,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isRunning ? Colors.blue : Colors.red,
+                ),
               ),
-            ],
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$minutes:00',
+                  '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
                   style: const TextStyle(
-                    fontSize: 72,
+                    fontSize: 48,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
-                const Text(
-                  'No sessions',
-                  style: TextStyle(
-                    fontSize: 18,
+                Text(
+                  currentSession == 0
+                      ? 'No sessions'
+                      : '$currentSession of $totalSessions sessions',
+                  style: const TextStyle(
+                    fontSize: 16,
                     color: Colors.grey,
                   ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
-        const SizedBox(height: 40),
-        // Start Button
-        ElevatedButton(
-          onPressed: onStart,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF5733),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        const SizedBox(height: 56),
+        if (!isRunning && !isPaused)
+          CustomButton(
+            label: 'Start to Focus',
+            onPressed: onStart,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            borderRadius: 20,
           ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
+        if (isRunning && !isPaused)
+          CustomButton(
+            label: 'Pause',
+            onPressed: onPause,
+            backgroundColor: Colors.grey,
+            textColor: Colors.white,
+            borderRadius: 20,
+          ),
+        if (isPaused)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.play_arrow, size: 28),
-              SizedBox(width: 10),
-              Text(
-                'Start to Focus',
-                style: TextStyle(fontSize: 18),
+              CustomButton(
+                label: 'Stop',
+                onPressed: onStop,
+                backgroundColor: Colors.grey,
+                textColor: Colors.white,
+                borderRadius: 20,
+              ),
+              const SizedBox(width: 16),
+              CustomButton(
+                label: 'Continue',
+                onPressed: onContinue,
+                backgroundColor: Colors.red,
+                textColor: Colors.white,
+                borderRadius: 20,
               ),
             ],
           ),
-        ),
       ],
     );
   }

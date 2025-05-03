@@ -9,7 +9,6 @@ import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/data/models/task_model.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 
 class AIChatScreen extends StatefulWidget {
@@ -85,7 +84,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
         );
         taskCubit.addTask(task);
 
-        // Đặt nhắc nhở thông minh
         final reminderTime = DateTime.parse(commandResult['due_date'])
             .subtract(Duration(minutes: commandResult['reminder_before']));
         final notificationService = NotificationService();

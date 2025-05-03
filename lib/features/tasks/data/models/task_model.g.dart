@@ -27,13 +27,15 @@ class TaskAdapter extends TypeAdapter<Task> {
       estimatedPomodoros: fields[7] as int?,
       completedPomodoros: fields[8] as int?,
       category: fields[9] as String?,
+      isPomodoroActive: fields[10] as bool?,
+      remainingPomodoroSeconds: fields[11] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -53,7 +55,11 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(8)
       ..write(obj.completedPomodoros)
       ..writeByte(9)
-      ..write(obj.category);
+      ..write(obj.category)
+      ..writeByte(10)
+      ..write(obj.isPomodoroActive)
+      ..writeByte(11)
+      ..write(obj.remainingPomodoroSeconds);
   }
 
   @override
@@ -62,7 +68,7 @@ class TaskAdapter extends TypeAdapter<Task> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is TaskAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+          other is TaskAdapter &&
+              runtimeType == other.runtimeType &&
+              typeId == other.typeId;
 }

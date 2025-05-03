@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'task_model.g.dart';
 
@@ -17,7 +18,7 @@ class Task {
   DateTime? dueDate;
 
   @HiveField(4)
-  String? priority; // e.g., "High", "Medium", "Low"
+  String? priority;
 
   @HiveField(5)
   String? project;
@@ -31,8 +32,14 @@ class Task {
   @HiveField(8)
   int? completedPomodoros;
 
-  @HiveField(9) // Thêm trường category
+  @HiveField(9)
   String? category;
+
+  @HiveField(10)
+  bool? isPomodoroActive;
+
+  @HiveField(11)
+  int? remainingPomodoroSeconds;
 
   Task({
     this.id,
@@ -45,8 +52,44 @@ class Task {
     this.estimatedPomodoros,
     this.completedPomodoros,
     this.category,
+    this.isPomodoroActive = false,
+    this.remainingPomodoroSeconds,
   });
-  // Thêm phương thức copyWith
+
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      id: json['id'] as int?,
+      title: json['title'] as String?,
+      note: json['note'] as String?,
+      dueDate: json['dueDate'] != null ? (json['dueDate'] as Timestamp).toDate() : null,
+      priority: json['priority'] as String?,
+      project: json['project'] as String?,
+      tags: (json['tags'] as List<dynamic>?)?.cast<String>(),
+      estimatedPomodoros: json['estimatedPomodoros'] as int?,
+      completedPomodoros: json['completedPomodoros'] as int?,
+      category: json['category'] as String?,
+      isPomodoroActive: json['isPomodoroActive'] as bool? ?? false,
+      remainingPomodoroSeconds: json['remainingPomodoroSeconds'] as int?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'note': note,
+      'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
+      'priority': priority,
+      'project': project,
+      'tags': tags,
+      'estimatedPomodoros': estimatedPomodoros,
+      'completedPomodoros': completedPomodoros,
+      'category': category,
+      'isPomodoroActive': isPomodoroActive,
+      'remainingPomodoroSeconds': remainingPomodoroSeconds,
+    };
+  }
+
   Task copyWith({
     int? id,
     String? title,
@@ -57,7 +100,9 @@ class Task {
     List<String>? tags,
     int? estimatedPomodoros,
     int? completedPomodoros,
-    String? category, // Thêm trường category để hỗ trợ phân loại task
+    String? category,
+    bool? isPomodoroActive,
+    int? remainingPomodoroSeconds,
   }) {
     return Task(
       id: id ?? this.id,
@@ -70,6 +115,8 @@ class Task {
       estimatedPomodoros: estimatedPomodoros ?? this.estimatedPomodoros,
       completedPomodoros: completedPomodoros ?? this.completedPomodoros,
       category: category ?? this.category,
+      isPomodoroActive: isPomodoroActive ?? this.isPomodoroActive,
+      remainingPomodoroSeconds: remainingPomodoroSeconds ?? this.remainingPomodoroSeconds,
     );
   }
 }
