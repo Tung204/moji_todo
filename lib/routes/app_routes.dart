@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:moji_todo/features/splash/presentation/splash_screen.dart';
-import 'package:moji_todo/features/home/presentation/home_screen.dart';
-import 'package:moji_todo/features/auth/presentation/login_screen.dart';
-import 'package:moji_todo/features/auth/presentation/register_screen.dart';
-import 'package:moji_todo/features/auth/presentation/forgot_password_screen.dart';
-import 'package:moji_todo/features/pomodoro/presentation/pomodoro_screen.dart';
-import 'package:moji_todo/features/tasks/presentation/task_manage_screen.dart';
+import '../features/splash/presentation/splash_screen.dart';
+import '../features/home/presentation/home_screen.dart';
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/register_screen.dart';
+import '../features/auth/presentation/forgot_password_screen.dart';
+import '../features/tasks/presentation/task_manage_screen.dart';
+import '../features/calendar/presentation/calendar_screen.dart';
+import '../features/report/presentation/report_screen.dart';
+import '../features/settings/presentation/settings_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -18,41 +20,77 @@ class AppRoutes {
   static const String calendar = '/calendar';
   static const String report = '/report';
   static const String settings = '/settings';
+  static const String profile = '/profile';
+  static const String pomodoroPreferences = '/pomodoro-preferences';
+  static const String dateTime = '/date-time';
+  static const String notifications = '/notifications';
+  static const String accountSecurity = '/account-security';
+  static const String appAppearance = '/app-appearance';
+  static const String helpSupport = '/help-support';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
-      case splash:
+      case AppRoutes.splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
-      case home:
+      case AppRoutes.home:
+      case AppRoutes.pomodoro:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
-      case login:
+      case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
-      case register:
+      case AppRoutes.register:
         return MaterialPageRoute(builder: (_) => const RegisterScreen());
-      case forgotPassword:
+      case AppRoutes.forgotPassword:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
-      // case pomodoro:
-      //   return MaterialPageRoute(builder: (_) => const PomodoroScreen());
-      case tasks:
+      case AppRoutes.tasks:
         return MaterialPageRoute(builder: (_) => const TaskManageScreen());
-      case calendar:
+      case AppRoutes.settings:
+        return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case AppRoutes.profile:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
-            body: Center(child: Text('Calendar Screen')),
+            body: Center(child: Text('My Profile Screen')),
           ),
         );
-      case report:
+      case AppRoutes.pomodoroPreferences:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
-            body: Center(child: Text('Report Screen')),
+            body: Center(child: Text('Pomodoro Preferences Screen')),
           ),
         );
-      // case settings:
-      //   return MaterialPageRoute(
-      //     builder: (_) => const Scaffold(
-      //       body: Center(child: Text('Settings Screen')),
-      //     ),
-      //   );
+      case AppRoutes.dateTime:
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Date & Time Screen')),
+          ),
+        );
+      case AppRoutes.notifications:
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Notifications Screen')),
+          ),
+        );
+      case AppRoutes.accountSecurity:
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Account & Security Screen')),
+          ),
+        );
+      case AppRoutes.appAppearance:
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('App Appearance Screen')),
+          ),
+        );
+      case AppRoutes.helpSupport:
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Help & Support Screen')),
+          ),
+        );
+      case AppRoutes.calendar:
+        return MaterialPageRoute(builder: (_) => const CalendarScreen());
+      case AppRoutes.report:
+        return MaterialPageRoute(builder: (_) => const ReportScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

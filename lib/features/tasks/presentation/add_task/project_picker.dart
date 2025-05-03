@@ -133,6 +133,7 @@ class _ProjectPickerState extends State<ProjectPicker> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

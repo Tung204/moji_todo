@@ -20,6 +20,7 @@ class TaskManageScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
+            automaticallyImplyLeading: false, // Bỏ nút back
             title: ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
                 colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
@@ -47,7 +48,6 @@ class TaskManageScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Categories
                     Wrap(
                       spacing: 16,
                       runSpacing: 16,
@@ -91,7 +91,6 @@ class TaskManageScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    // Projects
                     const Text(
                       'Projects',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -140,7 +139,6 @@ class TaskManageScreen extends StatelessWidget {
                               leading: const Icon(Icons.work),
                               title: const Text('Project'),
                               onTap: () {
-                                // Logic thêm project
                                 Navigator.pop(context);
                               },
                             ),
@@ -148,7 +146,6 @@ class TaskManageScreen extends StatelessWidget {
                               leading: const Icon(Icons.label),
                               title: const Text('Tags'),
                               onTap: () {
-                                // Logic thêm tags
                                 Navigator.pop(context);
                               },
                             ),
@@ -164,14 +161,13 @@ class TaskManageScreen extends StatelessWidget {
             ],
           ),
           bottomNavigationBar: CustomBottomNavBar(
-            currentIndex: 1, // "Manage" tab
+            currentIndex: 1,
             onTap: (index) {
+              if (index == 1) return; // Đã ở màn hình Manage, không làm gì
+
               switch (index) {
                 case 0:
                   Navigator.pushReplacementNamed(context, AppRoutes.pomodoro);
-                  break;
-                case 1:
-                // Đã ở màn hình Manage
                   break;
                 case 2:
                   Navigator.pushReplacementNamed(context, AppRoutes.calendar);
