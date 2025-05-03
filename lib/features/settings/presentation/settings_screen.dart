@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
+import '../../../core/widgets/custom_app_bar.dart'; // Import CustomAppBar
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/navigation/navigation_manager.dart'; // Import NavigationManager
 import '../domain/settings_cubit.dart';
 import '../domain/settings_state.dart';
 
@@ -10,23 +12,14 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Đặt currentIndex cho Settings
+    NavigationManager.currentIndex = 5;
+
     return BlocProvider(
       create: (context) => SettingsCubit(),
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          title: const Text(
-            'Settings',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-        ),
+        appBar: const CustomAppBar(),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ListView(
@@ -145,27 +138,7 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: 4,
-          onTap: (index) {
-            if (index == 4) return;
-
-            switch (index) {
-              case 0:
-                Navigator.pushReplacementNamed(context, AppRoutes.pomodoro);
-                break;
-              case 1:
-                Navigator.pushReplacementNamed(context, AppRoutes.tasks);
-                break;
-              case 2:
-                Navigator.pushReplacementNamed(context, AppRoutes.calendar);
-                break;
-              case 3:
-                Navigator.pushReplacementNamed(context, AppRoutes.report);
-                break;
-            }
-          },
-        ),
+        bottomNavigationBar: const CustomBottomNavBar(),
       ),
     );
   }

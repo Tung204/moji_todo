@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../../../core/services/gemini_service.dart';
 import '../data/models/task_model.dart';
 import '../data/task_repository.dart';
 
@@ -7,21 +9,49 @@ part 'task_state.dart';
 
 class TaskCubit extends Cubit<TaskState> {
   final TaskRepository repository;
+  final GeminiService _geminiService = GeminiService();
 
   TaskCubit(this.repository) : super(const TaskState()) {
     loadTasks();
   }
-
   Future<void> loadTasks() async {
     final tasks = await repository.getTasks();
     emit(state.copyWith(tasks: tasks));
   }
 
   Future<void> addTask(Task task) async {
+    // Phân loại task bằng Gemini
+    final category = await _geminiService.classifyTask(task.title ?? '');
+    task = task.copyWith(category: category);
     await repository.addTask(task);
     await loadTasks();
   }
+  // Sắp xếp task theo ưu tiên
+  void sortTasksByPriority() async {
+    final sortedTasks = List<Task>.from(state.tasks);
+    sortedTasks.sort((a, b) => _priorityValue(a.priority).compareTo(_priorityValue(b.priority)));
+    emit(state.copyWith(tasks: sortedTasks));
+  }
+  Future<void> searchTasks(String query) async {
+    final allTasks = await repository.getTasks();
+    final geminiService = GeminiService();
+    final filteredTasks = <Task>[];
 
+    for (var task in allTasks) {
+      final prompt = '''
+      Kiểm tra xem task sau có phù hợp với query không:
+      - Task title: "${task.title}"
+      - Query: "$query"
+      Trả về true/false.
+      ''';
+      final response = await geminiService.generateContent([Content.text(prompt)]);
+      if (response.text?.trim().toLowerCase() == 'true') {
+        filteredTasks.add(task);
+      }
+    }
+
+    emit(state.copyWith(tasks: filteredTasks));
+  }
   Future<void> updateTask(Task task) async {
     await repository.updateTask(task);
     await loadTasks();

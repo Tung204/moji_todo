@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../features/ai_chat/presentation/ai_chat_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
@@ -27,6 +28,7 @@ class AppRoutes {
   static const String accountSecurity = '/account-security';
   static const String appAppearance = '/app-appearance';
   static const String helpSupport = '/help-support';
+  static const String aiChat = '/ai-chat';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -45,6 +47,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const TaskManageScreen());
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case aiChat:
+        return MaterialPageRoute(builder: (_) => const AIChatScreen());
       case AppRoutes.profile:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

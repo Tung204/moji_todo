@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
 
 class CalendarScreen extends StatelessWidget {
@@ -7,45 +10,37 @@ class CalendarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    NavigationManager.currentIndex = 2;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false, // Bỏ nút back
-        title: const Text(
-          'Calendar',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+      appBar: const CustomAppBar(),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TableCalendar(
+              firstDay: DateTime.utc(2023, 1, 1),
+              lastDay: DateTime.utc(2025, 12, 31),
+              focusedDay: DateTime.now(),
+              calendarFormat: CalendarFormat.month,
+              selectedDayPredicate: (day) {
+                return isSameDay(DateTime.now(), day);
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                // Xử lý khi người dùng chọn ngày
+              },
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Nhiệm vụ trong ngày',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            // Hiển thị danh sách nhiệm vụ tại đây
+          ],
         ),
       ),
-      body: const Center(
-        child: Text('Calendar Screen'),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 2) return; // Đã ở màn hình Calendar, không làm gì
-
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, AppRoutes.pomodoro);
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, AppRoutes.tasks);
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, AppRoutes.report);
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, AppRoutes.settings);
-              break;
-          }
-        },
-      ),
+      bottomNavigationBar: const CustomBottomNavBar(),
     );
   }
 }
