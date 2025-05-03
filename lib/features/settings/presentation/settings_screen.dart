@@ -3,14 +3,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/navigation/navigation_manager.dart';
 import '../domain/settings_cubit.dart';
 import '../domain/settings_state.dart';
+import '../../../core/services/backup_service.dart';
+import 'package:moji_todo/features/tasks/data/models/task_model.dart';
+import 'package:hive/hive.dart';
+import 'backup_sync_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final backupService = BackupService(Hive.box<Task>('tasks'));
+
     return BlocProvider(
       create: (context) => SettingsCubit(),
       child: Scaffold(
@@ -74,6 +81,19 @@ class SettingsScreen extends StatelessWidget {
                 title: 'Help & Support',
                 onTap: () {
                   Navigator.pushNamed(context, AppRoutes.helpSupport);
+                },
+              ),
+              _buildSettingItem(
+                context,
+                icon: Icons.cloud_sync,
+                title: 'Backup & Sync',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BackupSyncScreen(backupService: backupService),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 16),

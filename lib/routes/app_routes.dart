@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import '../core/services/backup_service.dart';
 import '../features/ai_chat/presentation/ai_chat_screen.dart';
+import '../features/settings/presentation/backup_sync_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
+import '../features/tasks/data/models/task_model.dart';
 import '../features/tasks/presentation/task_manage_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
 import '../features/report/presentation/report_screen.dart';
@@ -29,6 +33,7 @@ class AppRoutes {
   static const String appAppearance = '/app-appearance';
   static const String helpSupport = '/help-support';
   static const String aiChat = '/ai-chat';
+  static const String backupSync = '/backup-sync'; // Thêm route mới
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -49,6 +54,12 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
       case aiChat:
         return MaterialPageRoute(builder: (_) => const AIChatScreen());
+      case backupSync:
+        return MaterialPageRoute(
+          builder: (_) => BackupSyncScreen(
+            backupService: BackupService(Hive.box<Task>('tasks')),
+          ),
+        );
       case AppRoutes.profile:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
