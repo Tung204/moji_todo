@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/home_cubit.dart';
 import 'widgets/pomodoro_timer.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/navigation/navigation_manager.dart'; // Import NavigationManager
 import '../../../routes/app_routes.dart';
 import '../../tasks/domain/task_cubit.dart';
 
@@ -14,32 +16,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  void _onNavBarTap(int index) {
-    if (index == _currentIndex) return; // Đã ở màn hình hiện tại, không làm gì
-
-    setState(() {
-      _currentIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-      // Đã ở Home (Pomodoro), không làm gì
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, AppRoutes.tasks);
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, AppRoutes.calendar);
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, AppRoutes.report);
-        break;
-      case 4:
-        Navigator.pushReplacementNamed(context, AppRoutes.settings);
-        break;
-    }
+  @override
+  void initState() {
+    super.initState();
+    // Đặt currentIndex thành 0 (Pomodoro) khi vào HomeScreen
+    NavigationManager.currentIndex = 0;
   }
 
   void _showTaskBottomSheet(BuildContext context) {
@@ -193,30 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
       create: (context) => HomeCubit(),
       child: Scaffold(
         backgroundColor: const Color(0xFFE6F7FA),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          automaticallyImplyLeading: false, // Bỏ nút back
-          title: ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
-            ).createShader(bounds),
-            child: const Text(
-              'Moji-ToDo',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications, color: Colors.grey),
-              onPressed: () {},
-            ),
-          ],
-        ),
+        appBar: const CustomAppBar(),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
@@ -309,10 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: _currentIndex,
-          onTap: _onNavBarTap,
-        ),
+        bottomNavigationBar: const CustomBottomNavBar(),
       ),
     );
   }

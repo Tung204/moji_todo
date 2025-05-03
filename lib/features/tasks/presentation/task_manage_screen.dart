@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/widgets/custom_app_bar.dart'; // Import CustomAppBar
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/navigation/navigation_manager.dart'; // Import NavigationManager
 import '../../../routes/app_routes.dart';
 import '../domain/task_cubit.dart';
 import 'widgets/task_category_card.dart';
@@ -11,36 +13,16 @@ class TaskManageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Đặt currentIndex cho Tasks
+    NavigationManager.currentIndex = 1;
+
     return BlocBuilder<TaskCubit, TaskState>(
       builder: (context, state) {
         final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
         final tasksByProject = context.read<TaskCubit>().getTasksByProject();
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            automaticallyImplyLeading: false, // Bỏ nút back
-            title: ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
-              ).createShader(bounds),
-              child: const Text(
-                'Moji-ToDo',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.grey),
-                onPressed: () {},
-              ),
-            ],
-          ),
+          appBar: const CustomAppBar(),
           body: Stack(
             children: [
               SingleChildScrollView(
@@ -160,27 +142,7 @@ class TaskManageScreen extends StatelessWidget {
               ),
             ],
           ),
-          bottomNavigationBar: CustomBottomNavBar(
-            currentIndex: 1,
-            onTap: (index) {
-              if (index == 1) return; // Đã ở màn hình Manage, không làm gì
-
-              switch (index) {
-                case 0:
-                  Navigator.pushReplacementNamed(context, AppRoutes.pomodoro);
-                  break;
-                case 2:
-                  Navigator.pushReplacementNamed(context, AppRoutes.calendar);
-                  break;
-                case 3:
-                  Navigator.pushReplacementNamed(context, AppRoutes.report);
-                  break;
-                case 4:
-                  Navigator.pushReplacementNamed(context, AppRoutes.settings);
-                  break;
-              }
-            },
-          ),
+          bottomNavigationBar: const CustomBottomNavBar(),
         );
       },
     );

@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../routes/app_routes.dart';
+import '../navigation/navigation_manager.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
-  final int currentIndex;
-  final Function(int) onTap;
-
-  const CustomBottomNavBar({
-    super.key,
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const CustomBottomNavBar({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: onTap,
-      selectedItemColor: Colors.red,
+      currentIndex: NavigationManager.currentIndex,
+      onTap: (index) {
+        NavigationManager.navigate(context, index);
+      },
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: const Color(0xFF00C4FF),
       unselectedItemColor: Colors.grey,
       items: const [
         BottomNavigationBarItem(
@@ -25,7 +21,7 @@ class CustomBottomNavBar extends StatelessWidget {
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.list),
-          label: 'Manage',
+          label: 'Tasks',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.calendar_today),
@@ -34,6 +30,10 @@ class CustomBottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.bar_chart),
           label: 'Report',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat),
+          label: 'Chat',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.settings),

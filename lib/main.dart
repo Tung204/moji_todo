@@ -9,11 +9,14 @@ import 'package:moji_todo/features/tasks/data/task_repository.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:moji_todo/features/tasks/domain/task_cubit.dart';
 import 'package:moji_todo/routes/app_routes.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
+  await dotenv.load(fileName: ".env");
   // Khởi tạo Hive
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());

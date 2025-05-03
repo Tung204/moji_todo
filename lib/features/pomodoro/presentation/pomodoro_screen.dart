@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/custom_app_bar.dart'; // Import CustomAppBar
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/navigation/navigation_manager.dart'; // Import NavigationManager
 import '../../../routes/app_routes.dart';
 
 class PomodoroScreen extends StatelessWidget {
@@ -7,45 +9,15 @@ class PomodoroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Đặt currentIndex cho Pomodoro
+    NavigationManager.currentIndex = 0;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Pomodoro',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-      ),
+      appBar: const CustomAppBar(),
       body: const Center(
         child: Text('Pomodoro Screen'),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 0) return; // Đã ở màn hình Pomodoro, không làm gì
-
-          switch (index) {
-            case 1:
-              Navigator.pushReplacementNamed(context, AppRoutes.tasks);
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, AppRoutes.calendar);
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, AppRoutes.report);
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, AppRoutes.settings);
-              break;
-            default:
-              Navigator.pushReplacementNamed(context, AppRoutes.home);
-          }
-        },
-      ),
+      bottomNavigationBar: const CustomBottomNavBar(),
     );
   }
 }

@@ -12,7 +12,28 @@
           "package_name": "com.example.moji_todo"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "509019948756-8h3ga486eqdncgp8iu8c612m6uhms0f7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.moji_todo",
+            "certificate_hash": "f7bc05d1bddd9cda22381292736d12b54ea7ef79"
+          }
+        },
+        {
+          "client_id": "509019948756-pa935ppkktirqjv8hc612sk78qnf6tsv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.moji_todo",
+            "certificate_hash": "b8c6b78d77a676b5353f5e24f25e08d02a81fc5b"
+          }
+        },
+        {
+          "client_id": "509019948756-ln9cdhclk5d2t7ak47d1itmd827he6ke.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBa59_tRROkxCnYJnk7uzy6zbQBG1POqfY"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "509019948756-ln9cdhclk5d2t7ak47d1itmd827he6ke.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "509019948756-op6jkchvvkf1v4cdrea5gbogupefq7qj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.mojiTodo"
+              }
+            }
+          ]
         }
       }
     }

@@ -26,13 +26,14 @@ class TaskAdapter extends TypeAdapter<Task> {
       tags: (fields[6] as List?)?.cast<String>(),
       estimatedPomodoros: fields[7] as int?,
       completedPomodoros: fields[8] as int?,
+      category: fields[9] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(7)
       ..write(obj.estimatedPomodoros)
       ..writeByte(8)
-      ..write(obj.completedPomodoros);
+      ..write(obj.completedPomodoros)
+      ..writeByte(9)
+      ..write(obj.category);
   }
 
   @override
