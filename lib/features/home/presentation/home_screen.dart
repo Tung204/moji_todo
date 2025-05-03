@@ -17,12 +17,15 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
   void _onNavBarTap(int index) {
+    if (index == _currentIndex) return; // Đã ở màn hình hiện tại, không làm gì
+
     setState(() {
       _currentIndex = index;
     });
+
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, AppRoutes.pomodoro);
+      // Đã ở Home (Pomodoro), không làm gì
         break;
       case 1:
         Navigator.pushReplacementNamed(context, AppRoutes.tasks);
@@ -52,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -66,14 +68,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   IconButton(
                     icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
                     onPressed: () {
-                      // Logic để thêm task mới
                       Navigator.pushNamed(context, AppRoutes.tasks);
                     },
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              // Search Bar
               TextField(
                 decoration: InputDecoration(
                   hintText: 'Search task...',
@@ -87,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Task List
               BlocBuilder<TaskCubit, TaskState>(
                 builder: (context, state) {
                   return Column(
@@ -106,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Row(
                             children: [
-                              // Circle Icon
                               Container(
                                 width: 24,
                                 height: 24,
@@ -116,7 +114,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              // Task Details
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,12 +164,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                               ),
-                              // Play Button
                               IconButton(
                                 icon: const Icon(Icons.play_circle_fill, color: Color(0xFFFF5733)),
                                 onPressed: () {
                                   context.read<HomeCubit>().selectTask(task.title ?? 'Untitled Task');
-                                  Navigator.pop(context); // Đóng bottom sheet
+                                  Navigator.pop(context);
                                 },
                               ),
                             ],
@@ -200,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          automaticallyImplyLeading: false, // Bỏ nút back
           title: ShaderMask(
             shaderCallback: (bounds) => const LinearGradient(
               colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
@@ -225,7 +222,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Task Selection
               GestureDetector(
                 onTap: () => _showTaskBottomSheet(context),
                 child: Container(
@@ -248,7 +244,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              // Pomodoro Timer
               BlocBuilder<HomeCubit, HomeState>(
                 builder: (context, state) {
                   return Column(
@@ -270,7 +265,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               const SizedBox(height: 40),
-              // Options
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
