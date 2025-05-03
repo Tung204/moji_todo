@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
-import '../../../core/navigation/navigation_manager.dart';
 import '../domain/settings_cubit.dart';
 import '../domain/settings_state.dart';
 
@@ -12,13 +11,11 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    NavigationManager.currentIndex = 5;
-
     return BlocProvider(
       create: (context) => SettingsCubit(),
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: const CustomAppBar(),
+        appBar: const CustomAppBar(showBackButton: true),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ListView(
