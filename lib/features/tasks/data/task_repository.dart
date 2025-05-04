@@ -13,25 +13,31 @@ class TaskRepository {
   }
 
   Future<void> addTask(Task task) async {
-    final newId = taskBox.isEmpty ? 1 : taskBox.values.last.id! + 1;
-    task = task..id = newId;
+    final newId = taskBox.isEmpty ? 1 : (taskBox.values.last.id ?? 0) + 1;
+    task = task.copyWith(id: newId);
     await taskBox.put(newId, task);
-    await firestore.collection('tasks').add(task.toJson());
+    await firestore.collection('tasks').doc(newId.toString()).set(task.toJson());
   }
 
   Future<void> updateTask(Task task) async {
-    if (task.id != null) {
-      await taskBox.put(task.id!, task);
-      final query = await firestore.collection('tasks').where('id', isEqualTo: task.id).get();
-      if (query.docs.isNotEmpty) {
-        await query.docs.first.reference.update(task.toJson());
-      }
+    if (task.id == null) {
+      throw Exception('Task ID cannot be null');
+    }
+    await taskBox.put(task.id!, task);
+    final query = await firestore.collection('tasks').where('id', isEqualTo: task.id).get();
+    if (query.docs.isNotEmpty) {
+      await query.docs.first.reference.update(task.toJson());
+    } else {
+      await firestore.collection('tasks').doc(task.id.toString()).set(task.toJson());
     }
   }
 
-  Future<void> deleteTask(int id) async {
-    await taskBox.delete(id);
-    final query = await firestore.collection('tasks').where('id', isEqualTo: id).get();
+  Future<void> deleteTask(Task task) async {
+    if (task.id == null) {
+      throw Exception('Task ID cannot be null');
+    }
+    await taskBox.delete(task.id);
+    final query = await firestore.collection('tasks').where('id', isEqualTo: task.id).get();
     if (query.docs.isNotEmpty) {
       await query.docs.first.reference.delete();
     }
@@ -50,6 +56,11 @@ extension TaskExtension on Task {
       'tags': tags,
       'estimatedPomodoros': estimatedPomodoros,
       'completedPomodoros': completedPomodoros,
+      'category': category,
+      'isPomodoroActive': isPomodoroActive,
+      'remainingPomodoroSeconds': remainingPomodoroSeconds,
+      'isCompleted': isCompleted,
+      'subtasks': subtasks,
     };
   }
 }

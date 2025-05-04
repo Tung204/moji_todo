@@ -41,7 +41,7 @@ class PomodoroTimer extends StatelessWidget {
               height: 300,
               child: CircularProgressIndicator(
                 value: progress,
-                strokeWidth: 25,
+                strokeWidth: 20,
                 backgroundColor: Colors.grey[300],
                 valueColor: AlwaysStoppedAnimation<Color>(
                   isRunning ? Colors.blue : Colors.red,

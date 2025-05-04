@@ -41,6 +41,12 @@ class Task {
   @HiveField(11)
   int? remainingPomodoroSeconds;
 
+  @HiveField(12)
+  bool? isCompleted;
+
+  @HiveField(13)
+  List<Map<String, dynamic>>? subtasks;
+
   Task({
     this.id,
     this.title,
@@ -54,6 +60,8 @@ class Task {
     this.category,
     this.isPomodoroActive = false,
     this.remainingPomodoroSeconds,
+    this.isCompleted = false,
+    this.subtasks,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -70,6 +78,8 @@ class Task {
       category: json['category'] as String?,
       isPomodoroActive: json['isPomodoroActive'] as bool? ?? false,
       remainingPomodoroSeconds: json['remainingPomodoroSeconds'] as int?,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      subtasks: (json['subtasks'] as List<dynamic>?)?.cast<Map<String, dynamic>>(),
     );
   }
 
@@ -87,6 +97,8 @@ class Task {
       'category': category,
       'isPomodoroActive': isPomodoroActive,
       'remainingPomodoroSeconds': remainingPomodoroSeconds,
+      'isCompleted': isCompleted,
+      'subtasks': subtasks,
     };
   }
 
@@ -103,6 +115,8 @@ class Task {
     String? category,
     bool? isPomodoroActive,
     int? remainingPomodoroSeconds,
+    bool? isCompleted,
+    List<Map<String, dynamic>>? subtasks,
   }) {
     return Task(
       id: id ?? this.id,
@@ -117,6 +131,8 @@ class Task {
       category: category ?? this.category,
       isPomodoroActive: isPomodoroActive ?? this.isPomodoroActive,
       remainingPomodoroSeconds: remainingPomodoroSeconds ?? this.remainingPomodoroSeconds,
+      isCompleted: isCompleted ?? this.isCompleted,
+      subtasks: subtasks ?? this.subtasks,
     );
   }
 }

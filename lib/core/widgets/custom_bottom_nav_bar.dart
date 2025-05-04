@@ -12,7 +12,7 @@ class CustomBottomNavBar extends StatelessWidget {
         NavigationManager.navigate(context, index);
       },
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: const Color(0xFF00C4FF),
+      selectedItemColor: const Color(0xFF010870),
       unselectedItemColor: Colors.grey,
       items: const [
         BottomNavigationBarItem(

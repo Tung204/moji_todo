@@ -14,24 +14,25 @@ class TaskCubit extends Cubit<TaskState> {
   TaskCubit(this.repository) : super(const TaskState()) {
     loadTasks();
   }
+
   Future<void> loadTasks() async {
     final tasks = await repository.getTasks();
     emit(state.copyWith(tasks: tasks));
   }
 
   Future<void> addTask(Task task) async {
-    // Phân loại task bằng Gemini
     final category = await _geminiService.classifyTask(task.title ?? '');
     task = task.copyWith(category: category);
     await repository.addTask(task);
     await loadTasks();
   }
-  // Sắp xếp task theo ưu tiên
+
   void sortTasksByPriority() async {
     final sortedTasks = List<Task>.from(state.tasks);
     sortedTasks.sort((a, b) => _priorityValue(a.priority).compareTo(_priorityValue(b.priority)));
     emit(state.copyWith(tasks: sortedTasks));
   }
+
   Future<void> searchTasks(String query) async {
     final allTasks = await repository.getTasks();
     final geminiService = GeminiService();
@@ -52,13 +53,14 @@ class TaskCubit extends Cubit<TaskState> {
 
     emit(state.copyWith(tasks: filteredTasks));
   }
+
   Future<void> updateTask(Task task) async {
     await repository.updateTask(task);
     await loadTasks();
   }
 
-  Future<void> deleteTask(int id) async {
-    await repository.deleteTask(id);
+  Future<void> deleteTask(Task task) async {
+    await repository.deleteTask(task);
     await loadTasks();
   }
 
@@ -85,7 +87,6 @@ class TaskCubit extends Cubit<TaskState> {
     }
   }
 
-  // Phân loại task theo danh mục
   Map<String, List<Task>> getCategorizedTasks() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -102,30 +103,29 @@ class TaskCubit extends Cubit<TaskState> {
     };
 
     for (var task in state.tasks) {
-      if (task.dueDate == null) {
-        categorizedTasks['Planned']!.add(task);
-      } else {
-        final dueDate = task.dueDate!;
-        if (dueDate.year == today.year &&
-            dueDate.month == today.month &&
-            dueDate.day == today.day) {
+      if (task.isCompleted == true) {
+        categorizedTasks['Completed']!.add(task);
+      } else if (task.category == 'Trash') {
+        categorizedTasks['Trash']!.add(task);
+      } else if (task.dueDate != null) {
+        final dueDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+        if (dueDate.isAtSameMomentAs(today)) {
           categorizedTasks['Today']!.add(task);
-        } else if (dueDate.year == tomorrow.year &&
-            dueDate.month == tomorrow.month &&
-            dueDate.day == tomorrow.day) {
+        } else if (dueDate.isAtSameMomentAs(tomorrow)) {
           categorizedTasks['Tomorrow']!.add(task);
         } else if (dueDate.isAfter(today) && dueDate.isBefore(thisWeekEnd)) {
           categorizedTasks['This Week']!.add(task);
-        } else if (dueDate.isAfter(thisWeekEnd)) {
+        } else {
           categorizedTasks['Planned']!.add(task);
         }
+      } else {
+        categorizedTasks['Planned']!.add(task);
       }
     }
 
     return categorizedTasks;
   }
 
-  // Phân loại task theo project
   Map<String, List<Task>> getTasksByProject() {
     final Map<String, List<Task>> tasksByProject = {};
 
@@ -140,7 +140,6 @@ class TaskCubit extends Cubit<TaskState> {
     return tasksByProject;
   }
 
-  // Tính tổng thời gian của một danh sách task (giả sử 1 Pomodoro = 25 phút)
   String calculateTotalTime(List<Task> tasks) {
     int totalPomodoros = 0;
     for (var task in tasks) {
@@ -149,6 +148,17 @@ class TaskCubit extends Cubit<TaskState> {
     int totalMinutes = totalPomodoros * 25;
     int hours = totalMinutes ~/ 60;
     int minutes = totalMinutes % 60;
-    return '${hours}h ${minutes}m';
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+  }
+
+  String calculateElapsedTime(List<Task> tasks) {
+    int elapsedPomodoros = 0;
+    for (var task in tasks) {
+      elapsedPomodoros += task.completedPomodoros ?? 0;
+    }
+    int totalMinutes = elapsedPomodoros * 25;
+    int hours = totalMinutes ~/ 60;
+    int minutes = totalMinutes % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
   }
 }
