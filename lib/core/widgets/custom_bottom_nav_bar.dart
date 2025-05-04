@@ -20,7 +20,7 @@ class CustomBottomNavBar extends StatelessWidget {
           label: 'Pomodoro',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.list),
+          icon: Icon(Icons.widgets),
           label: 'Tasks',
         ),
         BottomNavigationBarItem(
@@ -32,7 +32,7 @@ class CustomBottomNavBar extends StatelessWidget {
           label: 'Report',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.chat),
+          icon: Icon(Icons.auto_awesome),
           label: 'Chat',
         ),
       ],

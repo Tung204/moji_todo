@@ -7,7 +7,6 @@ class GeminiService {
 
   GeminiService() {
     final apiKey = dotenv.env['GEMINI_API_KEY'];
-    print('GEMINI_API_KEY: $apiKey'); // Log để kiểm tra
     if (apiKey == null) throw Exception('Gemini API Key không tìm thấy');
     _model = GenerativeModel(
       model: 'gemini-1.5-flash',
@@ -20,7 +19,11 @@ class GeminiService {
   }
 
   Future<GenerateContentResponse> generateContent(List<Content> content) async {
-    return await _model.generateContent(content);
+    try {
+      return await _model.generateContent(content);
+    } catch (e) {
+      throw Exception('Failed to generate content from Gemini API: $e');
+    }
   }
 
   // Phân tích câu lệnh người dùng để tạo task hoặc lịch trình
@@ -38,24 +41,25 @@ class GeminiService {
     Trả về chỉ JSON, không thêm ký tự Markdown như ```json hoặc các ký tự thừa.
     ''';
 
-    final response = await _model.generateContent([Content.text(prompt)]);
-    final rawText = response.text?.trim() ?? '{}';
-
-    // Xử lý phản hồi để loại bỏ Markdown (nếu có)
-    String jsonString = rawText;
-    if (jsonString.startsWith('```json')) {
-      jsonString = jsonString.replaceFirst('```json', '').trim();
-    }
-    if (jsonString.endsWith('```')) {
-      jsonString = jsonString.substring(0, jsonString.length - 3).trim();
-    }
-
+    String? rawText;
     try {
+      final response = await _model.generateContent([Content.text(prompt)]);
+      rawText = response.text?.trim() ?? '{}';
+
+      // Xử lý phản hồi để loại bỏ Markdown (nếu có)
+      String jsonString = rawText;
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replaceFirst('```json', '').trim();
+      }
+      if (jsonString.endsWith('```')) {
+        jsonString = jsonString.substring(0, jsonString.length - 3).trim();
+      }
+
       return jsonDecode(jsonString) as Map<String, dynamic>;
     } catch (e) {
-      print('Lỗi phân tích JSON từ Gemini API: $e');
-      print('Phản hồi gốc: $rawText');
-      return {'error': 'Không thể phân tích phản hồi từ Gemini API'};
+      print('Error parsing command from Gemini API: $e');
+      print('Raw response: $rawText');
+      return {'error': 'Không thể phân tích câu lệnh từ Gemini API'};
     }
   }
 
@@ -67,23 +71,24 @@ class GeminiService {
     Trả về dưới dạng danh sách các chuỗi, không thêm ký tự Markdown.
     ''';
 
-    final response = await _model.generateContent([Content.text(prompt)]);
-    final rawText = response.text?.trim() ?? '[]';
-
-    // Xử lý phản hồi để loại bỏ Markdown (nếu có)
-    String jsonString = rawText;
-    if (jsonString.startsWith('```json')) {
-      jsonString = jsonString.replaceFirst('```json', '').trim();
-    }
-    if (jsonString.endsWith('```')) {
-      jsonString = jsonString.substring(0, jsonString.length - 3).trim();
-    }
-
+    String? rawText;
     try {
+      final response = await _model.generateContent([Content.text(prompt)]);
+      rawText = response.text?.trim() ?? '[]';
+
+      // Xử lý phản hồi để loại bỏ Markdown (nếu có)
+      String jsonString = rawText;
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString.replaceFirst('```json', '').trim();
+      }
+      if (jsonString.endsWith('```')) {
+        jsonString = jsonString.substring(0, jsonString.length - 3).trim();
+      }
+
       return List<String>.from(jsonDecode(jsonString));
     } catch (e) {
-      print('Lỗi phân tích JSON từ Gemini API (getSmartSuggestions): $e');
-      print('Phản hồi gốc: $rawText');
+      print('Error getting suggestions from Gemini API: $e');
+      print('Raw response: $rawText');
       return [];
     }
   }
@@ -97,7 +102,15 @@ class GeminiService {
     Trả về tên danh mục, không thêm ký tự Markdown.
     ''';
 
-    final response = await _model.generateContent([Content.text(prompt)]);
-    return response.text?.trim() ?? 'Planned';
+    String? rawText;
+    try {
+      final response = await _model.generateContent([Content.text(prompt)]);
+      rawText = response.text?.trim() ?? 'Planned';
+      return rawText;
+    } catch (e) {
+      print('Error classifying task from Gemini API: $e');
+      print('Raw response: $rawText');
+      return 'Planned';
+    }
   }
 }

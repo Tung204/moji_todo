@@ -25,6 +25,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final TextEditingController _controller = TextEditingController();
   List<String> _suggestions = [];
   final GeminiService _geminiService = GeminiService();
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -34,7 +35,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     NavigationManager.currentIndex = 4;
     _messages.add({
       'role': 'assistant',
-      'content': 'Chào bạn! Mình là trợ lý AI. Bạn có thể nói hoặc nhập câu lệnh như:\n- Làm bài tập toán 25 phút 5 phút nghỉ\n- Ngày mai đi chợ 6 sáng\n- Họp nhóm lúc 3h',
+      'content': 'Xin chào! Mình là trợ lý AI. Bạn có thể nói hoặc nhập câu lệnh như:\n- Làm bài tập toán 25 phút 5 phút nghỉ\n- Ngày mai đi chợ 6 sáng\n- Họp nhóm lúc 3h',
     });
   }
 
@@ -56,6 +57,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   Future<void> _handleMessage(String userMessage) async {
     setState(() {
       _messages.add({'role': 'user', 'content': userMessage});
+      _isProcessing = true;
     });
 
     final commandResult = await _geminiService.parseUserCommand(userMessage);
@@ -63,6 +65,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
     if (commandResult.containsKey('error')) {
       response = commandResult['error'] as String;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: $response'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } else {
       final taskCubit = context.read<TaskCubit>();
       if (commandResult['type'] == 'task') {
@@ -76,6 +84,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
         );
         taskCubit.addTask(task);
         response = 'Đã thêm task: ${task.title}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else if (commandResult['type'] == 'schedule') {
         final task = Task(
           title: commandResult['title'],
@@ -93,13 +107,26 @@ class _AIChatScreenState extends State<AIChatScreen> {
           scheduledTime: reminderTime,
         );
         response = 'Đã lên lịch: ${task.title} vào ${task.dueDate}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
         response = 'Không hiểu câu lệnh. Vui lòng thử lại!';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
 
     setState(() {
       _messages.add({'role': 'assistant', 'content': response});
+      _isProcessing = false;
     });
   }
 
@@ -133,19 +160,38 @@ class _AIChatScreenState extends State<AIChatScreen> {
               },
             ),
           ),
+          if (_isProcessing)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(),
+            ),
           if (_suggestions.isNotEmpty)
             SizedBox(
               height: 50,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: _suggestions.length,
+                itemCount: _suggestions.length + 1,
                 itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: ActionChip(
+                        label: const Text('Làm mới gợi ý'),
+                        onPressed: () {
+                          setState(() {
+                            _suggestions = [];
+                          });
+                          _loadSuggestions(); // Loại bỏ await
+                        },
+                      ),
+                    );
+                  }
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 5),
                     child: ActionChip(
-                      label: Text(_suggestions[index]),
+                      label: Text(_suggestions[index - 1]),
                       onPressed: () async {
-                        await _handleMessage(_suggestions[index]);
+                        await _handleMessage(_suggestions[index - 1]);
                       },
                     ),
                   );
