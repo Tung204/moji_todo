@@ -7,7 +7,8 @@ class TaskCategoryCard extends StatelessWidget {
   final Color borderColor;
   final IconData? icon;
   final Color? iconColor;
-  final bool isSimple;
+  final bool showDetails;
+  final bool isCompact; // Thêm tham số để làm gọn ô
   final VoidCallback? onTap;
 
   const TaskCategoryCard({
@@ -18,7 +19,8 @@ class TaskCategoryCard extends StatelessWidget {
     required this.borderColor,
     this.icon,
     this.iconColor,
-    this.isSimple = false,
+    this.showDetails = true,
+    this.isCompact = false, // Mặc định không làm gọn
     this.onTap,
   });
 
@@ -27,22 +29,13 @@ class TaskCategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(isCompact ? 8 : 12), // Padding nhỏ hơn khi isCompact
         decoration: BoxDecoration(
           border: Border.all(color: borderColor, width: 2),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: isSimple
-            ? Center(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        )
-            : Row(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều ngang
           children: [
             if (icon != null)
               Icon(
@@ -52,6 +45,7 @@ class TaskCategoryCard extends StatelessWidget {
             if (icon != null) const SizedBox(width: 8),
             Expanded(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center, // Căn giữa theo chiều dọc
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -61,14 +55,16 @@ class TaskCategoryCard extends StatelessWidget {
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$totalTime ($taskCount)',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  if (showDetails) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '$totalTime ($taskCount)',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

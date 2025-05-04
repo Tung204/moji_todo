@@ -56,7 +56,7 @@ class TaskManageScreen extends StatelessWidget {
                   mainAxisSpacing: spacing,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 2, // Điều chỉnh tỷ lệ để tăng chiều cao, tránh overflow
+                  childAspectRatio: 2,
                   children: [
                     TaskCategoryCard(
                       title: 'Hôm nay',
@@ -100,17 +100,23 @@ class TaskManageScreen extends StatelessWidget {
                     ),
                     TaskCategoryCard(
                       title: 'Đã hoàn thành',
-                      totalTime: context.read<TaskCubit>().calculateTotalTime(categorizedTasks['Completed']!),
-                      taskCount: categorizedTasks['Completed']!.length,
+                      totalTime: '', // Không hiển thị, chỉ để truyền tham số
+                      taskCount: 0, // Không hiển thị, chỉ để truyền tham số
                       borderColor: Colors.green[200]!,
-                      isSimple: true,
+                      icon: Icons.check,
+                      iconColor: Colors.green[200],
+                      showDetails: false,
+                      isCompact: true, // Làm gọn ô
                     ),
                     TaskCategoryCard(
                       title: 'Thùng rác',
-                      totalTime: context.read<TaskCubit>().calculateTotalTime(categorizedTasks['Trash']!),
-                      taskCount: categorizedTasks['Trash']!.length,
+                      totalTime: '', // Không hiển thị, chỉ để truyền tham số
+                      taskCount: 0, // Không hiển thị, chỉ để truyền tham số
                       borderColor: Colors.red,
-                      isSimple: true,
+                      icon: Icons.delete,
+                      iconColor: Colors.red,
+                      showDetails: false,
+                      isCompact: true, // Làm gọn ô
                     ),
                   ],
                 ),
@@ -130,7 +136,7 @@ class TaskManageScreen extends StatelessWidget {
                   mainAxisSpacing: spacing,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 2, // Điều chỉnh tỷ lệ để tăng chiều cao, tránh overflow
+                  childAspectRatio: 2,
                   children: tasksByProject.keys.map((project) {
                     return TaskCategoryCard(
                       title: project,
@@ -142,7 +148,7 @@ class TaskManageScreen extends StatelessWidget {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 72), // Tăng khoảng trống dưới cùng để tránh che nút Add
+                const SizedBox(height: 72),
               ],
             ),
           ),
