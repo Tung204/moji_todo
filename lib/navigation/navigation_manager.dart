@@ -25,9 +25,6 @@ class NavigationManager {
       case 4:
       // Chat tab - cần route tương ứng
         break;
-      case 5:
-        Navigator.pushReplacementNamed(context, AppRoutes.settings);
-        break;
     }
   }
 }

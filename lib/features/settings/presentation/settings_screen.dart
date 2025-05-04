@@ -9,21 +9,20 @@ import '../domain/settings_state.dart';
 import '../../../core/services/backup_service.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:hive/hive.dart';
-import 'backup_sync_screen.dart'; // Import màn hình Backup & Sync
+import 'backup_sync_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    NavigationManager.currentIndex = 5;
     final backupService = BackupService(Hive.box<Task>('tasks'));
 
     return BlocProvider(
       create: (context) => SettingsCubit(),
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: const CustomAppBar(),
+        appBar: const CustomAppBar(showBackButton: true),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ListView(

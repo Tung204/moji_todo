@@ -4,6 +4,7 @@ import '../domain/settings_cubit.dart';
 import '../domain/settings_state.dart';
 import '../../../core/services/backup_service.dart';
 import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/widgets/custom_bottom_nav_bar.dart';
 
 class BackupSyncScreen extends StatelessWidget {
   final BackupService backupService;
@@ -15,7 +16,7 @@ class BackupSyncScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => SettingsCubit(),
       child: Scaffold(
-        appBar: const CustomAppBar(),
+        appBar: const CustomAppBar(showBackButton: true),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ListView(
@@ -224,6 +225,7 @@ class BackupSyncScreen extends StatelessWidget {
             ],
           ),
         ),
+        bottomNavigationBar: const CustomBottomNavBar(),
       ),
     );
   }

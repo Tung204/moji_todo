@@ -4,6 +4,7 @@ import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
 import '../../tasks/domain/task_cubit.dart';
@@ -167,30 +168,7 @@ class HomeScreen extends StatelessWidget {
       create: (context) => HomeCubit(),
       child: Scaffold(
         backgroundColor: const Color(0xFFE6F7FA),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          title: ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFF00C4FF), Color(0xFFFF69B4)],
-            ).createShader(bounds),
-            child: const Text(
-              'Moji-ToDo',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications, color: Colors.grey),
-              onPressed: () {},
-            ),
-          ],
-        ),
+        appBar: const CustomAppBar(),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
@@ -292,7 +270,6 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 50),
             ],
           ),
         ),
