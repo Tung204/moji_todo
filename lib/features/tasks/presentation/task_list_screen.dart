@@ -15,6 +15,35 @@ class TaskListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<TaskCubit, TaskState>(
       builder: (context, state) {
+        // Hiển thị CircularProgressIndicator nếu đang tải
+        if (state.isLoading) {
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.grey),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              title: Text(
+                category == 'Today' ? 'Hôm nay' : category,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            body: const Center(
+              child: CircularProgressIndicator(),
+            ),
+            bottomNavigationBar: const CustomBottomNavBar(),
+          );
+        }
+
         final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
         final tasks = categorizedTasks[category] ?? [];
         final completedTasks = tasks.where((task) => task.isCompleted == true).toList();
@@ -30,9 +59,9 @@ class TaskListScreen extends StatelessWidget {
                 Navigator.pop(context);
               },
             ),
-            title: const Text(
-              'Hôm nay',
-              style: TextStyle(
+            title: Text(
+              category == 'Today' ? 'Hôm nay' : category,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -257,11 +286,16 @@ class TaskListScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView.builder(
+                  child: tasks.isEmpty
+                      ? const Center(child: Text('Không có task nào trong danh mục này.'))
+                      : ListView.builder(
                     itemCount: waitingTasks.length + (completedTasks.isNotEmpty ? 1 : 0) + completedTasks.length,
                     itemBuilder: (context, index) {
                       if (index < waitingTasks.length) {
                         final task = waitingTasks[index];
+                        if (task == null) {
+                          return const SizedBox.shrink();
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: Card(
@@ -269,106 +303,117 @@ class TaskListScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 4.0),
-                                    child: Checkbox(
-                                      value: task.isCompleted ?? false,
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
-                                        }
-                                      },
-                                      shape: const CircleBorder(),
-                                      activeColor: Colors.green,
-                                      checkColor: Colors.white,
-                                      side: const BorderSide(color: Colors.red),
-                                    ),
+                            child: InkWell(
+                              onTap: () {
+                                print('Navigating to TaskDetailScreen with task: ${task.title}, ID: ${task.id}');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TaskDetailScreen(task: task),
                                   ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          task.title ?? 'Task không có tiêu đề',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 4.0),
+                                      child: Checkbox(
+                                        value: task.isCompleted ?? false,
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
+                                          }
+                                        },
+                                        shape: const CircleBorder(),
+                                        activeColor: Colors.green,
+                                        checkColor: Colors.white,
+                                        side: const BorderSide(color: Colors.red),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            task.title ?? 'Task không có tiêu đề',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
+                                            ),
                                           ),
-                                        ),
-                                        if (task.tags != null && task.tags!.isNotEmpty)
+                                          if (task.tags != null && task.tags!.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 4.0),
+                                              child: Wrap(
+                                                spacing: 4,
+                                                runSpacing: 4,
+                                                children: task.tags!
+                                                    .map((tag) => Chip(
+                                                  label: Text(
+                                                    '#$tag',
+                                                    style: const TextStyle(fontSize: 10, color: Colors.blue),
+                                                  ),
+                                                  backgroundColor: Colors.blue[50],
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                  labelPadding: EdgeInsets.zero,
+                                                ))
+                                                    .toList(),
+                                              ),
+                                            ),
                                           Padding(
                                             padding: const EdgeInsets.only(top: 4.0),
                                             child: Wrap(
-                                              spacing: 4,
+                                              spacing: 8,
                                               runSpacing: 4,
-                                              children: task.tags!
-                                                  .map((tag) => Chip(
-                                                label: Text(
-                                                  '#$tag',
-                                                  style: const TextStyle(fontSize: 10, color: Colors.blue),
-                                                ),
-                                                backgroundColor: Colors.blue[50],
-                                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                labelPadding: EdgeInsets.zero,
-                                              ))
-                                                  .toList(),
-                                            ),
-                                          ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 4.0),
-                                          child: Wrap(
-                                            spacing: 8,
-                                            runSpacing: 4,
-                                            children: [
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(Icons.timer, size: 14, color: Colors.grey),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${task.estimatedPomodoros ?? 0}',
-                                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                                  ),
-                                                ],
-                                              ),
-                                              const Icon(Icons.wb_sunny, size: 14, color: Colors.grey),
-                                              const Icon(Icons.nights_stay, size: 14, color: Colors.grey),
-                                              const Icon(Icons.flag, size: 14, color: Colors.grey),
-                                              const Icon(Icons.comment, size: 14, color: Colors.grey),
-                                              if (task.project != null)
+                                              children: [
                                                 Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    const Icon(Icons.bookmark, size: 14, color: Colors.grey),
+                                                    const Icon(Icons.timer, size: 14, color: Colors.grey),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      task.project!,
+                                                      '${task.estimatedPomodoros ?? 0}',
                                                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                                                     ),
                                                   ],
                                                 ),
-                                            ],
+                                                const Icon(Icons.wb_sunny, size: 14, color: Colors.grey),
+                                                const Icon(Icons.nights_stay, size: 14, color: Colors.grey),
+                                                const Icon(Icons.flag, size: 14, color: Colors.grey),
+                                                const Icon(Icons.comment, size: 14, color: Colors.grey),
+                                                if (task.project != null)
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.bookmark, size: 14, color: Colors.grey),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        task.project!,
+                                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                      ),
+                                                    ],
+                                                  ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: IconButton(
-                                      icon: const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
-                                      onPressed: () {
-                                        // Logic bắt đầu Pomodoro cho task
-                                      },
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8.0),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
+                                        onPressed: () {
+                                          // Logic bắt đầu Pomodoro cho task
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -384,6 +429,9 @@ class TaskListScreen extends StatelessWidget {
                       } else {
                         final completedIndex = index - waitingTasks.length - 1;
                         final task = completedTasks[completedIndex];
+                        if (task == null) {
+                          return const SizedBox.shrink();
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: Card(
@@ -391,106 +439,117 @@ class TaskListScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 4.0),
-                                    child: Checkbox(
-                                      value: task.isCompleted ?? false,
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
-                                        }
-                                      },
-                                      shape: const CircleBorder(),
-                                      activeColor: Colors.green,
-                                      checkColor: Colors.white,
-                                      side: const BorderSide(color: Colors.red),
-                                    ),
+                            child: InkWell(
+                              onTap: () {
+                                print('Navigating to TaskDetailScreen with task: ${task.title}, ID: ${task.id}');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TaskDetailScreen(task: task),
                                   ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          task.title ?? 'Task không có tiêu đề',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            decoration: TextDecoration.lineThrough,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 4.0),
+                                      child: Checkbox(
+                                        value: task.isCompleted ?? false,
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
+                                          }
+                                        },
+                                        shape: const CircleBorder(),
+                                        activeColor: Colors.green,
+                                        checkColor: Colors.white,
+                                        side: const BorderSide(color: Colors.red),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            task.title ?? 'Task không có tiêu đề',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              decoration: TextDecoration.lineThrough,
+                                            ),
                                           ),
-                                        ),
-                                        if (task.tags != null && task.tags!.isNotEmpty)
+                                          if (task.tags != null && task.tags!.isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 4.0),
+                                              child: Wrap(
+                                                spacing: 4,
+                                                runSpacing: 4,
+                                                children: task.tags!
+                                                    .map((tag) => Chip(
+                                                  label: Text(
+                                                    '#$tag',
+                                                    style: const TextStyle(fontSize: 10, color: Colors.blue),
+                                                  ),
+                                                  backgroundColor: Colors.blue[50],
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                  labelPadding: EdgeInsets.zero,
+                                                ))
+                                                    .toList(),
+                                              ),
+                                            ),
                                           Padding(
                                             padding: const EdgeInsets.only(top: 4.0),
                                             child: Wrap(
-                                              spacing: 4,
+                                              spacing: 8,
                                               runSpacing: 4,
-                                              children: task.tags!
-                                                  .map((tag) => Chip(
-                                                label: Text(
-                                                  '#$tag',
-                                                  style: const TextStyle(fontSize: 10, color: Colors.blue),
-                                                ),
-                                                backgroundColor: Colors.blue[50],
-                                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                labelPadding: EdgeInsets.zero,
-                                              ))
-                                                  .toList(),
-                                            ),
-                                          ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 4.0),
-                                          child: Wrap(
-                                            spacing: 8,
-                                            runSpacing: 4,
-                                            children: [
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(Icons.timer, size: 14, color: Colors.grey),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${task.estimatedPomodoros ?? 0}',
-                                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                                  ),
-                                                ],
-                                              ),
-                                              const Icon(Icons.wb_sunny, size: 14, color: Colors.grey),
-                                              const Icon(Icons.nights_stay, size: 14, color: Colors.grey),
-                                              const Icon(Icons.flag, size: 14, color: Colors.grey),
-                                              const Icon(Icons.comment, size: 14, color: Colors.grey),
-                                              if (task.project != null)
+                                              children: [
                                                 Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    const Icon(Icons.bookmark, size: 14, color: Colors.grey),
+                                                    const Icon(Icons.timer, size: 14, color: Colors.grey),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      task.project!,
+                                                      '${task.estimatedPomodoros ?? 0}',
                                                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                                                     ),
                                                   ],
                                                 ),
-                                            ],
+                                                const Icon(Icons.wb_sunny, size: 14, color: Colors.grey),
+                                                const Icon(Icons.nights_stay, size: 14, color: Colors.grey),
+                                                const Icon(Icons.flag, size: 14, color: Colors.grey),
+                                                const Icon(Icons.comment, size: 14, color: Colors.grey),
+                                                if (task.project != null)
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.bookmark, size: 14, color: Colors.grey),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        task.project!,
+                                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                      ),
+                                                    ],
+                                                  ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: IconButton(
-                                      icon: const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
-                                      onPressed: () {
-                                        // Logic bắt đầu Pomodoro cho task
-                                      },
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8.0),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
+                                        onPressed: () {
+                                          // Logic bắt đầu Pomodoro cho task
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

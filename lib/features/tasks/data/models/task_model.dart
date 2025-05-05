@@ -47,6 +47,12 @@ class Task {
   @HiveField(13)
   List<Map<String, dynamic>>? subtasks;
 
+  @HiveField(14)
+  String? userId;
+
+  @HiveField(15)
+  DateTime? createdAt; // Thêm trường createdAt để lưu thời gian tạo task
+
   Task({
     this.id,
     this.title,
@@ -62,6 +68,8 @@ class Task {
     this.remainingPomodoroSeconds,
     this.isCompleted = false,
     this.subtasks,
+    this.userId,
+    this.createdAt,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -80,6 +88,8 @@ class Task {
       remainingPomodoroSeconds: json['remainingPomodoroSeconds'] as int?,
       isCompleted: json['isCompleted'] as bool? ?? false,
       subtasks: (json['subtasks'] as List<dynamic>?)?.cast<Map<String, dynamic>>(),
+      userId: json['userId'] as String?,
+      createdAt: json['createdAt'] != null ? (json['createdAt'] as Timestamp).toDate() : null,
     );
   }
 
@@ -99,6 +109,8 @@ class Task {
       'remainingPomodoroSeconds': remainingPomodoroSeconds,
       'isCompleted': isCompleted,
       'subtasks': subtasks,
+      'userId': userId,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
     };
   }
 
@@ -117,6 +129,8 @@ class Task {
     int? remainingPomodoroSeconds,
     bool? isCompleted,
     List<Map<String, dynamic>>? subtasks,
+    String? userId,
+    DateTime? createdAt,
   }) {
     return Task(
       id: id ?? this.id,
@@ -133,6 +147,8 @@ class Task {
       remainingPomodoroSeconds: remainingPomodoroSeconds ?? this.remainingPomodoroSeconds,
       isCompleted: isCompleted ?? this.isCompleted,
       subtasks: subtasks ?? this.subtasks,
+      userId: userId ?? this.userId,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

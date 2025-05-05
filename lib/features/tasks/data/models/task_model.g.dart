@@ -33,13 +33,15 @@ class TaskAdapter extends TypeAdapter<Task> {
       subtasks: (fields[13] as List?)
           ?.map((dynamic e) => (e as Map).cast<String, dynamic>())
           ?.toList(),
+      userId: fields[14] as String?,
+      createdAt: fields[15] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -67,7 +69,11 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(12)
       ..write(obj.isCompleted)
       ..writeByte(13)
-      ..write(obj.subtasks);
+      ..write(obj.subtasks)
+      ..writeByte(14)
+      ..write(obj.userId)
+      ..writeByte(15)
+      ..write(obj.createdAt);
   }
 
   @override

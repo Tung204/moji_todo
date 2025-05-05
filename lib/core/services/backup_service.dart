@@ -8,45 +8,64 @@ import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 
 class BackupService {
   final Box<Task> taskBox;
+  final Box<DateTime> syncInfoBox;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  BackupService(this.taskBox);
+  BackupService(this.taskBox, this.syncInfoBox);
 
+  // Đồng bộ task lên Firestore
   Future<void> backupToFirestore() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Người dùng chưa đăng nhập');
 
-    final tasks = taskBox.values.toList();
+    // Lấy danh sách task của người dùng hiện tại
+    final tasks = taskBox.values.where((task) => task.userId == user.uid).toList();
     final tasksJson = tasks.map((task) => task.toJson()).toList();
 
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .set({'tasks': tasksJson}, SetOptions(merge: true));
+    // Lưu từng task vào /users/{userId}/tasks
+    for (var task in tasks) {
+      if (task.id != null) {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('tasks')
+            .doc(task.id.toString())
+            .set(task.toJson(), SetOptions(merge: true));
+      }
+    }
+
+    // Cập nhật thời gian đồng bộ cuối cùng
+    await syncInfoBox.put('lastSync', DateTime.now());
   }
 
+  // Khôi phục task từ Firestore
   Future<void> restoreFromFirestore() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Người dùng chưa đăng nhập');
 
-    final doc = await _firestore.collection('users').doc(user.uid).get();
-    if (doc.exists) {
-      final tasksJson = doc.data()?['tasks'] as List<dynamic>;
-      final tasks = tasksJson.map((json) => Task(
-        id: json['id'],
-        title: json['title'],
-        note: json['note'],
-        dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : null,
-        priority: json['priority'],
-        project: json['project'],
-        tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
-        estimatedPomodoros: json['estimatedPomodoros'],
-        completedPomodoros: json['completedPomodoros'],
-        category: json['category'],
-      )).toList();
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .get();
 
-      await taskBox.clear();
+    if (snapshot.docs.isNotEmpty) {
+      final tasks = snapshot.docs.map((doc) => Task.fromJson(doc.data())).toList();
+
+      // Xóa task cũ của người dùng hiện tại
+      final keysToDelete = <dynamic>[];
+      for (int i = 0; i < taskBox.length; i++) {
+        final task = taskBox.getAt(i);
+        if (task != null && task.userId == user.uid) {
+          keysToDelete.add(taskBox.keyAt(i));
+        }
+      }
+      for (var key in keysToDelete) {
+        await taskBox.delete(key);
+      }
+
+      // Thêm task mới từ Firestore
       for (var task in tasks) {
         await taskBox.add(task);
       }
@@ -55,25 +74,33 @@ class BackupService {
     }
   }
 
+  // Xóa dữ liệu sao lưu trên Firestore
   Future<void> deleteFirestoreBackup() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Người dùng chưa đăng nhập');
 
-    await _firestore.collection('users').doc(user.uid).delete();
-  }
-  Future<DateTime?> getLastBackupTime() async {
-    final user = _auth.currentUser;
-    if (user == null) return null;
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .get();
 
-    final doc = await _firestore.collection('users').doc(user.uid).get();
-    if (doc.exists) {
-      final timestamp = doc.data()?['lastBackup'] as Timestamp?;
-      return timestamp?.toDate();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
     }
-    return null;
   }
+
+  // Lấy thời gian đồng bộ cuối cùng
+  Future<DateTime?> getLastBackupTime() async {
+    return syncInfoBox.get('lastSync');
+  }
+
+  // Xuất dữ liệu task ra JSON cục bộ
   Future<String> exportToLocalJson() async {
-    final tasks = taskBox.values.toList();
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Người dùng chưa đăng nhập');
+
+    final tasks = taskBox.values.where((task) => task.userId == user.uid).toList();
     final tasksJson = tasks.map((task) => task.toJson()).toList();
     final jsonString = jsonEncode({'tasks': tasksJson});
 
