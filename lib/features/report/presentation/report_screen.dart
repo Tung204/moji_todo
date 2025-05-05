@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
 
@@ -17,7 +16,6 @@ class ReportScreen extends StatelessWidget {
       body: const Center(
         child: Text('Report Screen'),
       ),
-      bottomNavigationBar: const CustomBottomNavBar(),
     );
   }
 }
