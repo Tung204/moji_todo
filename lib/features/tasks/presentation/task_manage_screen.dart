@@ -1,13 +1,20 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
+import '../data/models/project_tag_repository.dart';
 import '../domain/task_cubit.dart';
+import 'add_project_and_tags/add_project_screen.dart';
+import 'add_project_and_tags/add_tag_screen.dart';
+import 'manage_project_and_tags/manage_projects_tags_screen.dart';
 import 'widgets/task_category_card.dart';
 import 'add_task/add_task_bottom_sheet.dart';
 import 'task_list_screen.dart';
+import 'trash_screen.dart';
 
 class TaskManageScreen extends StatelessWidget {
   const TaskManageScreen({super.key});
@@ -16,12 +23,22 @@ class TaskManageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     NavigationManager.currentIndex = 1;
 
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Scaffold(
+        appBar: const CustomAppBar(),
+        body: const Center(
+          child: Text('Vui lòng đăng nhập để tiếp tục.'),
+        ),
+        bottomNavigationBar: const CustomBottomNavBar(),
+      );
+    }
+
     return BlocBuilder<TaskCubit, TaskState>(
       builder: (context, state) {
         final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
         final tasksByProject = context.read<TaskCubit>().getTasksByProject();
 
-        // Danh sách màu viền và icon cho các project
         final projectBorderColors = {
           'Pomodoro App': Colors.red,
           'Fashion App': Colors.green[200]!,
@@ -44,7 +61,47 @@ class TaskManageScreen extends StatelessWidget {
         final spacing = 12.0;
 
         return Scaffold(
-          appBar: const CustomAppBar(),
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false, // Tắt tự động thêm nút Back
+            leading: null, // Đã bỏ nút Back
+            title: const Text(
+              'Manage Tasks',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            centerTitle: true,
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'Manage Projects and Tags') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ManageProjectsTagsScreen(
+                          repository: ProjectTagRepository(
+                            projectBox: Hive.box('projects'),
+                            tagBox: Hive.box('tags'),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'Manage Projects and Tags',
+                    child: Text('Manage Projects and Tags'),
+                  ),
+                ],
+              ),
+            ],
+          ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -81,6 +138,14 @@ class TaskManageScreen extends StatelessWidget {
                       borderColor: Colors.blue,
                       icon: Icons.wb_cloudy_outlined,
                       iconColor: Colors.blue,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TaskListScreen(category: 'Tomorrow'),
+                          ),
+                        );
+                      },
                     ),
                     TaskCategoryCard(
                       title: 'Tuần này',
@@ -89,6 +154,14 @@ class TaskManageScreen extends StatelessWidget {
                       borderColor: Colors.orange,
                       icon: Icons.calendar_today_outlined,
                       iconColor: Colors.orange,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TaskListScreen(category: 'This Week'),
+                          ),
+                        );
+                      },
                     ),
                     TaskCategoryCard(
                       title: 'Đã lên kế hoạch',
@@ -97,26 +170,50 @@ class TaskManageScreen extends StatelessWidget {
                       borderColor: Colors.purple,
                       icon: Icons.event_note_outlined,
                       iconColor: Colors.purple,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TaskListScreen(category: 'Planned'),
+                          ),
+                        );
+                      },
                     ),
                     TaskCategoryCard(
                       title: 'Đã hoàn thành',
-                      totalTime: '', // Không hiển thị, chỉ để truyền tham số
-                      taskCount: 0, // Không hiển thị, chỉ để truyền tham số
+                      totalTime: '',
+                      taskCount: 0,
                       borderColor: Colors.green[200]!,
                       icon: Icons.check,
                       iconColor: Colors.green[200],
                       showDetails: false,
-                      isCompact: true, // Làm gọn ô
+                      isCompact: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TaskListScreen(category: 'Completed'),
+                          ),
+                        );
+                      },
                     ),
                     TaskCategoryCard(
                       title: 'Thùng rác',
-                      totalTime: '', // Không hiển thị, chỉ để truyền tham số
-                      taskCount: 0, // Không hiển thị, chỉ để truyền tham số
+                      totalTime: '',
+                      taskCount: 0,
                       borderColor: Colors.red,
                       icon: Icons.delete,
                       iconColor: Colors.red,
                       showDetails: false,
-                      isCompact: true, // Làm gọn ô
+                      isCompact: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TrashScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -179,6 +276,17 @@ class TaskManageScreen extends StatelessWidget {
                         title: const Text('Dự án'),
                         onTap: () {
                           Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddProjectScreen(
+                                repository: ProjectTagRepository(
+                                  projectBox: Hive.box('projects'),
+                                  tagBox: Hive.box('tags'),
+                                ),
+                              ),
+                            ),
+                          );
                         },
                       ),
                       ListTile(
@@ -186,6 +294,17 @@ class TaskManageScreen extends StatelessWidget {
                         title: const Text('Thẻ'),
                         onTap: () {
                           Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddTagScreen(
+                                repository: ProjectTagRepository(
+                                  projectBox: Hive.box('projects'),
+                                  tagBox: Hive.box('tags'),
+                                ),
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ],

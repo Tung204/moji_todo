@@ -5,6 +5,7 @@ import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../domain/task_cubit.dart';
 import 'task_detail_screen.dart';
 import 'add_task/add_task_bottom_sheet.dart';
+import 'utils/tag_colors.dart'; // Import TagColors
 
 class TaskListScreen extends StatelessWidget {
   final String category;
@@ -15,7 +16,6 @@ class TaskListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<TaskCubit, TaskState>(
       builder: (context, state) {
-        // Hiển thị CircularProgressIndicator nếu đang tải
         if (state.isLoading) {
           return Scaffold(
             appBar: AppBar(
@@ -351,17 +351,21 @@ class TaskListScreen extends StatelessWidget {
                                               child: Wrap(
                                                 spacing: 4,
                                                 runSpacing: 4,
-                                                children: task.tags!
-                                                    .map((tag) => Chip(
-                                                  label: Text(
-                                                    '#$tag',
-                                                    style: const TextStyle(fontSize: 10, color: Colors.blue),
-                                                  ),
-                                                  backgroundColor: Colors.blue[50],
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                  labelPadding: EdgeInsets.zero,
-                                                ))
-                                                    .toList(),
+                                                children: task.tags!.map((tag) {
+                                                  final colors = TagColors.getTagColors(tag);
+                                                  return Chip(
+                                                    label: Text(
+                                                      '#$tag',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: colors['text'],
+                                                      ),
+                                                    ),
+                                                    backgroundColor: colors['background'],
+                                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                    labelPadding: EdgeInsets.zero,
+                                                  );
+                                                }).toList(),
                                               ),
                                             ),
                                           Padding(
@@ -487,17 +491,21 @@ class TaskListScreen extends StatelessWidget {
                                               child: Wrap(
                                                 spacing: 4,
                                                 runSpacing: 4,
-                                                children: task.tags!
-                                                    .map((tag) => Chip(
-                                                  label: Text(
-                                                    '#$tag',
-                                                    style: const TextStyle(fontSize: 10, color: Colors.blue),
-                                                  ),
-                                                  backgroundColor: Colors.blue[50],
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                  labelPadding: EdgeInsets.zero,
-                                                ))
-                                                    .toList(),
+                                                children: task.tags!.map((tag) {
+                                                  final colors = TagColors.getTagColors(tag);
+                                                  return Chip(
+                                                    label: Text(
+                                                      '#$tag',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: colors['text'],
+                                                      ),
+                                                    ),
+                                                    backgroundColor: colors['background'],
+                                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                    labelPadding: EdgeInsets.zero,
+                                                  );
+                                                }).toList(),
                                               ),
                                             ),
                                           Padding(

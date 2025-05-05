@@ -7,7 +7,32 @@ class TaskRepository {
   final Box<Task> taskBox;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  TaskRepository({required this.taskBox});
+  TaskRepository({required this.taskBox}) {
+    _initializeSampleTasks();
+  }
+
+  Future<void> _initializeSampleTasks() async {
+    if (taskBox.isEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('Người dùng chưa đăng nhập, không tạo task mẫu.');
+        return;
+      }
+      final sampleTask = Task(
+        id: 1,
+        title: 'Design User Interface (UI)',
+        dueDate: DateTime.now(),
+        priority: 'High',
+        project: 'Pomodoro App',
+        tags: ['Design', 'Work', 'Productive'],
+        estimatedPomodoros: 6,
+        completedPomodoros: 2,
+        isCompleted: false,
+        userId: user.uid,
+      );
+      await addTask(sampleTask);
+    }
+  }
 
   Future<List<Task>> getTasks() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -28,10 +53,14 @@ class TaskRepository {
     task = task.copyWith(
       id: newId,
       userId: user.uid,
-      createdAt: DateTime.now(),
     );
     await taskBox.put(newId, task);
-    // Không đồng bộ ngay lên Firestore, sẽ đồng bộ định kỳ qua BackupService
+    await firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .doc(newId.toString())
+        .set(task.toJson());
   }
 
   Future<void> updateTask(Task task) async {
@@ -46,7 +75,22 @@ class TaskRepository {
       throw Exception('Bạn không có quyền cập nhật task này.');
     }
     await taskBox.put(task.id!, task);
-    // Không đồng bộ ngay lên Firestore, sẽ đồng bộ định kỳ qua BackupService
+    final query = await firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .where('id', isEqualTo: task.id)
+        .get();
+    if (query.docs.isNotEmpty) {
+      await query.docs.first.reference.update(task.toJson());
+    } else {
+      await firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('tasks')
+          .doc(task.id.toString())
+          .set(task.toJson());
+    }
   }
 
   Future<void> deleteTask(Task task) async {
@@ -60,33 +104,16 @@ class TaskRepository {
     if (task.userId != user.uid) {
       throw Exception('Bạn không có quyền xóa task này.');
     }
-
-    // Xóa task khỏi Hive
     await taskBox.delete(task.id);
-
-    // Kiểm tra xem task đã được đồng bộ lên Firestore chưa
-    final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
-    final lastSync = syncInfoBox.get('lastSync');
-    final createdAt = task.createdAt;
-
-    if (lastSync != null && createdAt != null && createdAt.isBefore(lastSync)) {
-      // Task đã được đồng bộ, xóa trên Firestore
-      try {
-        final query = await firestore
-            .collection('users')
-            .doc(user.uid)
-            .collection('tasks')
-            .where('id', isEqualTo: task.id)
-            .get();
-        if (query.docs.isNotEmpty) {
-          await query.docs.first.reference.delete();
-        }
-      } catch (e) {
-        print('Lỗi khi xóa task trên Firestore: $e');
-        // Không throw lỗi, vì task đã được xóa khỏi Hive
-      }
+    final query = await firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .where('id', isEqualTo: task.id)
+        .get();
+    if (query.docs.isNotEmpty) {
+      await query.docs.first.reference.delete();
     }
-    // Nếu task chưa được đồng bộ (lastSync == null hoặc createdAt > lastSync), không cần xóa trên Firestore
   }
 }
 
@@ -108,7 +135,6 @@ extension TaskExtension on Task {
       'isCompleted': isCompleted,
       'subtasks': subtasks,
       'userId': userId,
-      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }
