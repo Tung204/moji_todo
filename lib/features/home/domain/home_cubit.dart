@@ -120,6 +120,31 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  void updateStrictMode({
+    bool? isAppBlockingEnabled,
+    bool? isFlipPhoneEnabled,
+    bool? isExitBlockingEnabled,
+  }) {
+    final newAppBlockingEnabled = isAppBlockingEnabled ?? state.isAppBlockingEnabled;
+    final newFlipPhoneEnabled = isFlipPhoneEnabled ?? state.isFlipPhoneEnabled;
+    final newExitBlockingEnabled = isExitBlockingEnabled ?? state.isExitBlockingEnabled;
+
+    final isStrictModeEnabled = newAppBlockingEnabled || newFlipPhoneEnabled || newExitBlockingEnabled;
+
+    emit(state.copyWith(
+      isStrictModeEnabled: isStrictModeEnabled,
+      isAppBlockingEnabled: newAppBlockingEnabled,
+      isFlipPhoneEnabled: newFlipPhoneEnabled,
+      isExitBlockingEnabled: newExitBlockingEnabled,
+    ));
+  }
+
+  void updateBlockedApps(List<String> blockedApps) {
+    emit(state.copyWith(
+      blockedApps: blockedApps,
+    ));
+  }
+
   void _startTimer(int seconds) {
     int remainingSeconds = seconds;
     _timer?.cancel();

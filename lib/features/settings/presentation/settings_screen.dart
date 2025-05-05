@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../domain/settings_cubit.dart';
 import '../domain/settings_state.dart';
@@ -10,14 +9,13 @@ import '../../../core/services/backup_service.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:hive/hive.dart';
 import 'backup_sync_screen.dart';
-import 'package:moji_todo/main.dart'; // Import AppData
+import 'package:moji_todo/main.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Lấy taskBox, syncInfoBox, projectBox và tagBox từ AppData
     final appData = AppData.of(context);
     final backupService = BackupService(
       appData.taskBox,
@@ -161,7 +159,6 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: const CustomBottomNavBar(),
       ),
     );
   }

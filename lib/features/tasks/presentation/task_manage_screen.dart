@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
 import '../data/models/project_tag_repository.dart';
@@ -30,7 +29,6 @@ class TaskManageScreen extends StatelessWidget {
         body: const Center(
           child: Text('Vui lòng đăng nhập để tiếp tục.'),
         ),
-        bottomNavigationBar: const CustomBottomNavBar(),
       );
     }
 
@@ -64,8 +62,8 @@ class TaskManageScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            automaticallyImplyLeading: false, // Tắt tự động thêm nút Back
-            leading: null, // Đã bỏ nút Back
+            automaticallyImplyLeading: false,
+            leading: null,
             title: const Text(
               'Manage Tasks',
               style: TextStyle(
@@ -182,10 +180,10 @@ class TaskManageScreen extends StatelessWidget {
                     TaskCategoryCard(
                       title: 'Đã hoàn thành',
                       totalTime: '',
-                      taskCount: 0,
+                      taskCount: categorizedTasks['Completed']!.length,
                       borderColor: Colors.green[200]!,
                       icon: Icons.check,
-                      iconColor: Colors.green[200],
+                      iconColor: Colors.green[200]!,
                       showDetails: false,
                       isCompact: true,
                       onTap: () {
@@ -250,71 +248,16 @@ class TaskManageScreen extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFFFF5733), // Màu đỏ/cam giống nút trong bottom sheet
             onPressed: () {
               showModalBottomSheet(
                 context: context,
-                builder: (context) => Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.add),
-                        title: const Text('Task'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (context) => const AddTaskBottomSheet(),
-                          );
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.work),
-                        title: const Text('Dự án'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddProjectScreen(
-                                repository: ProjectTagRepository(
-                                  projectBox: Hive.box('projects'),
-                                  tagBox: Hive.box('tags'),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.label),
-                        title: const Text('Thẻ'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddTagScreen(
-                                repository: ProjectTagRepository(
-                                  projectBox: Hive.box('projects'),
-                                  tagBox: Hive.box('tags'),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                isScrollControlled: true,
+                builder: (context) => const AddTaskBottomSheet(),
               );
             },
-            child: const Icon(Icons.add),
+            child: const Icon(Icons.add, color: Colors.white),
           ),
-          bottomNavigationBar: const CustomBottomNavBar(),
         );
       },
     );

@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/task_cubit.dart';
 import 'task_detail_screen.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/widgets/custom_bottom_nav_bar.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -390,7 +389,6 @@ class _TrashScreenState extends State<TrashScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: const CustomBottomNavBar(),
         );
       },
     );

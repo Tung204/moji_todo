@@ -15,6 +15,8 @@ import 'package:moji_todo/routes/app_routes.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/services/backup_service.dart';
+import 'features/home/domain/home_cubit.dart';
+import 'core/navigation/main_screen.dart';
 
 // InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
 class AppData extends InheritedWidget {
@@ -157,6 +159,9 @@ class _MyAppState extends State<MyApp> {
           BlocProvider(
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),
+          BlocProvider(
+            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
+          ),
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -168,7 +173,7 @@ class _MyAppState extends State<MyApp> {
               bodyLarge: TextStyle(color: Color(0xFFFF69B4)),
             ),
           ),
-          initialRoute: AppRoutes.splash,
+          home: const MainScreen(), // Sử dụng MainScreen làm màn hình chính
           onGenerateRoute: AppRoutes.generateRoute,
         ),
       ),

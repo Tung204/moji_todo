@@ -7,6 +7,11 @@ class HomeState extends Equatable {
   final bool isPaused;
   final int currentSession;
   final int totalSessions;
+  final bool isStrictModeEnabled;
+  final bool isAppBlockingEnabled;
+  final bool isFlipPhoneEnabled;
+  final bool isExitBlockingEnabled;
+  final List<String> blockedApps;
 
   const HomeState({
     this.selectedTask,
@@ -14,7 +19,12 @@ class HomeState extends Equatable {
     this.isTimerRunning = false,
     this.isPaused = false,
     this.currentSession = 0,
-    this.totalSessions = 4, // Mặc định 4 phiên Pomodoro
+    this.totalSessions = 4,
+    this.isStrictModeEnabled = false,
+    this.isAppBlockingEnabled = false,
+    this.isFlipPhoneEnabled = false,
+    this.isExitBlockingEnabled = false,
+    this.blockedApps = const [],
   });
 
   HomeState copyWith({
@@ -24,6 +34,11 @@ class HomeState extends Equatable {
     bool? isPaused,
     int? currentSession,
     int? totalSessions,
+    bool? isStrictModeEnabled,
+    bool? isAppBlockingEnabled,
+    bool? isFlipPhoneEnabled,
+    bool? isExitBlockingEnabled,
+    List<String>? blockedApps,
   }) {
     return HomeState(
       selectedTask: selectedTask ?? this.selectedTask,
@@ -32,6 +47,11 @@ class HomeState extends Equatable {
       isPaused: isPaused ?? this.isPaused,
       currentSession: currentSession ?? this.currentSession,
       totalSessions: totalSessions ?? this.totalSessions,
+      isStrictModeEnabled: isStrictModeEnabled ?? this.isStrictModeEnabled,
+      isAppBlockingEnabled: isAppBlockingEnabled ?? this.isAppBlockingEnabled,
+      isFlipPhoneEnabled: isFlipPhoneEnabled ?? this.isFlipPhoneEnabled,
+      isExitBlockingEnabled: isExitBlockingEnabled ?? this.isExitBlockingEnabled,
+      blockedApps: blockedApps ?? this.blockedApps,
     );
   }
 
@@ -43,5 +63,10 @@ class HomeState extends Equatable {
     isPaused,
     currentSession,
     totalSessions,
+    isStrictModeEnabled,
+    isAppBlockingEnabled,
+    isFlipPhoneEnabled,
+    isExitBlockingEnabled,
+    blockedApps,
   ];
 }
