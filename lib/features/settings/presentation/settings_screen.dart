@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
@@ -16,13 +17,24 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    // Lấy taskBox, syncInfoBox, projectBox và tagBox từ AppData
+
     final appData = AppData.of(context);
     final backupService = BackupService(
       appData.taskBox,
       appData.syncInfoBox,
+      // appData.projectBox,
+      // appData.tagBox,
+    );
+
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? 'User';
+    final photoUrl = user?.photoURL; // Placeholder nếu không có avatar
       appData.projectBox,
       appData.tagBox,
     );
+
 
     return BlocProvider(
       create: (context) => SettingsCubit(),
@@ -33,13 +45,46 @@ class SettingsScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: ListView(
             children: [
-              _buildSettingItem(
-                context,
-                icon: Icons.person,
-                title: 'My Profile',
+              // Khu vực avatar và tên tài khoản
+              GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, AppRoutes.profile);
+                  Navigator.pushNamed(context, AppRoutes.profileSettings);
                 },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                        backgroundColor: Colors.grey[200],
+                        child: photoUrl == null
+                            ? const Icon(Icons.person, size: 30, color: Colors.grey)
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            'Tap to edit profile',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
               _buildSettingItem(
                 context,
@@ -47,6 +92,19 @@ class SettingsScreen extends StatelessWidget {
                 title: 'Pomodoro Preferences',
                 onTap: () {
                   Navigator.pushNamed(context, AppRoutes.pomodoroPreferences);
+                },
+              ),
+              _buildSettingItem(
+                context,
+                icon: Icons.cloud_sync,
+                title: 'Backup & Sync',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BackupSyncScreen(backupService: backupService),
+                    ),
+                  );
                 },
               ),
               _buildSettingItem(
@@ -89,73 +147,7 @@ class SettingsScreen extends StatelessWidget {
                   Navigator.pushNamed(context, AppRoutes.helpSupport);
                 },
               ),
-              _buildSettingItem(
-                context,
-                icon: Icons.cloud_sync,
-                title: 'Backup & Sync',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BackupSyncScreen(backupService: backupService),
-                    ),
-                  );
-                },
-              ),
               const SizedBox(height: 16),
-              BlocConsumer<SettingsCubit, SettingsState>(
-                listener: (context, state) {
-                  if (state.isLoggedOut) {
-                    Navigator.pushReplacementNamed(context, AppRoutes.login);
-                  }
-                  if (state.logoutError != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Logout failed: ${state.logoutError}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                },
-                builder: (context, state) {
-                  return _buildSettingItem(
-                    context,
-                    icon: Icons.logout,
-                    title: 'Logout',
-                    titleColor: Colors.red,
-                    onTap: () {
-                      final settingsCubit = context.read<SettingsCubit>();
-                      showDialog(
-                        context: context,
-                        builder: (dialogContext) {
-                          return AlertDialog(
-                            title: const Text('Confirm Logout'),
-                            content: const Text('Are you sure you want to logout?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-                                },
-                                child: const Text('No'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-                                  settingsCubit.logout();
-                                },
-                                child: const Text(
-                                  'Yes',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
             ],
           ),
         ),
