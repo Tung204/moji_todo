@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
 import '../data/models/task_model.dart';
 
@@ -9,32 +10,83 @@ class TaskRepository {
   TaskRepository({required this.taskBox});
 
   Future<List<Task>> getTasks() async {
-    return taskBox.values.toList();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Người dùng chưa đăng nhập, không thể lấy danh sách task.');
+    }
+    final tasks = taskBox.values.toList();
+    return tasks.where((task) => task.userId == user.uid).toList();
   }
 
   Future<void> addTask(Task task) async {
-    final newId = taskBox.isEmpty ? 1 : taskBox.values.last.id! + 1;
-    task = task..id = newId;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Người dùng chưa đăng nhập, không thể thêm task.');
+    }
+
+    final newId = taskBox.isEmpty ? 1 : (taskBox.values.last.id ?? 0) + 1;
+    task = task.copyWith(
+      id: newId,
+      userId: user.uid,
+      createdAt: DateTime.now(),
+    );
     await taskBox.put(newId, task);
-    await firestore.collection('tasks').add(task.toJson());
+    // Không đồng bộ ngay lên Firestore, sẽ đồng bộ định kỳ qua BackupService
   }
 
   Future<void> updateTask(Task task) async {
-    if (task.id != null) {
-      await taskBox.put(task.id!, task);
-      final query = await firestore.collection('tasks').where('id', isEqualTo: task.id).get();
-      if (query.docs.isNotEmpty) {
-        await query.docs.first.reference.update(task.toJson());
-      }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Người dùng chưa đăng nhập, không thể cập nhật task.');
     }
+    if (task.id == null) {
+      throw Exception('Task ID cannot be null');
+    }
+    if (task.userId != user.uid) {
+      throw Exception('Bạn không có quyền cập nhật task này.');
+    }
+    await taskBox.put(task.id!, task);
+    // Không đồng bộ ngay lên Firestore, sẽ đồng bộ định kỳ qua BackupService
   }
 
-  Future<void> deleteTask(int id) async {
-    await taskBox.delete(id);
-    final query = await firestore.collection('tasks').where('id', isEqualTo: id).get();
-    if (query.docs.isNotEmpty) {
-      await query.docs.first.reference.delete();
+  Future<void> deleteTask(Task task) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Người dùng chưa đăng nhập, không thể xóa task.');
     }
+    if (task.id == null) {
+      throw Exception('Task ID cannot be null');
+    }
+    if (task.userId != user.uid) {
+      throw Exception('Bạn không có quyền xóa task này.');
+    }
+
+    // Xóa task khỏi Hive
+    await taskBox.delete(task.id);
+
+    // Kiểm tra xem task đã được đồng bộ lên Firestore chưa
+    final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
+    final lastSync = syncInfoBox.get('lastSync');
+    final createdAt = task.createdAt;
+
+    if (lastSync != null && createdAt != null && createdAt.isBefore(lastSync)) {
+      // Task đã được đồng bộ, xóa trên Firestore
+      try {
+        final query = await firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('tasks')
+            .where('id', isEqualTo: task.id)
+            .get();
+        if (query.docs.isNotEmpty) {
+          await query.docs.first.reference.delete();
+        }
+      } catch (e) {
+        print('Lỗi khi xóa task trên Firestore: $e');
+        // Không throw lỗi, vì task đã được xóa khỏi Hive
+      }
+    }
+    // Nếu task chưa được đồng bộ (lastSync == null hoặc createdAt > lastSync), không cần xóa trên Firestore
   }
 }
 
@@ -50,6 +102,13 @@ extension TaskExtension on Task {
       'tags': tags,
       'estimatedPomodoros': estimatedPomodoros,
       'completedPomodoros': completedPomodoros,
+      'category': category,
+      'isPomodoroActive': isPomodoroActive,
+      'remainingPomodoroSeconds': remainingPomodoroSeconds,
+      'isCompleted': isCompleted,
+      'subtasks': subtasks,
+      'userId': userId,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

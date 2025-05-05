@@ -10,13 +10,16 @@ import '../../../core/services/backup_service.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 import 'package:hive/hive.dart';
 import 'backup_sync_screen.dart';
+import 'package:moji_todo/main.dart'; // Import AppData
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final backupService = BackupService(Hive.box<Task>('tasks'));
+    // Lấy taskBox và syncInfoBox từ AppData
+    final appData = AppData.of(context);
+    final backupService = BackupService(appData.taskBox, appData.syncInfoBox);
 
     return BlocProvider(
       create: (context) => SettingsCubit(),

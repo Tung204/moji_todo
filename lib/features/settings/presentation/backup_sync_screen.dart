@@ -2,15 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import '../domain/settings_cubit.dart';
 import '../domain/settings_state.dart';
 import '../../../core/services/backup_service.dart';
 import '../../../core/widgets/custom_app_bar.dart';
+import 'package:moji_todo/features/tasks/data/models/task_model.dart';
 
 class BackupSyncScreen extends StatelessWidget {
   final BackupService backupService;
-  final String forceBackupUrl = 'https://us-central1-moji-todo.cloudfunctions.net/forceBackup'; // Thay bằng URL của bạn
+  final String forceBackupUrl = 'https://us-central1-moji-todo.cloudfunctions.net/forceBackup';
 
   const BackupSyncScreen({super.key, required this.backupService});
 
@@ -85,17 +87,13 @@ class BackupSyncScreen extends StatelessWidget {
                 title: 'Backup Now',
                 onTap: () async {
                   try {
-                    final response = await http.get(Uri.parse(forceBackupUrl));
-                    if (response.statusCode == 200) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Backup completed successfully'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } else {
-                      throw Exception('Failed to trigger backup: ${response.body}');
-                    }
+                    await backupService.backupToFirestore();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Backup completed successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
                     (context as Element).markNeedsBuild();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -239,23 +237,11 @@ class BackupSyncScreen extends StatelessWidget {
       throw Exception('User not logged in');
     }
 
-    // Chỉ truy vấn tài liệu của người dùng hiện tại
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    if (!userDoc.exists) {
-      return 1; // Nếu tài liệu chưa tồn tại, cần đồng bộ
-    }
-
-    final userData = userDoc.data()!;
-    final lastBackup = userData['lastBackup'] != null
-        ? (userData['lastBackup'] as Timestamp).toDate()
-        : null;
-
+    final box = await Hive.openBox<DateTime>('sync_info');
+    final lastSync = box.get('lastSync');
     final now = DateTime.now();
-    if (lastBackup == null || (now.difference(lastBackup).inMinutes >= 10)) {
+
+    if (lastSync == null || now.difference(lastSync).inMinutes >= 15) {
       return 1; // Cần đồng bộ
     }
 

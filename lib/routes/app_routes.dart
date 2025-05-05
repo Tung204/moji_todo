@@ -13,6 +13,7 @@ import '../features/tasks/presentation/task_manage_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
 import '../features/report/presentation/report_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../main.dart'; // Import AppData
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -33,7 +34,7 @@ class AppRoutes {
   static const String appAppearance = '/app-appearance';
   static const String helpSupport = '/help-support';
   static const String aiChat = '/ai-chat';
-  static const String backupSync = '/backup-sync'; // Thêm route mới
+  static const String backupSync = '/backup-sync';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -56,9 +57,12 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const AIChatScreen());
       case backupSync:
         return MaterialPageRoute(
-          builder: (_) => BackupSyncScreen(
-            backupService: BackupService(Hive.box<Task>('tasks')),
-          ),
+          builder: (context) {
+            final appData = AppData.of(context);
+            return BackupSyncScreen(
+              backupService: BackupService(appData.taskBox, appData.syncInfoBox),
+            );
+          },
         );
       case AppRoutes.profile:
         return MaterialPageRoute(
