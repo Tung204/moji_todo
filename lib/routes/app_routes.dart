@@ -61,7 +61,12 @@ class AppRoutes {
           builder: (context) {
             final appData = AppData.of(context);
             return BackupSyncScreen(
-              backupService: BackupService(appData.taskBox, appData.syncInfoBox),
+              backupService: BackupService(
+                appData.taskBox,
+                appData.syncInfoBox,
+                appData.projectBox,
+                appData.tagBox,
+              ),
             );
           },
         );

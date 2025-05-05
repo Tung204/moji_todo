@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
-import '../navigation/navigation_manager.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
+
   const CustomBottomNavBar({super.key});
+
+  final int currentIndex;
+  final Function(int) onTap;
+
+  const CustomBottomNavBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+
   @override
   Widget build(BuildContext context) {
 
     return BottomNavigationBar(
-      currentIndex: NavigationManager.currentIndex,
-      onTap: (index) {
-        NavigationManager.navigate(context, index);
-      },
+      currentIndex: currentIndex,
+      onTap: onTap,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: const Color(0xFF2B30CB),
       unselectedItemColor: Colors.grey,

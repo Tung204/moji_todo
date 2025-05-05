@@ -8,23 +8,31 @@ import 'package:moji_todo/features/pomodoro/data/pomodoro_repository.dart';
 import 'package:moji_todo/features/pomodoro/domain/pomodoro_cubit.dart';
 import 'package:moji_todo/features/tasks/data/task_repository.dart';
 import 'package:moji_todo/features/tasks/data/models/task_model.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/tag_model.dart';
 import 'package:moji_todo/features/tasks/domain/task_cubit.dart';
 import 'package:moji_todo/routes/app_routes.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/services/backup_service.dart';
+import 'features/home/domain/home_cubit.dart';
+import 'core/navigation/main_screen.dart';
 
-// InheritedWidget để truyền taskBox và syncInfoBox
+// InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
 class AppData extends InheritedWidget {
   final Box<Task> taskBox;
   final Box<DateTime> syncInfoBox;
   final NotificationService notificationService;
+  final Box<Project> projectBox;
+  final Box<Tag> tagBox;
 
   const AppData({
     super.key,
     required this.taskBox,
     required this.syncInfoBox,
     required this.notificationService,
+    required this.projectBox,
+    required this.tagBox,
     required super.child,
   });
 
@@ -36,7 +44,10 @@ class AppData extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppData oldWidget) {
-    return taskBox != oldWidget.taskBox || syncInfoBox != oldWidget.syncInfoBox;
+    return taskBox != oldWidget.taskBox ||
+        syncInfoBox != oldWidget.syncInfoBox ||
+        projectBox != oldWidget.projectBox ||
+        tagBox != oldWidget.tagBox;
   }
 }
 
@@ -49,8 +60,16 @@ void main() async {
   // Khởi tạo Hive
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
+  Hive.registerAdapter(ProjectAdapter());
+  Hive.registerAdapter(TagAdapter());
   final taskBox = await Hive.openBox<Task>('tasks');
   final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
+  final projectBox = await Hive.openBox<Project>('projects');
+  final tagBox = await Hive.openBox<Tag>('tags');
+
+  if (syncInfoBox == null) {
+    throw Exception('Không thể mở syncInfoBox. Kiểm tra quyền lưu trữ hoặc trạng thái Hive.');
+  }
 
   final notificationService = NotificationService();
   await notificationService.init();
@@ -59,6 +78,8 @@ void main() async {
     taskBox: taskBox,
     syncInfoBox: syncInfoBox,
     notificationService: notificationService,
+    projectBox: projectBox,
+    tagBox: tagBox,
   ));
 }
 
@@ -66,11 +87,15 @@ class MyApp extends StatefulWidget {
   final Box<Task> taskBox;
   final Box<DateTime> syncInfoBox;
   final NotificationService notificationService;
+  final Box<Project> projectBox;
+  final Box<Tag> tagBox;
 
   const MyApp({
     required this.taskBox,
     required this.syncInfoBox,
     required this.notificationService,
+    required this.projectBox,
+    required this.tagBox,
     super.key,
   });
 
@@ -85,7 +110,12 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _backupService = BackupService(widget.taskBox, widget.syncInfoBox);
+    _backupService = BackupService(
+      widget.taskBox,
+      widget.syncInfoBox,
+      widget.projectBox,
+      widget.tagBox,
+    );
     _startSyncTimer();
   }
 
@@ -117,6 +147,8 @@ class _MyAppState extends State<MyApp> {
       taskBox: widget.taskBox,
       syncInfoBox: widget.syncInfoBox,
       notificationService: widget.notificationService,
+      projectBox: widget.projectBox,
+      tagBox: widget.tagBox,
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
@@ -126,6 +158,9 @@ class _MyAppState extends State<MyApp> {
           ),
           BlocProvider(
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
+          ),
+          BlocProvider(
+            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
           ),
         ],
         child: MaterialApp(
@@ -138,7 +173,7 @@ class _MyAppState extends State<MyApp> {
               bodyLarge: TextStyle(color: Color(0xFFFF69B4)),
             ),
           ),
-          initialRoute: AppRoutes.splash,
+          home: const MainScreen(), // Sử dụng MainScreen làm màn hình chính
           onGenerateRoute: AppRoutes.generateRoute,
         ),
       ),
