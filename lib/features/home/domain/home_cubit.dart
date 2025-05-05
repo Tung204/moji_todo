@@ -26,33 +26,11 @@ class HomeCubit extends Cubit<HomeState> {
     );
     await _notificationsPlugin.initialize(initializationSettings);
 
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .where('isPomodoroActive', isEqualTo: true)
-        .snapshots()
-        .listen((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        final taskDoc = snapshot.docs.first;
-        final task = Task.fromJson(taskDoc.data());
-        emit(state.copyWith(
-          selectedTask: task.title,
-          timerSeconds: task.remainingPomodoroSeconds ?? 25 * 60,
-          isTimerRunning: true,
-          isPaused: false,
-          currentSession: task.completedPomodoros ?? 0,
-          totalSessions: task.estimatedPomodoros ?? 4,
-        ));
-        _startTimer(task.remainingPomodoroSeconds ?? 25 * 60);
-      }
-    });
+    // Không cần Firestore listener vì dữ liệu được lưu cục bộ trong Hive
+    // Đồng bộ lên Firestore sẽ diễn ra 15 phút 1 lần theo cơ chế của ứng dụng
   }
 
-  void selectTask(String taskTitle, int estimatedPomodoros) {
+  void selectTask(String? taskTitle, int estimatedPomodoros) {
     emit(state.copyWith(
       selectedTask: taskTitle,
       totalSessions: estimatedPomodoros,
@@ -107,7 +85,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  void stopTimer() {
+  void stopTimer({bool updateTaskState = true}) {
     _timer?.cancel();
     emit(state.copyWith(
       timerSeconds: 25 * 60,
@@ -115,9 +93,17 @@ class HomeCubit extends Cubit<HomeState> {
       isPaused: false,
       currentSession: 0,
     ));
-    if (state.selectedTask != null) {
+    if (updateTaskState && state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, false, 0);
     }
+  }
+
+  Future<void> resetTask() async {
+    if (state.selectedTask != null) {
+      await _updateTaskPomodoroState(state.selectedTask, false, 0);
+    }
+    stopTimer(updateTaskState: false);
+    selectTask(null, 4);
   }
 
   void updateStrictMode({

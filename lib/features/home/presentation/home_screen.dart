@@ -123,12 +123,12 @@ class HomeScreen extends StatelessWidget {
                                         task.title ?? 'Untitled Task',
                                         task.estimatedPomodoros ?? 4,
                                       );
-                                      context.read<HomeCubit>().startTimer(); // Bắt đầu timer
+                                      context.read<HomeCubit>().startTimer();
                                       Navigator.pop(context);
                                     },
                                     onComplete: () {
                                       context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
-                                      context.read<HomeCubit>().stopTimer(); // Reset timer
+                                      context.read<HomeCubit>().stopTimer();
                                     },
                                   );
                                 },
@@ -395,14 +395,23 @@ class HomeScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            state.selectedTask ?? 'Select Task',
-                            style: TextStyle(
-                              color: state.selectedTask != null ? Colors.black : Colors.grey,
-                              fontSize: 16,
+                          Expanded(
+                            child: Text(
+                              state.selectedTask ?? 'Select Task',
+                              style: TextStyle(
+                                color: state.selectedTask != null ? Colors.black : Colors.grey,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
-                          Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+                          state.selectedTask != null
+                              ? IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey, size: 24),
+                            onPressed: () async {
+                              await context.read<HomeCubit>().resetTask();
+                            },
+                          )
+                              : const Icon(Icons.arrow_drop_down, color: Colors.grey),
                         ],
                       ),
                     ),
