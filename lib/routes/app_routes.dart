@@ -14,6 +14,7 @@ import '../features/calendar/presentation/calendar_screen.dart';
 import '../features/report/presentation/report_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../main.dart'; // Import AppData
+import '../features/settings/presentation/profile_settings_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -35,7 +36,7 @@ class AppRoutes {
   static const String helpSupport = '/help-support';
   static const String aiChat = '/ai-chat';
   static const String backupSync = '/backup-sync';
-
+  static const String profileSettings = '/profile_settings';
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.splash:
@@ -64,12 +65,8 @@ class AppRoutes {
             );
           },
         );
-      case AppRoutes.profile:
-        return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('My Profile Screen')),
-          ),
-        );
+      case AppRoutes.profileSettings: // Thêm route mới
+        return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
       case AppRoutes.pomodoroPreferences:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

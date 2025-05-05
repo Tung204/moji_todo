@@ -3,9 +3,9 @@ import '../navigation/navigation_manager.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   const CustomBottomNavBar({super.key});
-
   @override
   Widget build(BuildContext context) {
+
     return BottomNavigationBar(
       currentIndex: NavigationManager.currentIndex,
       onTap: (index) {
