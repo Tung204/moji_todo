@@ -28,6 +28,18 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Đăng ký Accessibility Service -->
+        <service
+            android:name=".AppBlockService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/app_block_service_config" />
+        </service>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

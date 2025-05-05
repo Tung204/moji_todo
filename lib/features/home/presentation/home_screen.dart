@@ -123,12 +123,12 @@ class HomeScreen extends StatelessWidget {
                                         task.title ?? 'Untitled Task',
                                         task.estimatedPomodoros ?? 4,
                                       );
-                                      context.read<HomeCubit>().startTimer(); // Bắt đầu timer
+                                      context.read<HomeCubit>().startTimer();
                                       Navigator.pop(context);
                                     },
                                     onComplete: () {
                                       context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
-                                      context.read<HomeCubit>().stopTimer(); // Reset timer
+                                      context.read<HomeCubit>().stopTimer();
                                     },
                                   );
                                 },
@@ -149,40 +149,50 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<bool> _checkAndRequestAccessibilityPermission(BuildContext context) async {
-    final bool isPermissionEnabled = await _permissionChannel.invokeMethod('isAccessibilityPermissionEnabled');
-    if (!isPermissionEnabled) {
-      bool? granted = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Yêu cầu quyền Accessibility'),
-          content: const Text('Ứng dụng cần quyền Accessibility để chặn ứng dụng khi Strict Mode được bật. Vui lòng cấp quyền trong cài đặt.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Từ chối'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await _permissionChannel.invokeMethod('requestAccessibilityPermission');
-                Navigator.pop(context, true);
-              },
-              child: const Text('Cấp quyền'),
-            ),
-          ],
+    try {
+      final bool isPermissionEnabled = await _permissionChannel.invokeMethod('isAccessibilityPermissionEnabled');
+      if (!isPermissionEnabled) {
+        bool? granted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Yêu cầu quyền Accessibility'),
+            content: const Text('Ứng dụng cần quyền Accessibility để chặn ứng dụng khi Strict Mode được bật. Vui lòng cấp quyền trong cài đặt.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                child: const Text('Từ chối'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await _permissionChannel.invokeMethod('requestAccessibilityPermission');
+                  Navigator.pop(context, true);
+                },
+                child: const Text('Cấp quyền'),
+              ),
+            ],
+          ),
+        );
+
+        if (granted != true) {
+          SystemNavigator.pop();
+          return false;
+        }
+
+        return await _permissionChannel.invokeMethod('isAccessibilityPermissionEnabled');
+      }
+      return true;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error checking accessibility permission: $e'),
+          backgroundColor: Colors.red,
         ),
       );
-
-      if (granted != true) {
-        SystemNavigator.pop();
-        return false;
-      }
-
-      return await _permissionChannel.invokeMethod('isAccessibilityPermissionEnabled');
+      return false;
     }
-    return true;
   }
 
   void _showStrictModeMenu(BuildContext context) {
@@ -343,6 +353,11 @@ class HomeScreen extends StatelessWidget {
                       isFlipPhoneEnabled: isFlipPhoneEnabled,
                       isExitBlockingEnabled: isExitBlockingEnabled,
                     );
+                    // Truy cập state từ HomeCubit
+                    final currentState = context.read<HomeCubit>().state;
+                    _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+                      'enabled': isAppBlockingEnabled && currentState.isTimerRunning,
+                    });
                     Navigator.pop(dialogContext);
                   },
                   child: const Text('OK'),
@@ -361,6 +376,11 @@ class HomeScreen extends StatelessWidget {
 
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
+        // Cập nhật trạng thái chặn ứng dụng mỗi khi timer thay đổi
+        _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+          'enabled': state.isAppBlockingEnabled && state.isTimerRunning,
+        });
+
         return WillPopScope(
           onWillPop: () async {
             if (state.isStrictModeEnabled && state.isTimerRunning && state.isExitBlockingEnabled) {

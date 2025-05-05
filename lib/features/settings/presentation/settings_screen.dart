@@ -17,24 +17,18 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     // Lấy taskBox, syncInfoBox, projectBox và tagBox từ AppData
-
     final appData = AppData.of(context);
     final backupService = BackupService(
       appData.taskBox,
       appData.syncInfoBox,
-      // appData.projectBox,
-      // appData.tagBox,
+      appData.projectBox,
+      appData.tagBox,
     );
 
     final user = FirebaseAuth.instance.currentUser;
     final displayName = user?.displayName ?? 'User';
     final photoUrl = user?.photoURL; // Placeholder nếu không có avatar
-      appData.projectBox,
-      appData.tagBox,
-    );
-
 
     return BlocProvider(
       create: (context) => SettingsCubit(),

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Moji Todo</string>
+    <string name="app_block_service_description">Dịch vụ chặn ứng dụng để hỗ trợ Strict Mode trong Moji Todo.</string>
+</resources>
