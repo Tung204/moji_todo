@@ -17,9 +17,14 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Lấy taskBox và syncInfoBox từ AppData
+    // Lấy taskBox, syncInfoBox, projectBox và tagBox từ AppData
     final appData = AppData.of(context);
-    final backupService = BackupService(appData.taskBox, appData.syncInfoBox);
+    final backupService = BackupService(
+      appData.taskBox,
+      appData.syncInfoBox,
+      appData.projectBox,
+      appData.tagBox,
+    );
 
     return BlocProvider(
       create: (context) => SettingsCubit(),

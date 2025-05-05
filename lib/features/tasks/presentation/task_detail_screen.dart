@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/task_cubit.dart';
 import '../data/models/task_model.dart';
+import 'utils/tag_colors.dart'; // Import TagColors
 
 class TaskDetailScreen extends StatelessWidget {
   final Task? task;
@@ -28,6 +29,8 @@ class TaskDetailScreen extends StatelessWidget {
       );
     }
 
+    final isInTrash = task!.category == 'Trash';
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -49,15 +52,17 @@ class TaskDetailScreen extends StatelessWidget {
                 showDialog(
                   context: context,
                   builder: (dialogContext) {
-                    bool isLoading = false; // Trạng thái loading
+                    bool isLoading = false;
                     return StatefulBuilder(
                       builder: (context, setState) {
                         return AlertDialog(
-                          title: const Text('Xóa Task'),
+                          title: Text(isInTrash ? 'Xóa vĩnh viễn' : 'Xóa Task'),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Bạn có chắc muốn xóa task "${task!.title}" không?'),
+                              Text(isInTrash
+                                  ? 'Bạn có chắc muốn xóa vĩnh viễn task "${task!.title}" không?'
+                                  : 'Task "${task!.title}" sẽ được chuyển vào Thùng rác. Bạn có muốn tiếp tục?'),
                               if (isLoading) ...[
                                 const SizedBox(height: 16),
                                 const CircularProgressIndicator(),
@@ -67,7 +72,7 @@ class TaskDetailScreen extends StatelessWidget {
                           actions: [
                             TextButton(
                               onPressed: isLoading
-                                  ? null // Vô hiệu hóa nút khi đang loading
+                                  ? null
                                   : () {
                                 Navigator.pop(dialogContext);
                               },
@@ -75,32 +80,90 @@ class TaskDetailScreen extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: isLoading
-                                  ? null // Vô hiệu hóa nút khi đang loading
+                                  ? null
                                   : () async {
                                 setState(() {
-                                  isLoading = true; // Bật trạng thái loading
+                                  isLoading = true;
                                 });
                                 try {
-                                  await context.read<TaskCubit>().deleteTask(task!);
-                                  Navigator.pop(dialogContext);
-                                  Navigator.pop(context, true); // Truyền thông báo xóa thành công về TaskListScreen
+                                  if (isInTrash) {
+                                    await context.read<TaskCubit>().deleteTask(task!);
+                                    Navigator.pop(dialogContext);
+                                    Navigator.pop(context, true);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Task đã được xóa vĩnh viễn!'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  } else {
+                                    await context.read<TaskCubit>().updateTask(
+                                      task!.copyWith(
+                                        category: 'Trash',
+                                        originalCategory: task!.category,
+                                      ),
+                                    );
+                                    Navigator.pop(dialogContext);
+                                    Navigator.pop(context, true);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Task đã được chuyển vào Thùng rác!'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 } catch (e) {
                                   setState(() {
                                     isLoading = false;
                                   });
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Lỗi khi xóa task: $e'),
+                                      content: Text('Lỗi: $e'),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
                                 }
                               },
-                              child: const Text(
-                                'Xóa',
-                                style: TextStyle(color: Colors.red),
+                              child: Text(
+                                isInTrash ? 'Xóa vĩnh viễn' : 'Xóa',
+                                style: const TextStyle(color: Colors.red),
                               ),
                             ),
+                            if (isInTrash)
+                              TextButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () async {
+                                  setState(() {
+                                    isLoading = true;
+                                  });
+                                  try {
+                                    await context.read<TaskCubit>().restoreTask(task!);
+                                    Navigator.pop(dialogContext);
+                                    Navigator.pop(context, true);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Task đã được khôi phục!'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Lỗi khi khôi phục: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: const Text(
+                                  'Khôi phục',
+                                  style: TextStyle(color: Colors.green),
+                                ),
+                              ),
                           ],
                         );
                       },
@@ -133,11 +196,13 @@ class TaskDetailScreen extends StatelessWidget {
               icon: Icons.calendar_today,
               title: 'Ngày đến hạn',
               value: task!.dueDate != null ? task!.dueDate.toString() : 'Hôm nay',
+              backgroundColor: Colors.blue[50], // Màu nền xanh dương nhạt
             ),
             _buildTaskDetailItem(
               icon: Icons.priority_high,
               title: 'Độ ưu tiên',
               value: task!.priority ?? 'Trung bình',
+              backgroundColor: Colors.red[50], // Màu nền đỏ nhạt
             ),
             _buildTaskDetailItem(
               icon: Icons.work,
@@ -147,12 +212,12 @@ class TaskDetailScreen extends StatelessWidget {
             _buildTaskDetailItem(
               icon: Icons.alarm,
               title: 'Nhắc nhở',
-              value: 'Hôm nay, 10:00 AM', // Giả định, có thể thay đổi sau
+              value: 'Hôm nay, 10:00 AM',
             ),
             _buildTaskDetailItem(
               icon: Icons.repeat,
               title: 'Lặp lại',
-              value: 'Không', // Giả định, có thể thay đổi sau
+              value: 'Không',
             ),
             const SizedBox(height: 16),
             const Text(
@@ -187,15 +252,20 @@ class TaskDetailScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: task!.tags?.map((tag) => Chip(
-                label: Text(
-                  '#$tag',
-                  style: const TextStyle(fontSize: 12, color: Colors.blue),
-                ),
-                backgroundColor: Colors.blue[50],
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-              ))?.toList() ??
-                  [],
+              children: task!.tags?.map((tag) {
+                final colors = TagColors.getTagColors(tag);
+                return Chip(
+                  label: Text(
+                    '#$tag',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors['text'],
+                    ),
+                  ),
+                  backgroundColor: colors['background'],
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                );
+              })?.toList() ?? [],
             ),
             const SizedBox(height: 16),
             const Text(
@@ -230,11 +300,25 @@ class TaskDetailScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String value,
+    Color? backgroundColor,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey),
-      title: Text(title, style: const TextStyle(fontSize: 16)),
-      trailing: Text(value, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? Colors.transparent,
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey),
+          const SizedBox(width: 16),
+          Text(title, style: const TextStyle(fontSize: 16)),
+          const Spacer(),
+          Text(value, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+        ],
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
+import 'widgets/task_card.dart'; // Import TaskCard
 import '../../../core/widgets/custom_bottom_nav_bar.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
@@ -13,6 +14,9 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   void _showTaskBottomSheet(BuildContext context) {
+    final TextEditingController searchController = TextEditingController();
+    String searchQuery = '';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -20,141 +24,117 @@ class HomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Select Task',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.tasks);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search task...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
-              ),
-              const SizedBox(height: 16),
-              BlocBuilder<TaskCubit, TaskState>(
-                builder: (context, state) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Today Tasks',
+                        'Select Task',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      ...state.tasks.map((task) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      task.title ?? 'Untitled Task',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Wrap(
-                                      spacing: 8,
-                                      children: [
-                                        if (task.tags != null)
-                                          ...task.tags!.map((tag) => Chip(
-                                            label: Text(
-                                              '#$tag',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.blue,
-                                              ),
-                                            ),
-                                            backgroundColor: Colors.blue[50],
-                                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                                          )),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.timer, size: 16, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${task.completedPomodoros ?? 0}/${task.estimatedPomodoros ?? 0}',
-                                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Icon(Icons.bookmark, size: 16, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          task.project ?? 'Pomodoro App',
-                                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.play_circle_fill, color: Color(0xFFFF5733)),
-                                onPressed: () {
-                                  context.read<HomeCubit>().selectTask(
-                                    task.title ?? 'Untitled Task',
-                                    task.estimatedPomodoros ?? 4,
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
+                        onPressed: () {
+                          Navigator.pushNamed(context, AppRoutes.tasks);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search task...',
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  BlocBuilder<TaskCubit, TaskState>(
+                    builder: (context, state) {
+                      final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
+                      final todayTasks = categorizedTasks['Today'] ?? [];
+                      final filteredTasks = searchQuery.isEmpty
+                          ? todayTasks
+                          : todayTasks
+                          .where((task) => task.title?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
+                          .toList();
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Today Tasks',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (filteredTasks.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(child: Text('No tasks found.')),
+                            )
+                          else
+                            SizedBox(
+                              height: 300, // Giới hạn chiều cao để tránh tràn
+                              child: ListView.builder(
+                                itemCount: filteredTasks.length,
+                                itemBuilder: (context, index) {
+                                  final task = filteredTasks[index];
+                                  return TaskCard(
+                                    task: task,
+                                    onPlay: () {
+                                      context.read<HomeCubit>().selectTask(
+                                        task.title ?? 'Untitled Task',
+                                        task.estimatedPomodoros ?? 4,
+                                      );
+                                      Navigator.pop(context);
+                                    },
                                   );
-                                  Navigator.pop(context);
                                 },
                               ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                },
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          },
         );
       },
     );

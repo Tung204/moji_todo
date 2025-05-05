@@ -51,7 +51,10 @@ class Task {
   String? userId;
 
   @HiveField(15)
-  DateTime? createdAt; // Thêm trường createdAt để lưu thời gian tạo task
+  DateTime? createdAt;
+
+  @HiveField(16)
+  String? originalCategory; // Thêm trường originalCategory để lưu category ban đầu
 
   Task({
     this.id,
@@ -70,6 +73,7 @@ class Task {
     this.subtasks,
     this.userId,
     this.createdAt,
+    this.originalCategory,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -90,6 +94,7 @@ class Task {
       subtasks: (json['subtasks'] as List<dynamic>?)?.cast<Map<String, dynamic>>(),
       userId: json['userId'] as String?,
       createdAt: json['createdAt'] != null ? (json['createdAt'] as Timestamp).toDate() : null,
+      originalCategory: json['originalCategory'] as String?,
     );
   }
 
@@ -111,6 +116,7 @@ class Task {
       'subtasks': subtasks,
       'userId': userId,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+      'originalCategory': originalCategory,
     };
   }
 
@@ -131,6 +137,7 @@ class Task {
     List<Map<String, dynamic>>? subtasks,
     String? userId,
     DateTime? createdAt,
+    String? originalCategory,
   }) {
     return Task(
       id: id ?? this.id,
@@ -149,6 +156,7 @@ class Task {
       subtasks: subtasks ?? this.subtasks,
       userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
+      originalCategory: originalCategory ?? this.originalCategory,
     );
   }
 }
