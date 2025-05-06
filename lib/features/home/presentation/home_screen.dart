@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+import '../../tasks/data/models/task_model.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
@@ -128,7 +129,7 @@ class HomeScreen extends StatelessWidget {
                                     },
                                     onComplete: () {
                                       context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
-                                      context.read<HomeCubit>().stopTimer();
+                                      // BlocListener sẽ tự động gọi resetTask nếu task đang chọn bị hoàn thành
                                     },
                                   );
                                 },
@@ -359,144 +360,190 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     NavigationManager.currentIndex = 0;
 
-    return BlocBuilder<HomeCubit, HomeState>(
-      builder: (context, state) {
-        return WillPopScope(
-          onWillPop: () async {
-            if (state.isStrictModeEnabled && state.isTimerRunning && state.isExitBlockingEnabled) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Strict Mode (Cấm thoát) đang bật! Bạn không thể thoát ứng dụng.'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              return false;
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<TaskCubit, TaskState>(
+          listener: (context, taskState) {
+            // Khi danh sách task trong TaskCubit cập nhật, kiểm tra xem task đang chọn có còn trong danh sách "Today" không
+            final homeCubit = context.read<HomeCubit>();
+            final selectedTaskTitle = homeCubit.state.selectedTask;
+            if (selectedTaskTitle != null) {
+              final todayTasks = context.read<TaskCubit>().getCategorizedTasks()['Today'] ?? [];
+              final isTaskStillInToday = todayTasks.any((task) => task.title == selectedTaskTitle);
+              if (!isTaskStillInToday) {
+                // Nếu task không còn trong "Today" (đã hoàn thành hoặc bị xóa), reset ô "Select Task"
+                homeCubit.resetTask();
+              }
             }
-            return true;
           },
-          child: Scaffold(
-            backgroundColor: const Color(0xFFE6F7FA),
-            appBar: const CustomAppBar(),
-            body: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => _showTaskBottomSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              state.selectedTask ?? 'Select Task',
-                              style: TextStyle(
-                                color: state.selectedTask != null ? Colors.black : Colors.grey,
-                                fontSize: 16,
+        ),
+      ],
+      child: BlocBuilder<HomeCubit, HomeState>(
+        builder: (context, state) {
+          return WillPopScope(
+            onWillPop: () async {
+              if (state.isStrictModeEnabled && state.isTimerRunning && state.isExitBlockingEnabled) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Strict Mode (Cấm thoát) đang bật! Bạn không thể thoát ứng dụng.'),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return false;
+              }
+              return true;
+            },
+            child: Scaffold(
+              backgroundColor: const Color(0xFFE6F7FA),
+              appBar: const CustomAppBar(),
+              body: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showTaskBottomSheet(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (state.selectedTask != null)
+                              Container(
+                                width: 24,
+                                height: 24,
+                                margin: const EdgeInsets.only(right: 8),
+                                child: Checkbox(
+                                  value: false,
+                                  onChanged: (value) {
+                                    if (value == true && state.selectedTask != null) {
+                                      final todayTasks = context.read<TaskCubit>().getCategorizedTasks()['Today'] ?? [];
+                                      if (todayTasks.isNotEmpty) {
+                                        final selectedTask = todayTasks.firstWhere(
+                                              (task) => task.title == state.selectedTask,
+                                          orElse: () {
+                                            // If the task is not found, return a default Task with null values
+                                            return Task(
+                                              title: '',
+                                              userId: '',
+                                            );
+                                          },
+                                        );
+                                        if (selectedTask.title != '') {
+                                          context.read<TaskCubit>().updateTask(selectedTask.copyWith(isCompleted: true));
+                                        }
+                                      }
+                                    }
+                                  },
+                                  shape: const CircleBorder(),
+                                  activeColor: Colors.green,
+                                  checkColor: Colors.white,
+                                  side: const BorderSide(color: Colors.grey),
+                                ),
+                              ),
+                            Expanded(
+                              child: Text(
+                                state.selectedTask ?? 'Select Task',
+                                style: TextStyle(
+                                  color: state.selectedTask != null ? Colors.black : Colors.grey,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
-                          ),
-                          state.selectedTask != null
-                              ? IconButton(
-                            icon: const Icon(Icons.close, color: Colors.grey, size: 24),
-                            onPressed: () async {
-                              await context.read<HomeCubit>().resetTask();
-                            },
-                          )
-                              : const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                        ],
+                            if (state.selectedTask == null)
+                              const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                  PomodoroTimer(
-                    timerSeconds: state.timerSeconds,
-                    isRunning: state.isTimerRunning,
-                    isPaused: state.isPaused,
-                    currentSession: state.currentSession,
-                    totalSessions: state.totalSessions,
-                    onStart: () {
-                      context.read<HomeCubit>().startTimer();
-                    },
-                    onPause: () {
-                      context.read<HomeCubit>().pauseTimer();
-                    },
-                    onContinue: () {
-                      context.read<HomeCubit>().continueTimer();
-                    },
-                    onStop: () {
-                      context.read<HomeCubit>().stopTimer();
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Selected Task: ${state.selectedTask ?? 'None'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.warning,
-                              color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
+                    const SizedBox(height: 40),
+                    PomodoroTimer(
+                      timerSeconds: state.timerSeconds,
+                      isRunning: state.isTimerRunning,
+                      isPaused: state.isPaused,
+                      currentSession: state.currentSession,
+                      totalSessions: state.totalSessions,
+                      onStart: () {
+                        context.read<HomeCubit>().startTimer();
+                      },
+                      onPause: () {
+                        context.read<HomeCubit>().pauseTimer();
+                      },
+                      onContinue: () {
+                        context.read<HomeCubit>().continueTimer();
+                      },
+                      onStop: () {
+                        context.read<HomeCubit>().stopTimer();
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Selected Task: ${state.selectedTask ?? 'None'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 40),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.warning,
+                                color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
+                              ),
+                              onPressed: () {
+                                _showStrictModeMenu(context);
+                              },
                             ),
-                            onPressed: () {
-                              _showStrictModeMenu(context);
-                            },
-                          ),
-                          Text(
-                            'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
-                            style: TextStyle(
-                              color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
-                              fontSize: 12,
+                            Text(
+                              'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
+                              style: TextStyle(
+                                color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.hourglass_empty, color: Colors.grey),
-                            onPressed: () {},
-                          ),
-                          const Text(
-                            'Timer Mode',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.music_note, color: Colors.grey),
-                            onPressed: () {},
-                          ),
-                          const Text(
-                            'White Noise',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.hourglass_empty, color: Colors.grey),
+                              onPressed: () {},
+                            ),
+                            const Text(
+                              'Timer Mode',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.music_note, color: Colors.grey),
+                              onPressed: () {},
+                            ),
+                            const Text(
+                              'White Noise',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

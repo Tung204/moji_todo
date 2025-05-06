@@ -249,11 +249,17 @@ class TaskCubit extends Cubit<TaskState> {
 
     for (var task in state.tasks) {
       if (task.userId != user.uid) continue;
-      if (task.isCompleted == true) {
-        categorizedTasks['Completed']!.add(task);
-      } else if (task.category == 'Trash') {
+
+      // Ưu tiên kiểm tra Trash trước
+      if (task.category == 'Trash') {
         categorizedTasks['Trash']!.add(task);
-      } else if (task.dueDate != null) {
+      }
+      // Sau đó mới kiểm tra Completed
+      else if (task.isCompleted == true) {
+        categorizedTasks['Completed']!.add(task);
+      }
+      // Các trường hợp khác
+      else if (task.dueDate != null) {
         final dueDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
         if (dueDate.isAtSameMomentAs(today)) {
           categorizedTasks['Today']!.add(task);

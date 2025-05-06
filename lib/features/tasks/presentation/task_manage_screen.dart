@@ -14,6 +14,7 @@ import 'widgets/task_category_card.dart';
 import 'add_task/add_task_bottom_sheet.dart';
 import 'task_list_screen.dart';
 import 'trash_screen.dart';
+import 'completed_tasks_screen.dart'; // Thêm import mới
 
 class TaskManageScreen extends StatelessWidget {
   const TaskManageScreen({super.key});
@@ -190,7 +191,7 @@ class TaskManageScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const TaskListScreen(category: 'Completed'),
+                            builder: (context) => const CompletedTasksScreen(), // Sửa thành CompletedTasksScreen
                           ),
                         );
                       },
@@ -248,7 +249,7 @@ class TaskManageScreen extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: const Color(0xFFFF5733), // Màu đỏ/cam giống nút trong bottom sheet
+            backgroundColor: const Color(0xFFFF5733),
             onPressed: () {
               showModalBottomSheet(
                 context: context,

@@ -26,8 +26,33 @@ class HomeCubit extends Cubit<HomeState> {
     );
     await _notificationsPlugin.initialize(initializationSettings);
 
-    // Không cần Firestore listener vì dữ liệu được lưu cục bộ trong Hive
-    // Đồng bộ lên Firestore sẽ diễn ra 15 phút 1 lần theo cơ chế của ứng dụng
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('tasks')
+        .where('isPomodoroActive', isEqualTo: true)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        // Chỉ tự động chọn task nếu chưa có task nào được chọn hoặc task đã bị hủy
+        if (state.selectedTask == null) {
+          final taskDoc = snapshot.docs.first;
+          final task = Task.fromJson(taskDoc.data());
+          emit(state.copyWith(
+            selectedTask: task.title,
+            timerSeconds: task.remainingPomodoroSeconds ?? 25 * 60,
+            isTimerRunning: true,
+            isPaused: false,
+            currentSession: task.completedPomodoros ?? 0,
+            totalSessions: task.estimatedPomodoros ?? 4,
+          ));
+          _startTimer(task.remainingPomodoroSeconds ?? 25 * 60);
+        }
+      }
+    });
   }
 
   void selectTask(String? taskTitle, int estimatedPomodoros) {
@@ -100,10 +125,10 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<void> resetTask() async {
     if (state.selectedTask != null) {
-      await _updateTaskPomodoroState(state.selectedTask, false, 0);
+      await _updateTaskPomodoroState(state.selectedTask, false, 0); // Chờ cập nhật Firestore
     }
-    stopTimer(updateTaskState: false);
-    selectTask(null, 4);
+    stopTimer(updateTaskState: false); // Không gọi lại _updateTaskPomodoroState
+    selectTask(null, 4); // Bỏ chọn task
   }
 
   void updateStrictMode({
