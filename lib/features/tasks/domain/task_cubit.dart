@@ -2,12 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:hive/hive.dart';
 import '../../../core/services/gemini_service.dart';
 import '../data/models/task_model.dart';
 import '../data/task_repository.dart';
-import '../data/models/project_model.dart';
-import '../data/models/tag_model.dart';
 
 part 'task_state.dart';
 
