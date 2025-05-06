@@ -13,7 +13,6 @@ import 'package:moji_todo/features/tasks/data/models/tag_model.dart';
 import 'package:moji_todo/features/tasks/domain/task_cubit.dart';
 import 'package:moji_todo/routes/app_routes.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'core/services/backup_service.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
