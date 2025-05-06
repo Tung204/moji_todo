@@ -132,7 +132,7 @@ class _ArchivedProjectsScreenState extends State<ArchivedProjectsScreen> {
                                             isLoading = true;
                                           });
                                           try {
-                                            await widget.repository.deleteProject(index);
+                                            await widget.repository.deleteProject(index, context);
                                             Navigator.pop(dialogContext);
                                             setState(() {});
                                             ScaffoldMessenger.of(context).showSnackBar(

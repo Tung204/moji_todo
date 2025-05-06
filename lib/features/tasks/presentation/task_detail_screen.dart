@@ -2,12 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/task_cubit.dart';
 import '../data/models/task_model.dart';
-import 'utils/tag_colors.dart'; // Import TagColors
+import 'utils/tag_colors.dart';
 
 class TaskDetailScreen extends StatelessWidget {
   final Task? task;
 
   const TaskDetailScreen({super.key, required this.task});
+
+  // Hàm định dạng dueDate thành "Today", "Tomorrow", hoặc ngày cụ thể
+  String _formatDueDate(DateTime? dueDate) {
+    if (dueDate == null) return 'Hôm nay';
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+
+    if (dueDateOnly.isAtSameMomentAs(today)) {
+      return 'Hôm nay';
+    } else if (dueDateOnly.isAtSameMomentAs(tomorrow)) {
+      return 'Ngày mai';
+    } else {
+      return '${dueDate.day}/${dueDate.month}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,11 +115,10 @@ class TaskDetailScreen extends StatelessWidget {
                                       ),
                                     );
                                   } else {
-                                    // Đảm bảo category được đặt đúng trước khi chuyển vào Trash
                                     await context.read<TaskCubit>().updateTask(
                                       task!.copyWith(
                                         category: 'Trash',
-                                        originalCategory: task!.category ?? 'Completed', // Đặt rõ ràng category gốc
+                                        originalCategory: task!.category ?? 'Completed',
                                       ),
                                     );
                                     Navigator.pop(dialogContext);
@@ -130,7 +147,7 @@ class TaskDetailScreen extends StatelessWidget {
                                 style: const TextStyle(color: Colors.red),
                               ),
                             ),
-                            if (isInTrash) // Chỉ hiển thị "Khôi phục" khi task thực sự trong Trash
+                            if (isInTrash)
                               TextButton(
                                 onPressed: isLoading
                                     ? null
@@ -196,14 +213,14 @@ class TaskDetailScreen extends StatelessWidget {
             _buildTaskDetailItem(
               icon: Icons.calendar_today,
               title: 'Ngày đến hạn',
-              value: task!.dueDate != null ? task!.dueDate.toString() : 'Hôm nay',
-              backgroundColor: Colors.blue[50], // Màu nền xanh dương nhạt
+              value: _formatDueDate(task!.dueDate),
+              backgroundColor: Colors.blue[50],
             ),
             _buildTaskDetailItem(
               icon: Icons.priority_high,
               title: 'Độ ưu tiên',
               value: task!.priority ?? 'Trung bình',
-              backgroundColor: Colors.red[50], // Màu nền đỏ nhạt
+              backgroundColor: Colors.red[50],
             ),
             _buildTaskDetailItem(
               icon: Icons.work,
@@ -318,7 +335,14 @@ class TaskDetailScreen extends StatelessWidget {
           const SizedBox(width: 16),
           Text(title, style: const TextStyle(fontSize: 16)),
           const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );

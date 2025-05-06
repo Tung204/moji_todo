@@ -6,6 +6,8 @@ import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
 import 'widgets/task_card.dart';
+import 'strict_mode_menu.dart'; // Giữ import từ tinvo
+import 'timer_mode_menu.dart'; // Giữ import từ tinvo
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
@@ -79,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             'action': 'com.example.moji_todo.PAUSE',
           };
           print('Received pauseTimer, sending PAUSE intent: $intent');
-          _notificationChannel.invokeMethod('startTimerService', intent);
+          await _notificationChannel.invokeMethod('startTimerService', intent);
           context.read<HomeCubit>().pauseTimer();
           break;
         case 'resumeTimer':
@@ -88,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             'action': 'com.example.moji_todo.RESUME',
           };
           print('Received resumeTimer, sending RESUME intent: $intent');
-          _notificationChannel.invokeMethod('startTimerService', intent);
+          await _notificationChannel.invokeMethod('startTimerService', intent);
           context.read<HomeCubit>().continueTimer();
           break;
         case 'stopTimer':
@@ -99,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             'action': 'com.example.moji_todo.STOP',
           };
           print('Received stopTimer, sending STOP intent: $intent');
-          _notificationChannel.invokeMethod('startTimerService', intent);
+          await _notificationChannel.invokeMethod('startTimerService', intent);
           _isTimerServiceRunning = false;
           context.read<HomeCubit>().stopTimer();
           break;
@@ -280,118 +282,128 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setBottomSheetState) {
             return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Select Task',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.tasks);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search task...',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  BlocBuilder<TaskCubit, TaskState>(
-                    builder: (context, state) {
-                      final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
-                      final todayTasks = categorizedTasks['Today'] ?? [];
-                      final filteredTasks = searchQuery.isEmpty
-                          ? todayTasks
-                          : todayTasks
-                          .where((task) => task.title?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
-                          .toList();
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Today Tasks',
+                            'Select Task',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          if (filteredTasks.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16.0),
-                              child: Center(child: Text('No tasks found.')),
-                            )
-                          else
-                            SizedBox(
-                              height: 300,
-                              child: ListView.builder(
-                                itemCount: filteredTasks.length,
-                                itemBuilder: (context, index) {
-                                  final task = filteredTasks[index];
-                                  return TaskCard(
-                                    task: task,
-                                    onPlay: () {
-                                      context.read<HomeCubit>().selectTask(
-                                        task.title ?? 'Untitled Task',
-                                        task.estimatedPomodoros ?? 4,
-                                      );
-                                      context.read<HomeCubit>().startTimer();
-                                      Navigator.pop(context);
-                                    },
-                                    onComplete: () {
-                                      context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
-                                      context.read<HomeCubit>().stopTimer();
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
+                          IconButton(
+                            icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
+                            onPressed: () {
+                              Navigator.pushNamed(context, AppRoutes.tasks);
+                            },
+                          ),
                         ],
-                      );
-                    },
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search task...',
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                        ),
+                        autofocus: true,
+                        onChanged: (value) {
+                          setBottomSheetState(() {
+                            searchQuery = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      BlocBuilder<TaskCubit, TaskState>(
+                        builder: (context, state) {
+                          final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
+                          final todayTasks = categorizedTasks['Today'] ?? [];
+                          final filteredTasks = searchQuery.isEmpty
+                              ? todayTasks
+                              : todayTasks
+                                  .where((task) => task.title?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
+                                  .toList();
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Today Tasks',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (filteredTasks.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Center(child: Text('No tasks found.')),
+                                )
+                              else
+                                SizedBox(
+                                  height: 300,
+                                  child: ListView.builder(
+                                    itemCount: filteredTasks.length,
+                                    itemBuilder: (context, index) {
+                                      final task = filteredTasks[index];
+                                      return TaskCard(
+                                        task: task,
+                                        onPlay: () {
+                                          context.read<HomeCubit>().selectTask(
+                                                task.title ?? 'Untitled Task',
+                                                task.estimatedPomodoros ?? 4,
+                                              );
+                                          context.read<HomeCubit>().startTimer();
+                                          Navigator.pop(context);
+                                        },
+                                        onComplete: () {
+                                          context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
+                                          if (context.read<HomeCubit>().state.selectedTask == task.title) {
+                                            context.read<HomeCubit>().stopTimer();
+                                          }
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
             );
           },
@@ -606,10 +618,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 TextButton(
                   onPressed: () {
                     context.read<HomeCubit>().updateStrictMode(
-                      isAppBlockingEnabled: isAppBlockingEnabled,
-                      isFlipPhoneEnabled: isFlipPhoneEnabled,
-                      isExitBlockingEnabled: isExitBlockingEnabled,
-                    );
+                          isAppBlockingEnabled: isAppBlockingEnabled,
+                          isFlipPhoneEnabled: isFlipPhoneEnabled,
+                          isExitBlockingEnabled: isExitBlockingEnabled,
+                        );
                     final currentState = context.read<HomeCubit>().state;
                     final newAppBlockingState = isAppBlockingEnabled && currentState.isTimerRunning;
                     if (newAppBlockingState != _lastAppBlockingState) {
@@ -635,189 +647,211 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     NavigationManager.currentIndex = 0;
 
-    return BlocBuilder<HomeCubit, HomeState>(
-      buildWhen: (previous, current) =>
-      previous.timerSeconds != current.timerSeconds ||
-          previous.isTimerRunning != current.isTimerRunning ||
-          previous.isPaused != current.isPaused ||
-          previous.selectedTask != current.selectedTask ||
-          previous.isStrictModeEnabled != current.isStrictModeEnabled,
-      builder: (context, state) {
-        final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
-        if (newAppBlockingState != _lastAppBlockingState) {
-          print('Updating app blocking state: $newAppBlockingState');
-          _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-            'enabled': newAppBlockingState,
-          });
-          _lastAppBlockingState = newAppBlockingState;
-        }
-
-        return WillPopScope(
-          onWillPop: () async {
-            if (state.isStrictModeEnabled && state.isTimerRunning && state.isExitBlockingEnabled) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Strict Mode (Cấm thoát) đang bật! Bạn không thể thoát ứng dụng.'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              return false;
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<TaskCubit, TaskState>(
+          listener: (context, taskState) {
+            final homeCubit = context.read<HomeCubit>();
+            final selectedTaskTitle = homeCubit.state.selectedTask;
+            if (selectedTaskTitle != null) {
+              final todayTasks = context.read<TaskCubit>().getCategorizedTasks()['Today'] ?? [];
+              final isTaskStillInToday = todayTasks.any((task) => task.title == selectedTaskTitle);
+              if (!isTaskStillInToday) {
+                homeCubit.resetTask();
+              }
             }
-            return true;
           },
-          child: Scaffold(
-            backgroundColor: const Color(0xFFE6F7FA),
-            appBar: const CustomAppBar(),
-            body: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => _showTaskBottomSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            state.selectedTask ?? 'Select Task',
-                            style: TextStyle(
-                              color: state.selectedTask != null ? Colors.black : Colors.grey,
-                              fontSize: 16,
+        ),
+      ],
+      child: BlocBuilder<HomeCubit, HomeState>(
+        buildWhen: (previous, current) =>
+            previous.timerSeconds != current.timerSeconds ||
+            previous.isTimerRunning != current.isTimerRunning ||
+            previous.isPaused != current.isPaused ||
+            previous.selectedTask != current.selectedTask ||
+            previous.isStrictModeEnabled != current.isStrictModeEnabled,
+        builder: (context, state) {
+          final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+          if (newAppBlockingState != _lastAppBlockingState) {
+            print('Updating app blocking state: $newAppBlockingState');
+            _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+              'enabled': newAppBlockingState,
+            });
+            _lastAppBlockingState = newAppBlockingState;
+          }
+
+          return WillPopScope(
+            onWillPop: () async {
+              if (state.isStrictModeEnabled && state.isTimerRunning && state.isExitBlockingEnabled) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Strict Mode (Cấm thoát) đang bật! Bạn không thể thoát ứng dụng.'),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return false;
+              }
+              return true;
+            },
+            child: Scaffold(
+              backgroundColor: const Color(0xFFE6F7FA),
+              appBar: const CustomAppBar(),
+              body: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showTaskBottomSheet(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              state.selectedTask ?? 'Select Task',
+                              style: TextStyle(
+                                color: state.selectedTask != null ? Colors.black : Colors.grey,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
-                          Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-                        ],
+                            Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                  PomodoroTimer(
-                    timerSeconds: state.timerSeconds,
-                    isRunning: state.isTimerRunning,
-                    isPaused: state.isPaused,
-                    currentSession: state.currentSession,
-                    totalSessions: state.totalSessions,
-                    onStart: () async {
-                      context.read<HomeCubit>().startTimer();
-                      if (_hasNotificationPermission) {
-                        final initialSeconds = context.read<HomeCubit>().state.timerSeconds;
+                    const SizedBox(height: 40),
+                    PomodoroTimer(
+                      timerSeconds: state.timerSeconds,
+                      isRunning: state.isTimerRunning,
+                      isPaused: state.isPaused,
+                      currentSession: state.currentSession,
+                      totalSessions: state.totalSessions,
+                      onStart: () async {
+                        context.read<HomeCubit>().startTimer();
+                        if (_hasNotificationPermission) {
+                          final initialSeconds = context.read<HomeCubit>().state.timerSeconds;
+                          final intent = {
+                            'action': 'START',
+                            'timerSeconds': initialSeconds,
+                            'isRunning': true,
+                            'isPaused': false,
+                          };
+                          print('Sending START intent: $intent');
+                          await _notificationChannel.invokeMethod('startTimerService', intent);
+                          _isTimerServiceRunning = true;
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setInt(prefTimerSeconds, initialSeconds);
+                          await prefs.setBool(prefIsRunning, true);
+                          await prefs.setBool(prefIsPaused, false);
+                        }
+                      },
+                      onPause: () async {
+                        context.read<HomeCubit>().pauseTimer();
                         final intent = {
-                          'action': 'START',
-                          'timerSeconds': initialSeconds,
-                          'isRunning': true,
-                          'isPaused': false,
+                          'action': 'com.example.moji_todo.PAUSE',
                         };
-                        print('Sending START intent: $intent');
+                        print('Sending PAUSE intent: $intent');
                         await _notificationChannel.invokeMethod('startTimerService', intent);
-                        _isTimerServiceRunning = true;
                         final prefs = await SharedPreferences.getInstance();
-                        await prefs.setInt(prefTimerSeconds, initialSeconds);
-                        await prefs.setBool(prefIsRunning, true);
+                        await prefs.setInt(prefTimerSeconds, state.timerSeconds);
+                        await prefs.setBool(prefIsRunning, state.isTimerRunning);
+                        await prefs.setBool(prefIsPaused, true);
+                      },
+                      onContinue: () async {
+                        context.read<HomeCubit>().continueTimer();
+                        final intent = {
+                          'action': 'com.example.moji_todo.RESUME',
+                        };
+                        print('Sending RESUME intent: $intent');
+                        await _notificationChannel.invokeMethod('startTimerService', intent);
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setInt(prefTimerSeconds, state.timerSeconds);
+                        await prefs.setBool(prefIsRunning, state.isTimerRunning);
                         await prefs.setBool(prefIsPaused, false);
-                      }
-                    },
-                    onPause: () async {
-                      context.read<HomeCubit>().pauseTimer();
-                      final intent = {
-                        'action': 'com.example.moji_todo.PAUSE',
-                      };
-                      print('Sending PAUSE intent: $intent');
-                      await _notificationChannel.invokeMethod('startTimerService', intent);
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setInt(prefTimerSeconds, state.timerSeconds);
-                      await prefs.setBool(prefIsRunning, state.isTimerRunning);
-                      await prefs.setBool(prefIsPaused, true);
-                    },
-                    onContinue: () async {
-                      context.read<HomeCubit>().continueTimer();
-                      final intent = {
-                        'action': 'com.example.moji_todo.RESUME',
-                      };
-                      print('Sending RESUME intent: $intent');
-                      await _notificationChannel.invokeMethod('startTimerService', intent);
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setInt(prefTimerSeconds, state.timerSeconds);
-                      await prefs.setBool(prefIsRunning, state.isTimerRunning);
-                      await prefs.setBool(prefIsPaused, false);
-                    },
-                    onStop: () async {
-                      context.read<HomeCubit>().stopTimer();
-                      final intent = {
-                        'action': 'com.example.moji_todo.STOP',
-                      };
-                      print('Sending STOP intent: $intent');
-                      await _notificationChannel.invokeMethod('startTimerService', intent);
-                      _isTimerServiceRunning = false;
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setInt(prefTimerSeconds, 0);
-                      await prefs.setBool(prefIsRunning, false);
-                      await prefs.setBool(prefIsPaused, false);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Selected Task: ${state.selectedTask ?? 'None'}',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.warning,
-                              color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
+                      },
+                      onStop: () async {
+                        context.read<HomeCubit>().stopTimer();
+                        final intent = {
+                          'action': 'com.example.moji_todo.STOP',
+                        };
+                        print('Sending STOP intent: $intent');
+                        await _notificationChannel.invokeMethod('startTimerService', intent);
+                        _isTimerServiceRunning = false;
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setInt(prefTimerSeconds, 0);
+                        await prefs.setBool(prefIsRunning, false);
+                        await prefs.setBool(prefIsPaused, false);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Selected Task: ${state.selectedTask ?? 'None'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 40),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.warning,
+                                color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
+                              ),
+                              onPressed: () {
+                                _showStrictModeMenu(context);
+                              },
                             ),
-                            onPressed: () {
-                              _showStrictModeMenu(context);
-                            },
-                          ),
-                          Text(
-                            'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
-                            style: TextStyle(
-                              color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
-                              fontSize: 12,
+                            Text(
+                              'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
+                              style: TextStyle(
+                                color: state.isStrictModeEnabled ? Colors.red : Colors.grey,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.hourglass_empty, color: Colors.grey),
-                            onPressed: () {},
-                          ),
-                          const Text(
-                            'Timer Mode',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.music_note, color: Colors.grey),
-                            onPressed: () {},
-                          ),
-                          const Text(
-                            'White Noise',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.hourglass_empty, color: Colors.grey),
+                              onPressed: () {
+                                // TODO: Thêm logic cho TimerModeMenu nếu cần
+                              },
+                            ),
+                            const Text(
+                              'Timer Mode',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.music_note, color: Colors.grey),
+                              onPressed: () {},
+                            ),
+                            const Text(
+                              'White Noise',
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    // TODO: Nếu muốn tích hợp StrictModeMenu và TimerModeMenu từ tinvo, thay thế IconButton bằng:
+                    // const StrictModeMenu(),
+                    // const TimerModeMenu(),
+                  ],
+                ),
               ),
             ),
           ),

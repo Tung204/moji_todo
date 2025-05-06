@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/services/backup_service.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
+import 'features/tasks/data/models/project_tag_repository.dart';
 
 // InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
 class AppData extends InheritedWidget {
@@ -73,6 +74,9 @@ void main() async {
   final notificationService = NotificationService();
   await notificationService.init();
 
+  // Kiểm tra và sinh project/tag mặc định nếu Hive trống
+  await initializeDefaultData(projectBox, tagBox);
+
   runApp(MyApp(
     taskBox: taskBox,
     syncInfoBox: syncInfoBox,
@@ -80,6 +84,46 @@ void main() async {
     projectBox: projectBox,
     tagBox: tagBox,
   ));
+}
+
+// Hàm khởi tạo dữ liệu mặc định
+Future<void> initializeDefaultData(Box<Project> projectBox, Box<Tag> tagBox) async {
+  final repository = ProjectTagRepository(projectBox: projectBox, tagBox: tagBox);
+
+  // Nếu Hive trống, thêm dữ liệu mặc định
+  if (projectBox.isEmpty) {
+    final defaultProjects = [
+      Project(name: 'General', color: Colors.green, isArchived: false),
+      Project(name: 'Pomodoro App', color: Colors.red, isArchived: false),
+      Project(name: 'Fashion App', color: Colors.green, isArchived: false),
+      Project(name: 'AI Chatbot App', color: Colors.cyan, isArchived: false),
+      Project(name: 'Dating App', color: Colors.pink, isArchived: false),
+      Project(name: 'Quiz App', color: Colors.blue, isArchived: false),
+      Project(name: 'News App', color: Colors.teal, isArchived: false),
+    ];
+
+    for (var project in defaultProjects) {
+      await repository.addProject(project);
+    }
+  }
+
+  if (tagBox.isEmpty) {
+    final defaultTags = [
+      Tag(name: 'Design', backgroundColor: Colors.lightGreen.shade50, textColor: Colors.lightGreen, isArchived: false),
+      Tag(name: 'Work', backgroundColor: Colors.blue.shade50, textColor: Colors.blue, isArchived: false),
+      Tag(name: 'Productive', backgroundColor: Colors.purple.shade50, textColor: Colors.purple, isArchived: false),
+      Tag(name: 'Personal', backgroundColor: Colors.green.shade50, textColor: Colors.green, isArchived: false),
+      Tag(name: 'Study', backgroundColor: Colors.purple.shade50, textColor: Colors.purple, isArchived: false),
+      Tag(name: 'Urgent', backgroundColor: Colors.red.shade50, textColor: Colors.red, isArchived: false),
+      Tag(name: 'Home', backgroundColor: Colors.cyan.shade50, textColor: Colors.cyan, isArchived: false),
+      Tag(name: 'Important', backgroundColor: Colors.orange.shade50, textColor: Colors.orange, isArchived: false),
+      Tag(name: 'Research', backgroundColor: Colors.brown.shade50, textColor: Colors.brown, isArchived: false),
+    ];
+
+    for (var tag in defaultTags) {
+      await repository.addTag(tag);
+    }
+  }
 }
 
 class MyApp extends StatefulWidget {
