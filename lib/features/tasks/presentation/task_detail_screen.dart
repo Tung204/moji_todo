@@ -97,10 +97,11 @@ class TaskDetailScreen extends StatelessWidget {
                                       ),
                                     );
                                   } else {
+                                    // Đảm bảo category được đặt đúng trước khi chuyển vào Trash
                                     await context.read<TaskCubit>().updateTask(
                                       task!.copyWith(
                                         category: 'Trash',
-                                        originalCategory: task!.category,
+                                        originalCategory: task!.category ?? 'Completed', // Đặt rõ ràng category gốc
                                       ),
                                     );
                                     Navigator.pop(dialogContext);
@@ -129,7 +130,7 @@ class TaskDetailScreen extends StatelessWidget {
                                 style: const TextStyle(color: Colors.red),
                               ),
                             ),
-                            if (isInTrash)
+                            if (isInTrash) // Chỉ hiển thị "Khôi phục" khi task thực sự trong Trash
                               TextButton(
                                 onPressed: isLoading
                                     ? null
@@ -265,7 +266,8 @@ class TaskDetailScreen extends StatelessWidget {
                   backgroundColor: colors['background'],
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                 );
-              })?.toList() ?? [],
+              })?.toList() ??
+                  [],
             ),
             const SizedBox(height: 16),
             const Text(
