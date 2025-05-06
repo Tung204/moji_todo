@@ -40,6 +40,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Khai báo icon thông báo
+        resValue("string", "flutter_local_notifications_icon", "@mipmap/ic_launcher")
     }
     buildTypes {
         debug {

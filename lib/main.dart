@@ -50,7 +50,6 @@ class AppData extends InheritedWidget {
         tagBox != oldWidget.tagBox;
   }
 }
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
