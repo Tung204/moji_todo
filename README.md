@@ -1,6 +1,6 @@
 # moji_todo
 
-A new Flutter project.
+Moji_todo is an easy-to-use time and task management application that helps you to manage tasks anywhere and anytime, and helps you to perform tasks efficiently.
 
 ## Getting Started
 
