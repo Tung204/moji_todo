@@ -117,7 +117,6 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "getTimerState" -> {
-                    // Trả về trạng thái từ TimerService
                     val state = mapOf(
                         "timerSeconds" to TimerService.timerSeconds,
                         "isRunning" to TimerService.isRunning,
@@ -191,6 +190,19 @@ class MainActivity : FlutterActivity() {
                 "stop" -> {
                     methodChannel?.invokeMethod("stopTimer", null)
                     NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+                }
+            }
+        } else {
+            // Xử lý khi ấn vào thông báo "Hết phiên làm việc" hoặc "Hết phiên nghỉ"
+            val payload = intent?.extras?.getString("flutter_notification_payload")
+            if (payload != null) {
+                when (payload) {
+                    "START_BREAK" -> {
+                        methodChannel?.invokeMethod("startBreak", null)
+                    }
+                    "START_WORK" -> {
+                        methodChannel?.invokeMethod("startWork", null)
+                    }
                 }
             }
         }

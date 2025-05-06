@@ -18,11 +18,11 @@ class HomeState extends Equatable {
   final bool soundEnabled;
   final bool autoSwitch;
   final bool isWorkSession;
-  final String notificationSound; // Thêm biến để lưu âm thanh thông báo
+  final String notificationSound;
 
   const HomeState({
     this.selectedTask,
-    this.timerSeconds = 1 * 60,
+    this.timerSeconds = 25 * 60, // Mặc định 25 phút
     this.isTimerRunning = false,
     this.isPaused = false,
     this.currentSession = 0,
@@ -33,12 +33,12 @@ class HomeState extends Equatable {
     this.isExitBlockingEnabled = false,
     this.blockedApps = const [],
     this.timerMode = 'Pomodoro',
-    this.workDuration = 1,
-    this.breakDuration = 5,
+    this.workDuration = 25, // Mặc định 25 phút
+    this.breakDuration = 5, // Mặc định 5 phút
     this.soundEnabled = true,
     this.autoSwitch = false,
     this.isWorkSession = true,
-    this.notificationSound = 'bell', // Mặc định là "bell"
+    this.notificationSound = 'bell',
   });
 
   HomeState copyWith({

@@ -5,28 +5,7 @@ import '../../domain/home_state.dart';
 import '../../../../core/widgets/custom_button.dart';
 
 class PomodoroTimer extends StatefulWidget {
-  final int timerSeconds;
-  final bool isRunning;
-  final bool isPaused;
-  final int currentSession;
-  final int totalSessions;
-  final VoidCallback onStart;
-  final VoidCallback onPause;
-  final VoidCallback onContinue;
-  final VoidCallback onStop;
-
-  const PomodoroTimer({
-    super.key,
-    required this.timerSeconds,
-    required this.isRunning,
-    required this.isPaused,
-    required this.currentSession,
-    required this.totalSessions,
-    required this.onStart,
-    required this.onPause,
-    required this.onContinue,
-    required this.onStop,
-  });
+  const PomodoroTimer({super.key});
 
   @override
   State<PomodoroTimer> createState() => _PomodoroTimerState();
@@ -42,7 +21,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
     super.initState();
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500), // Thời gian animation: 0.5 giây
+      duration: const Duration(milliseconds: 500),
     );
     _progressAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
       CurvedAnimation(
@@ -62,12 +41,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
   Widget build(BuildContext context) {
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
-        final minutes = (widget.timerSeconds ~/ 60).toString().padLeft(2, '0');
-        final seconds = (widget.timerSeconds % 60).toString().padLeft(2, '0');
+        final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
+        final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
         final totalDuration = (state.isWorkSession ? state.workDuration : state.breakDuration) * 60;
-        final targetProgress = totalDuration > 0 ? widget.timerSeconds / totalDuration : 0.0;
+        final targetProgress = totalDuration > 0 ? state.timerSeconds / totalDuration : 0.0;
 
-        // Cập nhật animation khi progress thay đổi
         if (_currentProgress != targetProgress) {
           _progressAnimation = Tween<double>(
             begin: _currentProgress,
@@ -107,7 +85,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                         strokeWidth: 20,
                         backgroundColor: Colors.grey[300],
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          widget.isRunning ? Colors.blue : Colors.red,
+                          state.isTimerRunning ? Colors.blue : Colors.red,
                         ),
                       );
                     },
@@ -125,9 +103,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                       ),
                     ),
                     Text(
-                      widget.currentSession == 0
+                      state.currentSession == 0
                           ? 'No sessions'
-                          : '${widget.currentSession} of ${widget.totalSessions} sessions',
+                          : '${state.currentSession} of ${state.totalSessions} sessions',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.grey,
@@ -138,29 +116,35 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
               ],
             ),
             const SizedBox(height: 56),
-            if (!widget.isRunning && !widget.isPaused)
+            if (!state.isTimerRunning && !state.isPaused)
               CustomButton(
                 label: state.isWorkSession ? 'Start to Focus' : 'Start Break',
-                onPressed: widget.onStart,
+                onPressed: () {
+                  context.read<HomeCubit>().startTimer();
+                },
                 backgroundColor: Colors.red,
                 textColor: Colors.white,
                 borderRadius: 20,
               ),
-            if (widget.isRunning && !widget.isPaused)
+            if (state.isTimerRunning && !state.isPaused)
               CustomButton(
                 label: 'Pause',
-                onPressed: widget.onPause,
+                onPressed: () {
+                  context.read<HomeCubit>().pauseTimer();
+                },
                 backgroundColor: Colors.grey,
                 textColor: Colors.white,
                 borderRadius: 20,
               ),
-            if (widget.isPaused)
+            if (state.isPaused)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CustomButton(
                     label: 'Stop',
-                    onPressed: widget.onStop,
+                    onPressed: () {
+                      context.read<HomeCubit>().stopTimer();
+                    },
                     backgroundColor: Colors.grey,
                     textColor: Colors.white,
                     borderRadius: 20,
@@ -168,7 +152,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                   const SizedBox(width: 16),
                   CustomButton(
                     label: 'Continue',
-                    onPressed: widget.onContinue,
+                    onPressed: () {
+                      context.read<HomeCubit>().continueTimer();
+                    },
                     backgroundColor: Colors.red,
                     textColor: Colors.white,
                     borderRadius: 20,
