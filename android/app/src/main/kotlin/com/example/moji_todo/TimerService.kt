@@ -6,13 +6,9 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import androidx.core.app.NotificationCompat
 import android.util.Log
-import java.util.Timer
-import java.util.TimerTask
 
 class TimerService : Service() {
     companion object {
@@ -27,9 +23,6 @@ class TimerService : Service() {
         var isPaused: Boolean = false
     }
 
-    private var timer: Timer? = null
-    private val handler = Handler(Looper.getMainLooper())
-
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -40,19 +33,14 @@ class TimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("TimerService", "Received intent: ${intent?.action}")
         when (intent?.action) {
-            "START" -> {
+            "START", "UPDATE" -> {
                 val newSeconds = intent.getIntExtra("timerSeconds", 0)
                 if (newSeconds > 0) { // Chỉ cập nhật nếu timerSeconds hợp lệ
                     Companion.timerSeconds = newSeconds
                 }
                 Companion.isRunning = intent.getBooleanExtra("isRunning", false)
                 Companion.isPaused = intent.getBooleanExtra("isPaused", false)
-                Log.d("TimerService", "START: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
-                if (Companion.timerSeconds > 0 && isRunning && !isPaused) {
-                    startTimer()
-                } else {
-                    Log.w("TimerService", "Invalid START: timerSeconds=$timerSeconds")
-                }
+                Log.d("TimerService", "START/UPDATE: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
                 updateNotification()
                 sendTimerUpdateBroadcast()
             }
@@ -60,7 +48,6 @@ class TimerService : Service() {
                 Log.d("TimerService", "PAUSE action received")
                 if (Companion.isRunning && !Companion.isPaused) {
                     Companion.isPaused = true
-                    stopTimer()
                     updateNotification()
                     sendTimerUpdateBroadcast()
                 } else {
@@ -71,7 +58,6 @@ class TimerService : Service() {
                 Log.d("TimerService", "RESUME action received")
                 if (Companion.isRunning && Companion.isPaused) {
                     Companion.isPaused = false
-                    startTimer()
                     updateNotification()
                     sendTimerUpdateBroadcast()
                 } else {
@@ -83,42 +69,12 @@ class TimerService : Service() {
                 Companion.isRunning = false
                 Companion.isPaused = false
                 Companion.timerSeconds = 0
-                stopTimer()
                 stopForeground(true)
                 stopSelf()
                 sendTimerUpdateBroadcast()
             }
         }
         return START_NOT_STICKY
-    }
-
-    private fun startTimer() {
-        timer?.cancel()
-        timer = Timer()
-        timer?.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                if (Companion.isRunning && !Companion.isPaused && Companion.timerSeconds > 0) {
-                    Companion.timerSeconds--
-                    handler.post {
-                        updateNotification()
-                        sendTimerUpdateBroadcast()
-                    }
-                    if (Companion.timerSeconds <= 0) {
-                        Companion.isRunning = false
-                        Companion.isPaused = false
-                        stopTimer()
-                        stopForeground(true)
-                        stopSelf()
-                        sendTimerUpdateBroadcast()
-                    }
-                }
-            }
-        }, 1000, 1000)
-    }
-
-    private fun stopTimer() {
-        timer?.cancel()
-        timer = null
     }
 
     private fun sendTimerUpdateBroadcast() {
@@ -138,6 +94,7 @@ class TimerService : Service() {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Notifications for Pomodoro timer"
+                setSound(null, null) // Tắt âm thanh mặc định của thông báo
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
@@ -149,8 +106,10 @@ class TimerService : Service() {
         .setContentText(getTimeDisplay())
         .setSmallIcon(android.R.drawable.ic_notification_overlay)
         .setOngoing(Companion.isRunning)
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setContentIntent(createContentIntent())
+        .setOnlyAlertOnce(true) // Chỉ phát âm thanh một lần khi thông báo được tạo
+        .setSound(null) // Tắt âm thanh thông báo
         .addAction(createAction("Pause", ACTION_PAUSE))
         .addAction(createAction("Resume", ACTION_RESUME))
         .addAction(createAction("Stop", ACTION_STOP))
@@ -197,7 +156,6 @@ class TimerService : Service() {
     }
 
     override fun onDestroy() {
-        stopTimer()
         super.onDestroy()
     }
 

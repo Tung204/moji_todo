@@ -1,12 +1,17 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../tasks/data/models/task_model.dart';
 import 'home_state.dart';
+
+const String prefTimerSeconds = "timerSeconds";
+const String prefIsRunning = "isRunning";
+const String prefIsPaused = "isPaused";
 
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit() : super(const HomeState()) {
@@ -18,6 +23,9 @@ class HomeCubit extends Cubit<HomeState> {
   Timer? _timer;
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  static const MethodChannel _notificationChannel = MethodChannel('com.example.moji_todo/notification');
+  static const MethodChannel _serviceChannel = MethodChannel('com.example.moji_todo/app_block_service');
+  bool _lastAppBlockingState = false;
 
   Future<void> _initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -29,6 +37,38 @@ class HomeCubit extends Cubit<HomeState> {
 
     final user = _auth.currentUser;
     if (user == null) return;
+
+    _notificationChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'startBreak':
+        // Chuyển sang "Phiên nghỉ" khi ấn vào thông báo "Hết phiên làm việc"
+          emit(state.copyWith(
+            timerSeconds: state.breakDuration * 60,
+            isWorkSession: false,
+            isTimerRunning: state.autoSwitch,
+            isPaused: !state.autoSwitch,
+          ));
+          if (state.autoSwitch) {
+            _startTimer(state.breakDuration * 60);
+          }
+          return null;
+        case 'startWork':
+        // Chuyển sang "Phiên làm việc" khi ấn vào thông báo "Hết phiên nghỉ"
+          emit(state.copyWith(
+            timerSeconds: state.workDuration * 60,
+            isWorkSession: true,
+            isTimerRunning: state.autoSwitch,
+            isPaused: !state.autoSwitch,
+            currentSession: state.currentSession + 1,
+          ));
+          if (state.autoSwitch) {
+            _startTimer(state.workDuration * 60);
+          }
+          return null;
+        default:
+          return null;
+      }
+    });
 
     _firestore
         .collection('users')
@@ -83,6 +123,25 @@ class HomeCubit extends Cubit<HomeState> {
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, state.timerSeconds);
     }
+
+    final intent = {
+      'action': 'START',
+      'timerSeconds': state.timerSeconds,
+      'isRunning': true,
+      'isPaused': false,
+    };
+    print('Sending START intent: $intent');
+    _notificationChannel.invokeMethod('startTimerService', intent);
+    _updateSharedPreferences(state.timerSeconds, true, false);
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
   }
 
   void pauseTimer() {
@@ -95,6 +154,22 @@ class HomeCubit extends Cubit<HomeState> {
     ));
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
+    }
+
+    final intent = {
+      'action': 'com.example.moji_todo.PAUSE',
+    };
+    print('Sending PAUSE intent: $intent');
+    _notificationChannel.invokeMethod('startTimerService', intent);
+    _updateSharedPreferences(state.timerSeconds, false, true);
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
     }
   }
 
@@ -109,6 +184,22 @@ class HomeCubit extends Cubit<HomeState> {
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, state.timerSeconds);
     }
+
+    final intent = {
+      'action': 'com.example.moji_todo.RESUME',
+    };
+    print('Sending RESUME intent: $intent');
+    _notificationChannel.invokeMethod('startTimerService', intent);
+    _updateSharedPreferences(state.timerSeconds, true, false);
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
   }
 
   void stopTimer({bool updateTaskState = true}) {
@@ -122,6 +213,22 @@ class HomeCubit extends Cubit<HomeState> {
     ));
     if (updateTaskState && state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, false, 0);
+    }
+
+    final intent = {
+      'action': 'com.example.moji_todo.STOP',
+    };
+    print('Sending STOP intent: $intent');
+    _notificationChannel.invokeMethod('startTimerService', intent);
+    _updateSharedPreferences(0, false, false);
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
     }
   }
 
@@ -150,6 +257,15 @@ class HomeCubit extends Cubit<HomeState> {
       isFlipPhoneEnabled: newFlipPhoneEnabled,
       isExitBlockingEnabled: newExitBlockingEnabled,
     ));
+
+    final newAppBlockingState = newAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
   }
 
   void updateBlockedApps(List<String> blockedApps) {
@@ -179,6 +295,7 @@ class HomeCubit extends Cubit<HomeState> {
       isWorkSession: true,
     ));
   }
+
   void restoreTimerState({
     required int timerSeconds,
     required bool isRunning,
@@ -189,7 +306,20 @@ class HomeCubit extends Cubit<HomeState> {
       isTimerRunning: isRunning,
       isPaused: isPaused,
     ));
+    if (isRunning && !isPaused) {
+      _startTimer(timerSeconds);
+    }
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
   }
+
   void _startTimer(int seconds) {
     int remainingSeconds = seconds;
     _timer?.cancel();
@@ -234,6 +364,8 @@ class HomeCubit extends Cubit<HomeState> {
               ));
               if (state.selectedTask != null) {
                 _updateTaskPomodoroState(state.selectedTask, false, 0);
+                // Hiển thị thông báo "Hoàn thành công việc"
+                _showTaskCompletedNotification();
               }
             }
           }
@@ -253,6 +385,7 @@ class HomeCubit extends Cubit<HomeState> {
         if (state.selectedTask != null) {
           _updateTaskPomodoroState(state.selectedTask, true, remainingSeconds);
         }
+        _updateSharedPreferences(remainingSeconds, true, false, sendUpdate: true);
       }
     });
   }
@@ -305,17 +438,24 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> _showNotification() async {
-    final androidDetails = AndroidNotificationDetails(
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'pomodoro_channel',
       'Pomodoro Notifications',
       channelDescription: 'Notifications for Pomodoro completion',
       importance: Importance.max,
       priority: Priority.high,
       showWhen: false,
-      playSound: false, // Tắt âm thanh mặc định
-      enableVibration: false, // Tắt rung
+      playSound: false,
+      enableVibration: false,
+      actions: [
+        AndroidNotificationAction(
+          'action_open',
+          'Open',
+          showsUserInterface: true,
+        ),
+      ],
     );
-    final platformDetails = NotificationDetails(android: androidDetails);
+    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
       0,
@@ -324,7 +464,49 @@ class HomeCubit extends Cubit<HomeState> {
           ? 'Your ${state.isWorkSession ? "work" : "break"} session for "${state.selectedTask}" has finished!'
           : 'Your ${state.isWorkSession ? "work" : "break"} session has finished!',
       platformDetails,
+      payload: state.isWorkSession ? 'START_BREAK' : 'START_WORK',
     );
+  }
+
+  Future<void> _showTaskCompletedNotification() async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'pomodoro_channel',
+      'Pomodoro Notifications',
+      channelDescription: 'Notifications for Pomodoro completion',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+      playSound: false,
+      enableVibration: false,
+    );
+    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+
+    await _notificationsPlugin.show(
+      1, // ID khác để không ghi đè thông báo "Hết phiên"
+      'Hoàn thành công việc',
+      state.selectedTask != null
+          ? 'Bạn đã hoàn thành tất cả phiên Pomodoro cho "${state.selectedTask}"!'
+          : 'Bạn đã hoàn thành tất cả phiên Pomodoro!',
+      platformDetails,
+    );
+  }
+
+  Future<void> _updateSharedPreferences(int timerSeconds, bool isRunning, bool isPaused, {bool sendUpdate = true}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(prefTimerSeconds, timerSeconds);
+    await prefs.setBool(prefIsRunning, isRunning);
+    await prefs.setBool(prefIsPaused, isPaused);
+
+    if (sendUpdate) {
+      final intent = {
+        'action': 'UPDATE',
+        'timerSeconds': timerSeconds,
+        'isRunning': isRunning,
+        'isPaused': isPaused,
+      };
+      print('Sending UPDATE intent from Flutter: $intent');
+      await _notificationChannel.invokeMethod('startTimerService', intent);
+    }
   }
 
   @override
