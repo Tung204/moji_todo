@@ -1,9 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Quyền cần thiết cho WorkManager -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <application
         android:label="Moji ToDo"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -25,6 +31,11 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Intent-filter để xử lý khi nhấn vào thông báo -->
+            <intent-filter>
+                <action android:name="com.example.moji_todo.NOTIFICATION_ACTION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -40,6 +51,30 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/app_block_service_config" />
         </service>
+        <!-- Cấu hình cho flutter_foreground_task -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+        <receiver
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundServiceActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.pravera.flutter_foreground_task.action.PAUSE" />
+                <action android:name="com.pravera.flutter_foreground_task.action.RESUME" />
+                <action android:name="com.pravera.flutter_foreground_task.action.STOP" />
+            </intent-filter>
+        </receiver> <service
+        android:name=".TimerService"
+        android:exported="false"
+        android:foregroundServiceType="specialUse" />
+        <receiver
+            android:name=".TimerBroadcastReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.moji_todo.TIMER_UPDATE" />
+            </intent-filter>
+        </receiver>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
