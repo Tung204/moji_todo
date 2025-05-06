@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../domain/task_cubit.dart';
 import '../models/project_model.dart';
 import '../models/tag_model.dart';
 
@@ -41,8 +44,12 @@ class ProjectTagRepository {
     }
   }
 
-  Future<void> deleteProject(int index) async {
-    await projectBox.deleteAt(index);
+  Future<void> deleteProject(int index, BuildContext context) async {
+    final project = projectBox.getAt(index);
+    if (project != null) {
+      await context.read<TaskCubit>().updateTasksOnProjectDeletion(project.name);
+      await projectBox.deleteAt(index);
+    }
   }
 
   List<Project> getProjects() {
@@ -85,8 +92,12 @@ class ProjectTagRepository {
     }
   }
 
-  Future<void> deleteTag(int index) async {
-    await tagBox.deleteAt(index);
+  Future<void> deleteTag(int index, BuildContext context) async {
+    final tag = tagBox.getAt(index);
+    if (tag != null) {
+      await context.read<TaskCubit>().updateTasksOnTagDeletion(tag.name);
+      await tagBox.deleteAt(index);
+    }
   }
 
   List<Tag> getTags() {

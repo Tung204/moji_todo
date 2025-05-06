@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/tag_model.dart';
 import 'package:moji_todo/features/tasks/presentation/add_task/priority_picker.dart';
 import 'package:moji_todo/features/tasks/presentation/add_task/project_picker.dart';
 import 'package:moji_todo/features/tasks/presentation/add_task/tags_picker.dart';
@@ -21,13 +24,6 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
   String? _priority;
   List<String> _tags = [];
   String? _project;
-
-  final List<String> _availableTags = [
-    'Urgent', 'Personal', 'Work', 'Home', 'Important', 'Design', 'Research', 'Productive'
-  ];
-  final List<String> _availableProjects = [
-    'General', 'Pomodoro App', 'Fashion App', 'AI Chatbot App', 'Dating App', 'Quiz App', 'News App', 'Work Project'
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +128,6 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                         context: context,
                         isScrollControlled: true,
                         builder: (context) => TagsPicker(
-                          availableTags: _availableTags,
                           initialTags: _tags,
                           onTagsSelected: (tags) {
                             setState(() {
@@ -153,7 +148,6 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                         context: context,
                         isScrollControlled: true,
                         builder: (context) => ProjectPicker(
-                          availableProjects: _availableProjects,
                           initialProject: _project,
                           onProjectSelected: (project) {
                             setState(() {
