@@ -7,7 +7,7 @@ import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
 import 'widgets/task_card.dart';
 import 'strict_mode_menu.dart';
-import 'timer_mode_menu.dart'; // Thêm import mới
+import 'timer_mode_menu.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
@@ -28,118 +28,125 @@ class HomeScreen extends StatelessWidget {
       ),
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setBottomSheetState) {
             return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Select Task',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.tasks);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search task...',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  BlocBuilder<TaskCubit, TaskState>(
-                    builder: (context, state) {
-                      final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
-                      final todayTasks = categorizedTasks['Today'] ?? [];
-                      final filteredTasks = searchQuery.isEmpty
-                          ? todayTasks
-                          : todayTasks
-                          .where((task) => task.title?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
-                          .toList();
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Today Tasks',
+                            'Select Task',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          if (filteredTasks.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16.0),
-                              child: Center(child: Text('No tasks found.')),
-                            )
-                          else
-                            SizedBox(
-                              height: 300,
-                              child: ListView.builder(
-                                itemCount: filteredTasks.length,
-                                itemBuilder: (context, index) {
-                                  final task = filteredTasks[index];
-                                  return TaskCard(
-                                    task: task,
-                                    onPlay: () {
-                                      context.read<HomeCubit>().selectTask(
-                                        task.title ?? 'Untitled Task',
-                                        task.estimatedPomodoros ?? 4,
-                                      );
-                                      context.read<HomeCubit>().startTimer();
-                                      Navigator.pop(context);
-                                    },
-                                    onComplete: () {
-                                      context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
-                                      // BlocListener sẽ tự động gọi resetTask nếu task đang chọn bị hoàn thành
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
+                          IconButton(
+                            icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
+                            onPressed: () {
+                              Navigator.pushNamed(context, AppRoutes.tasks);
+                            },
+                          ),
                         ],
-                      );
-                    },
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search task...',
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                        ),
+                        autofocus: true,
+                        onChanged: (value) {
+                          setBottomSheetState(() {
+                            searchQuery = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      BlocBuilder<TaskCubit, TaskState>(
+                        builder: (context, state) {
+                          final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
+                          final todayTasks = categorizedTasks['Today'] ?? [];
+                          final filteredTasks = searchQuery.isEmpty
+                              ? todayTasks
+                              : todayTasks
+                              .where((task) => task.title?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
+                              .toList();
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Today Tasks',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (filteredTasks.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Center(child: Text('No tasks found.')),
+                                )
+                              else
+                                SizedBox(
+                                  height: 300,
+                                  child: ListView.builder(
+                                    itemCount: filteredTasks.length,
+                                    itemBuilder: (context, index) {
+                                      final task = filteredTasks[index];
+                                      return TaskCard(
+                                        task: task,
+                                        onPlay: () {
+                                          context.read<HomeCubit>().selectTask(
+                                            task.title ?? 'Untitled Task',
+                                            task.estimatedPomodoros ?? 4,
+                                          );
+                                          context.read<HomeCubit>().startTimer();
+                                          Navigator.pop(context);
+                                        },
+                                        onComplete: () {
+                                          context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
             );
           },
@@ -156,14 +163,12 @@ class HomeScreen extends StatelessWidget {
       listeners: [
         BlocListener<TaskCubit, TaskState>(
           listener: (context, taskState) {
-            // Khi danh sách task trong TaskCubit cập nhật, kiểm tra xem task đang chọn có còn trong danh sách "Today" không
             final homeCubit = context.read<HomeCubit>();
             final selectedTaskTitle = homeCubit.state.selectedTask;
             if (selectedTaskTitle != null) {
               final todayTasks = context.read<TaskCubit>().getCategorizedTasks()['Today'] ?? [];
               final isTaskStillInToday = todayTasks.any((task) => task.title == selectedTaskTitle);
               if (!isTaskStillInToday) {
-                // Nếu task không còn trong "Today" (đã hoàn thành hoặc bị xóa), reset ô "Select Task"
                 homeCubit.resetTask();
               }
             }
@@ -220,7 +225,6 @@ class HomeScreen extends StatelessWidget {
                                         final selectedTask = todayTasks.firstWhere(
                                               (task) => task.title == state.selectedTask,
                                           orElse: () {
-                                            // If the task is not found, return a default Task with null values
                                             return Task(
                                               title: '',
                                               userId: '',
@@ -284,7 +288,7 @@ class HomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         const StrictModeMenu(),
-                        const TimerModeMenu(), // Thay bằng widget mới
+                        const TimerModeMenu(),
                         Column(
                           children: [
                             IconButton(

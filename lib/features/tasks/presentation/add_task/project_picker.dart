@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/presentation/add_project_and_tags/add_project_screen.dart';
+import '../../data/models/project_tag_repository.dart';
 
 class ProjectPicker extends StatefulWidget {
-  final List<String> availableProjects;
   final String? initialProject;
   final ValueChanged<String?> onProjectSelected;
 
   const ProjectPicker({
     super.key,
-    required this.availableProjects,
     this.initialProject,
     required this.onProjectSelected,
   });
@@ -62,29 +64,53 @@ class _ProjectPickerState extends State<ProjectPicker> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add, color: Colors.red),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddProjectScreen(
+                          repository: ProjectTagRepository(
+                            projectBox: Hive.box('projects'),
+                            tagBox: Hive.box('tags'),
+                          ),
+                          onProjectAdded: () {
+                            // Không cần setState vì ValueListenableBuilder sẽ tự rebuild
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: widget.availableProjects.length,
-              itemBuilder: (context, index) {
-                final project = widget.availableProjects[index];
-                final isSelected = selectedProject == project;
-                final projectColor = projectColors[project] ?? Colors.grey;
-                return ListTile(
-                  leading: Icon(
-                    Icons.work,
-                    color: projectColor,
-                    size: 24,
-                  ),
-                  title: Text(project),
-                  trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
-                  onTap: () {
-                    _updateProject(project);
+            ValueListenableBuilder(
+              valueListenable: Hive.box<Project>('projects').listenable(),
+              builder: (context, Box<Project> box, _) {
+                final availableProjects = box.values
+                    .where((project) => !project.isArchived)
+                    .map((project) => project.name)
+                    .toList();
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: availableProjects.length,
+                  itemBuilder: (context, index) {
+                    final project = availableProjects[index];
+                    final isSelected = selectedProject == project;
+                    final projectColor = projectColors[project] ?? Colors.grey;
+                    return ListTile(
+                      leading: Icon(
+                        Icons.work,
+                        color: projectColor,
+                        size: 24,
+                      ),
+                      title: Text(project),
+                      trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
+                      onTap: () {
+                        _updateProject(project);
+                      },
+                    );
                   },
                 );
               },

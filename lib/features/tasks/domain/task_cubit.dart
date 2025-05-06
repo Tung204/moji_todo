@@ -2,9 +2,12 @@ import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:hive/hive.dart';
 import '../../../core/services/gemini_service.dart';
 import '../data/models/task_model.dart';
 import '../data/task_repository.dart';
+import '../data/models/project_model.dart';
+import '../data/models/tag_model.dart';
 
 part 'task_state.dart';
 
@@ -35,6 +38,33 @@ class TaskCubit extends Cubit<TaskState> {
     final category = await _geminiService.classifyTask(task.title ?? '');
     task = task.copyWith(category: category, userId: user.uid);
     await repository.addTask(task);
+    await loadTasks();
+  }
+
+  Future<void> updateTasksOnProjectDeletion(String projectName) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Người dùng chưa đăng nhập');
+
+    final tasks = await repository.getTasks();
+    for (var task in tasks) {
+      if (task.project == projectName && task.userId == user.uid) {
+        await repository.updateTask(task.copyWith(project: null));
+      }
+    }
+    await loadTasks();
+  }
+
+  Future<void> updateTasksOnTagDeletion(String tagName) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Người dùng chưa đăng nhập');
+
+    final tasks = await repository.getTasks();
+    for (var task in tasks) {
+      if (task.tags?.contains(tagName) == true && task.userId == user.uid) {
+        final updatedTags = List<String>.from(task.tags!)..remove(tagName);
+        await repository.updateTask(task.copyWith(tags: updatedTags));
+      }
+    }
     await loadTasks();
   }
 

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:moji_todo/features/tasks/data/models/tag_model.dart';
+import 'package:moji_todo/features/tasks/presentation/add_project_and_tags/add_tag_screen.dart';
+import '../../data/models/project_tag_repository.dart';
 
 class TagsPicker extends StatefulWidget {
-  final List<String> availableTags;
   final List<String> initialTags;
   final ValueChanged<List<String>> onTagsSelected;
 
   const TagsPicker({
     super.key,
-    required this.availableTags,
     required this.initialTags,
     required this.onTagsSelected,
   });
@@ -66,29 +68,53 @@ class _TagsPickerState extends State<TagsPicker> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add, color: Colors.red),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddTagScreen(
+                          repository: ProjectTagRepository(
+                            projectBox: Hive.box('projects'),
+                            tagBox: Hive.box('tags'),
+                          ),
+                          onTagAdded: () {
+                            // Không cần setState vì ValueListenableBuilder sẽ tự rebuild
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: widget.availableTags.length,
-              itemBuilder: (context, index) {
-                final tag = widget.availableTags[index];
-                final isSelected = selectedTags.contains(tag);
-                final tagColor = tagColors[tag] ?? Colors.grey;
-                return ListTile(
-                  leading: Icon(
-                    Icons.local_offer,
-                    color: tagColor,
-                    size: 24,
-                  ),
-                  title: Text(tag),
-                  trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
-                  onTap: () {
-                    _updateTags(tag);
+            ValueListenableBuilder(
+              valueListenable: Hive.box<Tag>('tags').listenable(),
+              builder: (context, Box<Tag> box, _) {
+                final availableTags = box.values
+                    .where((tag) => !tag.isArchived)
+                    .map((tag) => tag.name)
+                    .toList();
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: availableTags.length,
+                  itemBuilder: (context, index) {
+                    final tag = availableTags[index];
+                    final isSelected = selectedTags.contains(tag);
+                    final tagColor = tagColors[tag] ?? Colors.grey;
+                    return ListTile(
+                      leading: Icon(
+                        Icons.local_offer,
+                        color: tagColor,
+                        size: 24,
+                      ),
+                      title: Text(tag),
+                      trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
+                      onTap: () {
+                        _updateTags(tag);
+                      },
+                    );
                   },
                 );
               },

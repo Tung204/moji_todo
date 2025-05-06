@@ -131,7 +131,7 @@ class _ArchivedTagsScreenState extends State<ArchivedTagsScreen> {
                                             isLoading = true;
                                           });
                                           try {
-                                            await widget.repository.deleteTag(index);
+                                            await widget.repository.deleteTag(index, context);
                                             Navigator.pop(dialogContext);
                                             setState(() {});
                                             ScaffoldMessenger.of(context).showSnackBar(
