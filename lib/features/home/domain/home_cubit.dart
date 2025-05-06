@@ -179,7 +179,17 @@ class HomeCubit extends Cubit<HomeState> {
       isWorkSession: true,
     ));
   }
-
+  void restoreTimerState({
+    required int timerSeconds,
+    required bool isRunning,
+    required bool isPaused,
+  }) {
+    emit(state.copyWith(
+      timerSeconds: timerSeconds,
+      isTimerRunning: isRunning,
+      isPaused: isPaused,
+    ));
+  }
   void _startTimer(int seconds) {
     int remainingSeconds = seconds;
     _timer?.cancel();
