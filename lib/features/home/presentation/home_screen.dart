@@ -6,7 +6,8 @@ import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'widgets/pomodoro_timer.dart';
 import 'widgets/task_card.dart';
-import 'strict_mode_menu.dart'; // Thêm import mới
+import 'strict_mode_menu.dart';
+import 'timer_mode_menu.dart'; // Thêm import mới
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../../core/navigation/navigation_manager.dart';
 import '../../../routes/app_routes.dart';
@@ -282,19 +283,8 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        const StrictModeMenu(), // Thay bằng widget mới
-                        Column(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.hourglass_empty, color: Colors.grey),
-                              onPressed: () {},
-                            ),
-                            const Text(
-                              'Timer Mode',
-                              style: TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                          ],
-                        ),
+                        const StrictModeMenu(),
+                        const TimerModeMenu(), // Thay bằng widget mới
                         Column(
                           children: [
                             IconButton(

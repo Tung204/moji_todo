@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../tasks/data/models/task_model.dart';
 import 'home_state.dart';
 
@@ -17,6 +17,7 @@ class HomeCubit extends Cubit<HomeState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   Timer? _timer;
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   Future<void> _initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -37,19 +38,19 @@ class HomeCubit extends Cubit<HomeState> {
         .snapshots()
         .listen((snapshot) {
       if (snapshot.docs.isNotEmpty) {
-        // Chỉ tự động chọn task nếu chưa có task nào được chọn hoặc task đã bị hủy
         if (state.selectedTask == null) {
           final taskDoc = snapshot.docs.first;
           final task = Task.fromJson(taskDoc.data());
           emit(state.copyWith(
             selectedTask: task.title,
-            timerSeconds: task.remainingPomodoroSeconds ?? 25 * 60,
+            timerSeconds: task.remainingPomodoroSeconds ?? (state.workDuration * 60),
             isTimerRunning: true,
             isPaused: false,
             currentSession: task.completedPomodoros ?? 0,
-            totalSessions: task.estimatedPomodoros ?? 4,
+            totalSessions: task.estimatedPomodoros ?? state.totalSessions,
+            isWorkSession: true,
           ));
-          _startTimer(task.remainingPomodoroSeconds ?? 25 * 60);
+          _startTimer(task.remainingPomodoroSeconds ?? (state.workDuration * 60));
         }
       }
     });
@@ -58,29 +59,29 @@ class HomeCubit extends Cubit<HomeState> {
   void selectTask(String? taskTitle, int estimatedPomodoros) {
     emit(state.copyWith(
       selectedTask: taskTitle,
-      totalSessions: estimatedPomodoros,
+      totalSessions: taskTitle != null ? estimatedPomodoros : state.totalSessions,
       currentSession: 0,
-      timerSeconds: 25 * 60,
+      timerSeconds: state.workDuration * 60,
       isTimerRunning: false,
       isPaused: false,
+      isWorkSession: true,
     ));
   }
 
   void startTimer() {
     if (state.isTimerRunning) return;
 
-    const int defaultDuration = 25 * 60;
     emit(state.copyWith(
-      timerSeconds: defaultDuration,
+      timerSeconds: state.isWorkSession ? state.workDuration * 60 : state.breakDuration * 60,
       isTimerRunning: true,
       isPaused: false,
-      currentSession: state.currentSession + 1,
+      currentSession: state.isWorkSession ? state.currentSession + 1 : state.currentSession,
     ));
 
     _resetPreviousPomodoro();
-    _startTimer(defaultDuration);
+    _startTimer(state.timerSeconds);
     if (state.selectedTask != null) {
-      _updateTaskPomodoroState(state.selectedTask, true, defaultDuration);
+      _updateTaskPomodoroState(state.selectedTask, true, state.timerSeconds);
     }
   }
 
@@ -113,22 +114,23 @@ class HomeCubit extends Cubit<HomeState> {
   void stopTimer({bool updateTaskState = true}) {
     _timer?.cancel();
     emit(state.copyWith(
-      timerSeconds: 25 * 60,
+      timerSeconds: state.workDuration * 60,
       isTimerRunning: false,
       isPaused: false,
       currentSession: 0,
+      isWorkSession: true,
     ));
     if (updateTaskState && state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, false, 0);
     }
   }
 
-  Future<void> resetTask() async {
+  void resetTask() async {
     if (state.selectedTask != null) {
-      await _updateTaskPomodoroState(state.selectedTask, false, 0); // Chờ cập nhật Firestore
+      await _updateTaskPomodoroState(state.selectedTask, false, 0);
     }
-    stopTimer(updateTaskState: false); // Không gọi lại _updateTaskPomodoroState
-    selectTask(null, 4); // Bỏ chọn task
+    stopTimer(updateTaskState: false);
+    selectTask(null, state.totalSessions);
   }
 
   void updateStrictMode({
@@ -156,6 +158,28 @@ class HomeCubit extends Cubit<HomeState> {
     ));
   }
 
+  void updateTimerMode({
+    required String timerMode,
+    required int workDuration,
+    required int breakDuration,
+    required bool soundEnabled,
+    required bool autoSwitch,
+    required String notificationSound,
+    int? totalSessions,
+  }) {
+    emit(state.copyWith(
+      timerMode: timerMode,
+      workDuration: workDuration,
+      breakDuration: breakDuration,
+      soundEnabled: soundEnabled,
+      autoSwitch: autoSwitch,
+      notificationSound: notificationSound,
+      totalSessions: totalSessions ?? state.totalSessions,
+      timerSeconds: state.isTimerRunning ? state.timerSeconds : (workDuration * 60),
+      isWorkSession: true,
+    ));
+  }
+
   void _startTimer(int seconds) {
     int remainingSeconds = seconds;
     _timer?.cancel();
@@ -167,15 +191,53 @@ class HomeCubit extends Cubit<HomeState> {
       remainingSeconds--;
       if (remainingSeconds <= 0) {
         timer.cancel();
-        emit(state.copyWith(
-          timerSeconds: 0,
-          isTimerRunning: false,
-          isPaused: false,
-        ));
-        if (state.selectedTask != null) {
-          _updateTaskPomodoroState(state.selectedTask, false, 0);
+        if (state.soundEnabled) {
+          _playSound();
+          _showNotification();
         }
-        _showNotification();
+        if (state.autoSwitch) {
+          if (state.isWorkSession) {
+            emit(state.copyWith(
+              timerSeconds: state.breakDuration * 60,
+              isWorkSession: false,
+              isTimerRunning: true,
+              isPaused: false,
+            ));
+            _startTimer(state.breakDuration * 60);
+          } else {
+            if (state.currentSession < state.totalSessions) {
+              emit(state.copyWith(
+                timerSeconds: state.workDuration * 60,
+                isWorkSession: true,
+                isTimerRunning: true,
+                isPaused: false,
+                currentSession: state.currentSession + 1,
+              ));
+              _startTimer(state.workDuration * 60);
+            } else {
+              emit(state.copyWith(
+                timerSeconds: state.workDuration * 60,
+                isTimerRunning: false,
+                isPaused: false,
+                currentSession: 0,
+                isWorkSession: true,
+              ));
+              if (state.selectedTask != null) {
+                _updateTaskPomodoroState(state.selectedTask, false, 0);
+              }
+            }
+          }
+        } else {
+          emit(state.copyWith(
+            timerSeconds: state.isWorkSession ? state.breakDuration * 60 : state.workDuration * 60,
+            isTimerRunning: false,
+            isPaused: false,
+            isWorkSession: !state.isWorkSession,
+          ));
+          if (state.selectedTask != null) {
+            _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
+          }
+        }
       } else {
         emit(state.copyWith(timerSeconds: remainingSeconds));
         if (state.selectedTask != null) {
@@ -225,6 +287,13 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  Future<void> _playSound() async {
+    if (!state.soundEnabled) return;
+
+    String soundFile = 'assets/sounds/${state.notificationSound}.mp3';
+    await _audioPlayer.play(AssetSource(soundFile.substring('assets/'.length)));
+  }
+
   Future<void> _showNotification() async {
     final androidDetails = AndroidNotificationDetails(
       'pomodoro_channel',
@@ -233,18 +302,17 @@ class HomeCubit extends Cubit<HomeState> {
       importance: Importance.max,
       priority: Priority.high,
       showWhen: false,
-      playSound: true,
-      enableVibration: true,
-      vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+      playSound: false, // Tắt âm thanh mặc định
+      enableVibration: false, // Tắt rung
     );
     final platformDetails = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
       0,
-      'Pomodoro Completed',
+      state.isWorkSession ? 'Hết phiên làm việc' : 'Hết phiên nghỉ',
       state.selectedTask != null
-          ? 'Your Pomodoro for "${state.selectedTask}" has finished!'
-          : 'Your Pomodoro has finished!',
+          ? 'Your ${state.isWorkSession ? "work" : "break"} session for "${state.selectedTask}" has finished!'
+          : 'Your ${state.isWorkSession ? "work" : "break"} session has finished!',
       platformDetails,
     );
   }
@@ -252,6 +320,7 @@ class HomeCubit extends Cubit<HomeState> {
   @override
   Future<void> close() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     return super.close();
   }
 }

@@ -46,4 +46,7 @@ flutter:
     - images/splash_moji.gif
     - images/splash_moji.mp4
     - .env
+    - assets/sounds/bell.mp3
+    - assets/sounds/chime.mp3
+    - assets/sounds/alarm.mp3
   uses-material-design: true

@@ -12,10 +12,17 @@ class HomeState extends Equatable {
   final bool isFlipPhoneEnabled;
   final bool isExitBlockingEnabled;
   final List<String> blockedApps;
+  final String timerMode;
+  final int workDuration;
+  final int breakDuration;
+  final bool soundEnabled;
+  final bool autoSwitch;
+  final bool isWorkSession;
+  final String notificationSound; // Thêm biến để lưu âm thanh thông báo
 
   const HomeState({
     this.selectedTask,
-    this.timerSeconds = 25 * 60,
+    this.timerSeconds = 1 * 60,
     this.isTimerRunning = false,
     this.isPaused = false,
     this.currentSession = 0,
@@ -25,6 +32,13 @@ class HomeState extends Equatable {
     this.isFlipPhoneEnabled = false,
     this.isExitBlockingEnabled = false,
     this.blockedApps = const [],
+    this.timerMode = 'Pomodoro',
+    this.workDuration = 1,
+    this.breakDuration = 5,
+    this.soundEnabled = true,
+    this.autoSwitch = false,
+    this.isWorkSession = true,
+    this.notificationSound = 'bell', // Mặc định là "bell"
   });
 
   HomeState copyWith({
@@ -39,6 +53,13 @@ class HomeState extends Equatable {
     bool? isFlipPhoneEnabled,
     bool? isExitBlockingEnabled,
     List<String>? blockedApps,
+    String? timerMode,
+    int? workDuration,
+    int? breakDuration,
+    bool? soundEnabled,
+    bool? autoSwitch,
+    bool? isWorkSession,
+    String? notificationSound,
   }) {
     return HomeState(
       selectedTask: selectedTask ?? this.selectedTask,
@@ -52,6 +73,13 @@ class HomeState extends Equatable {
       isFlipPhoneEnabled: isFlipPhoneEnabled ?? this.isFlipPhoneEnabled,
       isExitBlockingEnabled: isExitBlockingEnabled ?? this.isExitBlockingEnabled,
       blockedApps: blockedApps ?? this.blockedApps,
+      timerMode: timerMode ?? this.timerMode,
+      workDuration: workDuration ?? this.workDuration,
+      breakDuration: breakDuration ?? this.breakDuration,
+      soundEnabled: soundEnabled ?? this.soundEnabled,
+      autoSwitch: autoSwitch ?? this.autoSwitch,
+      isWorkSession: isWorkSession ?? this.isWorkSession,
+      notificationSound: notificationSound ?? this.notificationSound,
     );
   }
 
@@ -68,5 +96,12 @@ class HomeState extends Equatable {
     isFlipPhoneEnabled,
     isExitBlockingEnabled,
     blockedApps,
+    timerMode,
+    workDuration,
+    breakDuration,
+    soundEnabled,
+    autoSwitch,
+    isWorkSession,
+    notificationSound,
   ];
 }
