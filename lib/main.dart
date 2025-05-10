@@ -16,6 +16,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/services/backup_service.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
+import 'features/splash/presentation/splash_screen.dart';
 import 'features/tasks/data/models/project_tag_repository.dart';
 
 // InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
@@ -215,7 +216,7 @@ class _MyAppState extends State<MyApp> {
               bodyLarge: TextStyle(color: Color(0xFFFF69B4)),
             ),
           ),
-          home: const MainScreen(), // Sử dụng MainScreen làm màn hình chính
+          home: const SplashScreen(), // Sử dụng MainScreen làm màn hình chính
           onGenerateRoute: AppRoutes.generateRoute,
         ),
       ),

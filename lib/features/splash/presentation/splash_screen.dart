@@ -12,21 +12,31 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   late VideoPlayerController _controller;
+  bool _isVideoInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    // Khởi tạo video player
-    _controller = VideoPlayerController.asset('images/splash_moji.mp4')
+    print('Khởi tạo SplashScreen');
+    _controller = VideoPlayerController.asset('assets/images/splash_moji.mp4')
       ..initialize().then((_) {
-        setState(() {});
-        _controller.play();
-        _controller.setLooping(false);
-        // Chờ video chạy xong hoặc tối thiểu 3 giây trước khi chuyển hướng
-        _waitAndNavigate();
+        print('Video initialized successfully');
+        if (mounted) {
+          setState(() {
+            _isVideoInitialized = true;
+          });
+          _controller.play();
+          _controller.setLooping(false);
+          _waitAndNavigate();
+        }
       }).catchError((error) {
-        // Nếu video lỗi, vẫn chờ 3 giây rồi chuyển hướng
-        _waitAndNavigate();
+        print('Lỗi khi load video: $error');
+        if (mounted) {
+          setState(() {
+            _isVideoInitialized = false;
+          });
+          _waitAndNavigate();
+        }
       });
   }
 
@@ -34,22 +44,18 @@ class _SplashScreenState extends State<SplashScreen> {
     // Chờ tối thiểu 3 giây và đảm bảo video chạy xong (nếu video dài hơn 3 giây)
     await Future.wait([
       Future.delayed(const Duration(seconds: 3)), // Tối thiểu 3 giây
-      // Chuyển duration của video thành một Future
-      _controller.value.isInitialized
+      _isVideoInitialized
           ? Future.delayed(_controller.value.duration)
-          : Future.value(), // Nếu không có video, bỏ qua
+          : Future.value(), // Nếu video lỗi, bỏ qua
     ]);
 
     // Kiểm tra trạng thái đăng nhập
-    final user = FirebaseAuth.instance.currentUser;
     if (mounted) {
-      if (user != null) {
-        // Đã đăng nhập -> vào HomeScreen
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      } else {
-        // Chưa đăng nhập -> vào LoginScreen
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
-      }
+      final user = FirebaseAuth.instance.currentUser;
+      Navigator.pushReplacementNamed(
+        context,
+        user != null ? AppRoutes.home : AppRoutes.login,
+      );
     }
   }
 
@@ -64,12 +70,16 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       body: Center(
-        child: _controller.value.isInitialized
+        child: _isVideoInitialized
             ? AspectRatio(
           aspectRatio: _controller.value.aspectRatio,
           child: VideoPlayer(_controller),
         )
-            : const CircularProgressIndicator(),
+            : Image.asset(
+          'assets/images/fallback_logo.png', // Fallback image nếu video lỗi
+          width: 300,
+          height: 300,
+        ),
       ),
     );
   }

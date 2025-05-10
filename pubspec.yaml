@@ -42,10 +42,12 @@ dev_dependencies:
 
 flutter:
   assets:
-    - images/logo_moji.png
-    - images/splash_moji.gif
-    - images/splash_moji.mp4
+    - assets/images/logo_moji.png
+#    - assets/images/splash_moji.gif
+    - assets/images/splash_moji.mp4
+    - assets/images/fallback_logo.png
     - .env
+
     - assets/sounds/bell.mp3
     - assets/sounds/chime.mp3
     - assets/sounds/alarm.mp3
