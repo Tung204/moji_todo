@@ -1,23 +1,24 @@
 import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:moji_todo/core/services/notification_service.dart';
-import 'package:moji_todo/features/pomodoro/data/pomodoro_repository.dart';
-import 'package:moji_todo/features/pomodoro/domain/pomodoro_cubit.dart';
-import 'package:moji_todo/features/tasks/data/task_repository.dart';
-import 'package:moji_todo/features/tasks/data/models/task_model.dart';
-import 'package:moji_todo/features/tasks/data/models/project_model.dart';
-import 'package:moji_todo/features/tasks/data/models/tag_model.dart';
-import 'package:moji_todo/features/tasks/domain/task_cubit.dart';
-import 'package:moji_todo/routes/app_routes.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:moji_todo/routes/app_routes.dart';
 import 'core/services/backup_service.dart';
+import 'core/services/notification_service.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
+import 'features/pomodoro/data/pomodoro_repository.dart';
+import 'features/pomodoro/domain/pomodoro_cubit.dart';
 import 'features/splash/presentation/splash_screen.dart';
+import 'features/tasks/data/models/project_model.dart';
 import 'features/tasks/data/models/project_tag_repository.dart';
+import 'features/tasks/data/models/tag_model.dart';
+import 'features/tasks/data/models/task_model.dart';
+import 'features/tasks/data/task_repository.dart';
+import 'features/tasks/domain/task_cubit.dart';
 
 // InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
 class AppData extends InheritedWidget {
@@ -53,6 +54,10 @@ class AppData extends InheritedWidget {
 }
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Add this line to ensure the method channel is registered
+  const MethodChannel('com.example.moji_todo/notification');
+  
   await Firebase.initializeApp();
 
   await dotenv.load(fileName: ".env");
