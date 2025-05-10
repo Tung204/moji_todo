@@ -94,61 +94,141 @@ class MainActivity : FlutterActivity() {
         }
 
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NOTIFICATION_CHANNEL)
-        timerBroadcastReceiver.setMethodChannel(methodChannel!!)
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "startTimerService" -> {
-                    val action = call.arguments<Map<String, Any>>()?.get("action") as String?
-                    val timerSeconds = call.arguments<Map<String, Any>>()?.get("timerSeconds") as Int?
-                    val isRunning = call.arguments<Map<String, Any>>()?.get("isRunning") as Boolean?
-                    val isPaused = call.arguments<Map<String, Any>>()?.get("isPaused") as Boolean?
-                    Log.d("MainActivity", "startTimerService: action=$action, timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
-                    if (action != null) {
+                    try {
+                        val arguments = call.arguments as? Map<*, *> ?: mapOf<String, Any>()
+                        val action = arguments["action"] as? String ?: ""
+                        val timerSeconds = (arguments["timerSeconds"] as? Number)?.toInt() ?: 0
+                        val isRunning = arguments["isRunning"] as? Boolean ?: false
+                        val isPaused = arguments["isPaused"] as? Boolean ?: false
+                        
+                        Log.d("MainActivity", "startTimerService: action=$action, timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
+                        
+                        // Start or update the timer service
                         val intent = Intent(this, TimerService::class.java).apply {
                             this.action = action
-                            if (timerSeconds != null) putExtra("timerSeconds", timerSeconds)
-                            if (isRunning != null) putExtra("isRunning", isRunning)
-                            if (isPaused != null) putExtra("isPaused", isPaused)
+                            putExtra("timerSeconds", timerSeconds)
+                            putExtra("isRunning", isRunning)
+                            putExtra("isPaused", isPaused)
                         }
-                        startForegroundService(intent)
+                        
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        
                         result.success(null)
-                    } else {
-                        result.error("INVALID_ACTION", "Action is null", null)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error in startTimerService: ${e.message}")
+                        result.error("ERROR", e.message, null)
                     }
                 }
                 "getTimerState" -> {
-                    val state = mapOf(
-                        "timerSeconds" to TimerService.timerSeconds,
-                        "isRunning" to TimerService.isRunning,
-                        "isPaused" to TimerService.isPaused
-                    )
+                    val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+                    val timerSeconds = prefs.getInt("timerSeconds", 0)
+                    val isRunning = prefs.getBoolean("isRunning", false)
+                    val isPaused = prefs.getBoolean("isPaused", false)
+
+                    // Nếu TimerService đang chạy, ưu tiên trạng thái từ Companion
+                    val state = if (TimerService.isServiceRunning) {
+                        mapOf(
+                            "timerSeconds" to TimerService.timerSeconds,
+                            "isRunning" to TimerService.isRunning,
+                            "isPaused" to TimerService.isPaused
+                        )
+                    } else {
+                        // Nếu không, lấy từ SharedPreferences
+                        mapOf(
+                            "timerSeconds" to timerSeconds,
+                            "isRunning" to isRunning,
+                            "isPaused" to isPaused
+                        )
+                    }
                     Log.d("MainActivity", "getTimerState: $state")
                     result.success(state)
                 }
-                "checkNotificationPermission" -> {
-                    val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-                    } else {
-                        true
-                    }
-                    result.success(hasPermission)
-                }
-                "requestNotificationPermission" -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                            REQUEST_NOTIFICATION_PERMISSION
-                        )
+                "com.example.moji_todo.PAUSE" -> {
+                    try {
+                        Log.d("MainActivity", "Handling PAUSE action from Flutter")
+                        val intent = Intent(this, TimerService::class.java).apply {
+                            action = TimerService.ACTION_PAUSE
+                        }
+                        
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        
                         result.success(null)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error in PAUSE action: ${e.message}")
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                "com.example.moji_todo.RESUME" -> {
+                    try {
+                        Log.d("MainActivity", "Handling RESUME action from Flutter")
+                        val intent = Intent(this, TimerService::class.java).apply {
+                            action = TimerService.ACTION_RESUME
+                        }
+                        
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        
+                        result.success(null)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error in RESUME action: ${e.message}")
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                "com.example.moji_todo.STOP" -> {
+                    try {
+                        Log.d("MainActivity", "Handling STOP action from Flutter")
+                        val intent = Intent(this, TimerService::class.java).apply {
+                            action = TimerService.ACTION_STOP
+                        }
+                        
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        
+                        result.success(null)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error in STOP action: ${e.message}")
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                "checkNotificationPermission" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val hasPermission = ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        Log.d("MainActivity", "checkNotificationPermission: $hasPermission")
+                        result.success(hasPermission)
                     } else {
+                        // Trên các phiên bản Android dưới 13, quyền thông báo được cấp mặc định
                         result.success(true)
                     }
                 }
-                else -> result.notImplemented()
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
         handleNotificationIntent(intent)
+
+        // Thiết lập MethodChannel cho TimerBroadcastReceiver
+        timerBroadcastReceiver.setMethodChannel(MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NOTIFICATION_CHANNEL))
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -174,35 +254,72 @@ class MainActivity : FlutterActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
         handleNotificationIntent(intent)
     }
 
     private fun handleNotificationIntent(intent: Intent?) {
-        if (intent?.action == "com.example.moji_todo.NOTIFICATION_ACTION") {
+        Log.d("MainActivity", "Handling intent with action: ${intent?.action}")
+
+        if (intent?.action == TimerService.ACTION_PAUSE) {
+            Log.d("MainActivity", "Pausing timer from notification")
+            methodChannel?.invokeMethod("pauseTimer", null)
+            // Lưu trạng thái vào SharedPreferences
+            val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+            prefs.edit().apply {
+                putInt("timerSeconds", TimerService.timerSeconds)
+                putBoolean("isRunning", false)
+                putBoolean("isPaused", true)
+                apply()
+            }
+        } else if (intent?.action == TimerService.ACTION_RESUME) {
+            Log.d("MainActivity", "Resuming timer from notification")
+            methodChannel?.invokeMethod("resumeTimer", null)
+        } else if (intent?.action == TimerService.ACTION_STOP || intent?.action == "com.example.moji_todo.TIMER_STOPPED") {
+            Log.d("MainActivity", "Stopping timer from notification or broadcast")
+            methodChannel?.invokeMethod("stopTimer", null)
+            NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+            // Lưu trạng thái dừng vào SharedPreferences
+            val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+            prefs.edit().apply {
+                putInt("timerSeconds", 0)
+                putBoolean("isRunning", false)
+                putBoolean("isPaused", false)
+                apply()
+            }
+        } else if (intent?.action == "com.example.moji_todo.NOTIFICATION_ACTION") {
             when (intent.getStringExtra("action")) {
                 "pause" -> {
                     methodChannel?.invokeMethod("pauseTimer", null)
+                    // Lưu trạng thái vào SharedPreferences
+                    val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+                    prefs.edit().apply {
+                        putInt("timerSeconds", TimerService.timerSeconds)
+                        putBoolean("isRunning", false)
+                        putBoolean("isPaused", true)
+                        apply()
+                    }
                 }
-                "resume" -> {
-                    methodChannel?.invokeMethod("resumeTimer", null)
-                }
+                "resume" -> methodChannel?.invokeMethod("resumeTimer", null)
                 "stop" -> {
                     methodChannel?.invokeMethod("stopTimer", null)
                     NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+                    // Lưu trạng thái dừng vào SharedPreferences
+                    val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+                    prefs.edit().apply {
+                        putInt("timerSeconds", 0)
+                        putBoolean("isRunning", false)
+                        putBoolean("isPaused", false)
+                        apply()
+                    }
                 }
             }
         } else {
-            // Xử lý khi ấn vào thông báo "Hết phiên làm việc" hoặc "Hết phiên nghỉ"
+            // Handle payload for work/break notifications
             val payload = intent?.extras?.getString("flutter_notification_payload")
             if (payload != null) {
                 when (payload) {
-                    "START_BREAK" -> {
-                        methodChannel?.invokeMethod("startBreak", null)
-                    }
-                    "START_WORK" -> {
-                        methodChannel?.invokeMethod("startWork", null)
-                    }
+                    "START_BREAK" -> methodChannel?.invokeMethod("startBreak", null)
+                    "START_WORK" -> methodChannel?.invokeMethod("startWork", null)
                 }
             }
         }
