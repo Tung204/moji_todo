@@ -3,14 +3,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moji_todo/features/home/presentation/strict_mode_menu.dart';
 import 'package:moji_todo/features/home/presentation/timer_mode_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'home_screen_state_manager.dart';
 import 'task_bottom_sheet.dart';
 import 'widgets/pomodoro_timer.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/navigation/navigation_manager.dart';
 import '../../tasks/domain/task_cubit.dart';
+import '../../tasks/data/models/task_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,8 +49,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showTaskBottomSheet(BuildContext context) {
-    TaskBottomSheet.show(context, (task, estimatedPomodoros) {
-      context.read<HomeCubit>().selectTask(task, estimatedPomodoros);
+    TaskBottomSheet.show(context, (taskTitle, estimatedPomodoros) {
+      context.read<HomeCubit>().selectTask(taskTitle, estimatedPomodoros);
       context.read<HomeCubit>().startTimer();
     }, (task) {
       context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: true));
@@ -62,8 +63,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    NavigationManager.currentIndex = 0;
-
     return MultiBlocListener(
       listeners: [
         BlocListener<TaskCubit, TaskState>(
@@ -107,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: Scaffold(
               backgroundColor: const Color(0xFFE6F7FA),
               appBar: const CustomAppBar(),
-              body: SingleChildScrollView( // Thêm SingleChildScrollView để tránh overflow
+              body: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
@@ -121,13 +120,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.grey[300]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 state.selectedTask ?? 'Select Task',
-                                style: TextStyle(
+                                style: GoogleFonts.poppins(
                                   color: state.selectedTask != null ? Colors.black : Colors.grey,
                                   fontSize: 16,
                                 ),
@@ -138,11 +144,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      PomodoroTimer(stateManager: _stateManager), // Truyền stateManager vào PomodoroTimer
+                      PomodoroTimer(stateManager: _stateManager),
                       const SizedBox(height: 16),
                       Text(
                         'Selected Task: ${state.selectedTask ?? 'None'}',
-                        style: const TextStyle(fontSize: 16),
+                        style: GoogleFonts.poppins(fontSize: 16),
                       ),
                       const SizedBox(height: 40),
                       Row(
@@ -153,18 +159,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Column(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.music_note, color: Colors.grey),
+                                icon: const Icon(Icons.music_note, color: Colors.grey, size: 28),
                                 onPressed: () {},
                               ),
-                              const Text(
+                              Text(
                                 'White Noise',
-                                style: TextStyle(color: Colors.grey, fontSize: 12),
+                                style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20), // Thêm khoảng trống dưới cùng
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),

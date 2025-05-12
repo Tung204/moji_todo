@@ -28,53 +28,60 @@ class PermissionHandler {
       final hasPermission = await notificationChannel.invokeMethod('checkNotificationPermission');
       print('Notification Permission: $hasPermission');
       onPermissionStateChanged(hasNotificationPermission: hasPermission);
-    } catch (e) {
-      print('Error checking notification permission: $e');
-      onPermissionStateChanged(hasNotificationPermission: false); // Giả sử không có quyền nếu lỗi
-    }
-    final hasPermission = await notificationChannel.invokeMethod('checkNotificationPermission');
-    print('Notification Permission: $hasPermission');
-    onPermissionStateChanged(hasNotificationPermission: hasPermission);
-
-    if (!hasPermission && context.mounted) {
-      bool? granted = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Yêu cầu quyền thông báo'),
-          content: const Text('Ứng dụng cần quyền thông báo để hiển thị trạng thái timer. Vui lòng cấp quyền trong cài đặt.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Từ chối'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await notificationChannel.invokeMethod('requestNotificationPermission');
-                Navigator.pop(context, true);
-              },
-              child: const Text('Cấp quyền'),
-            ),
-          ],
-        ),
-      );
-
-      if (granted != true && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notification permission is required to display timer notifications.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+      if (!hasPermission && context.mounted) {
+        bool? granted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Yêu cầu quyền thông báo'),
+            content: const Text('Ứng dụng cần quyền thông báo để hiển thị trạng thái timer. Vui lòng cấp quyền trong cài đặt.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                child: const Text('Từ chối'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await notificationChannel.invokeMethod('requestNotificationPermission');
+                  Navigator.pop(context, true);
+                },
+                child: const Text('Cấp quyền'),
+              ),
+            ],
           ),
         );
+
+        if (granted != true && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notification permission is required to display timer notifications.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
+    } catch (e) {
+      print('Error checking notification permission: $e');
+      onPermissionStateChanged(hasNotificationPermission: false);
     }
   }
 
   Future<void> checkBackgroundPermission() async {
     final prefs = await SharedPreferences.getInstance();
+    // Kiểm tra xem người dùng đã từ chối quyền chưa
+    final hasDeclinedPermission = prefs.getBool('hasDeclinedBackgroundPermission') ?? false;
+    if (hasDeclinedPermission) {
+      print('User has declined background permission, skipping check');
+      onPermissionStateChanged(
+        hasRequestedBackgroundPermission: true,
+        isIgnoringBatteryOptimizations: false,
+      );
+      return;
+    }
+
     final hasRequested = prefs.getBool('hasRequestedBackgroundPermission') ?? false;
     if (!hasRequested) {
       final isIgnoringBatteryOptimizations = await _permissionChannel.invokeMethod('checkIgnoreBatteryOptimizations');
@@ -94,8 +101,10 @@ class PermissionHandler {
             ),
             actions: [
               TextButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(context, false);
+                  // Lưu trạng thái từ chối
+                  await prefs.setBool('hasDeclinedBackgroundPermission', true);
                 },
                 child: const Text('Bỏ qua'),
               ),
@@ -111,10 +120,12 @@ class PermissionHandler {
 
         if (confirmed == true) {
           await _permissionChannel.invokeMethod('requestIgnoreBatteryOptimizations');
+          await prefs.setBool('hasRequestedBackgroundPermission', true);
+        } else {
+          await prefs.setBool('hasDeclinedBackgroundPermission', true);
         }
       }
 
-      await prefs.setBool('hasRequestedBackgroundPermission', true);
       onPermissionStateChanged(hasRequestedBackgroundPermission: true);
     } else {
       onPermissionStateChanged(

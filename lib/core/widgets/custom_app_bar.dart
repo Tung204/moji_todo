@@ -27,10 +27,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           : null,
       title: ShaderMask(
         shaderCallback: (bounds) => const LinearGradient(
-          colors: [Color(0xFF013FDC), Color(0xFFE12F36)],
+          colors: [Color(0xFF8F0404), Color(0xFFFF7379)],
         ).createShader(bounds),
         child: const Text(
-          'Moji-ToDo',
+          'DNTU Focus',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

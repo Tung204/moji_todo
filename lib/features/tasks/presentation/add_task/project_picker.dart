@@ -6,11 +6,13 @@ import '../../data/models/project_tag_repository.dart';
 
 class ProjectPicker extends StatefulWidget {
   final String? initialProject;
+  final ProjectTagRepository repository;
   final ValueChanged<String?> onProjectSelected;
 
   const ProjectPicker({
     super.key,
     this.initialProject,
+    required this.repository,
     required this.onProjectSelected,
   });
 
@@ -21,7 +23,6 @@ class ProjectPicker extends StatefulWidget {
 class _ProjectPickerState extends State<ProjectPicker> {
   late String? selectedProject;
 
-  // Map để gán màu sắc cho từng project
   final Map<String, Color> projectColors = {
     'General': Colors.green,
     'Pomodoro App': Colors.red,
@@ -69,10 +70,7 @@ class _ProjectPickerState extends State<ProjectPicker> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => AddProjectScreen(
-                          repository: ProjectTagRepository(
-                            projectBox: Hive.box('projects'),
-                            tagBox: Hive.box('tags'),
-                          ),
+                          repository: widget.repository,
                           onProjectAdded: () {
                             // Không cần setState vì ValueListenableBuilder sẽ tự rebuild
                           },
@@ -85,7 +83,7 @@ class _ProjectPickerState extends State<ProjectPicker> {
             ),
             const SizedBox(height: 16),
             ValueListenableBuilder(
-              valueListenable: Hive.box<Project>('projects').listenable(),
+              valueListenable: widget.repository.projectBox.listenable(),
               builder: (context, Box<Project> box, _) {
                 final availableProjects = box.values
                     .where((project) => !project.isArchived)

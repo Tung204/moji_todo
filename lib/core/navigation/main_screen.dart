@@ -1,47 +1,43 @@
 import 'package:flutter/material.dart';
-import '../../features/home/presentation/home_screen.dart';
-import '../../features/tasks/presentation/task_manage_screen.dart';
-import '../../features/calendar/presentation/calendar_screen.dart';
-import '../../features/report/presentation/report_screen.dart';
-import '../../features/ai_chat/presentation/ai_chat_screen.dart';
-import '../../features/settings/presentation/settings_screen.dart';
-import '../widgets/custom_bottom_nav_bar.dart';
+import 'package:moji_todo/features/home/presentation/home_screen.dart';
+import 'package:moji_todo/features/tasks/presentation/task_manage_screen.dart';
+import 'package:moji_todo/features/calendar/presentation/calendar_screen.dart';
+import 'package:moji_todo/features/report/presentation/report_screen.dart';
+import 'package:moji_todo/features/ai_chat/presentation/ai_chat_screen.dart';
+import '../../../core/widgets/custom_bottom_nav_bar.dart';
+import '../navigation/navigation_manager.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const TaskManageScreen(),
-    const CalendarScreen(),
-    const ReportScreen(),
-    const AIChatScreen(),
-    const SettingsScreen(),
-  ];
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: ValueListenableBuilder<int>(
+        valueListenable: NavigationManager.currentIndex,
+        builder: (context, index, child) {
+          return IndexedStack(
+            index: index,
+            children: const [
+              HomeScreen(),
+              TaskManageScreen(),
+              CalendarScreen(),
+              ReportScreen(),
+              AIChatScreen(),
+            ],
+          );
+        },
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: NavigationManager.currentIndex,
+        builder: (context, index, child) {
+          return CustomBottomNavBar(
+            currentIndex: index,
+            onTap: (index) {
+              NavigationManager.navigate(index);
+            },
+          );
+        },
       ),
     );
   }

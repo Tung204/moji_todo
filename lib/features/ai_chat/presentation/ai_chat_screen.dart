@@ -8,7 +8,6 @@ import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/data/models/task_model.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/navigation/navigation_manager.dart';
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({super.key});
@@ -31,7 +30,6 @@ class _AIChatScreenState extends State<AIChatScreen> {
     super.initState();
     _initSpeech();
     _loadSuggestions();
-    NavigationManager.currentIndex = 4;
     _messages.add({
       'role': 'assistant',
       'content': 'Xin chào! Mình là trợ lý AI. Bạn có thể nói hoặc nhập câu lệnh như:\n- Làm bài tập toán 25 phút 5 phút nghỉ\n- Ngày mai đi chợ 6 sáng\n- Họp nhóm lúc 3h',

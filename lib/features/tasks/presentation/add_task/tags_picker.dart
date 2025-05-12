@@ -6,11 +6,13 @@ import '../../data/models/project_tag_repository.dart';
 
 class TagsPicker extends StatefulWidget {
   final List<String> initialTags;
+  final ProjectTagRepository repository;
   final ValueChanged<List<String>> onTagsSelected;
 
   const TagsPicker({
     super.key,
     required this.initialTags,
+    required this.repository,
     required this.onTagsSelected,
   });
 
@@ -21,7 +23,6 @@ class TagsPicker extends StatefulWidget {
 class _TagsPickerState extends State<TagsPicker> {
   late List<String> selectedTags;
 
-  // Map để gán màu sắc cho từng tag
   final Map<String, Color> tagColors = {
     'Urgent': Colors.red,
     'Personal': Colors.green,
@@ -73,10 +74,7 @@ class _TagsPickerState extends State<TagsPicker> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => AddTagScreen(
-                          repository: ProjectTagRepository(
-                            projectBox: Hive.box('projects'),
-                            tagBox: Hive.box('tags'),
-                          ),
+                          repository: widget.repository,
                           onTagAdded: () {
                             // Không cần setState vì ValueListenableBuilder sẽ tự rebuild
                           },
@@ -89,7 +87,7 @@ class _TagsPickerState extends State<TagsPicker> {
             ),
             const SizedBox(height: 16),
             ValueListenableBuilder(
-              valueListenable: Hive.box<Tag>('tags').listenable(),
+              valueListenable: widget.repository.tagBox.listenable(),
               builder: (context, Box<Tag> box, _) {
                 final availableTags = box.values
                     .where((tag) => !tag.isArchived)
