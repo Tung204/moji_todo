@@ -72,6 +72,7 @@ class HomeScreenStateManager {
         await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
         await prefs.setBool('isRunning', homeCubit.state.isTimerRunning);
         await prefs.setBool('isPaused', homeCubit.state.isPaused);
+        await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
       }
     } else if (state == AppLifecycleState.resumed) {
       await _restoreTimerState();
@@ -81,6 +82,7 @@ class HomeScreenStateManager {
           'timerSeconds': homeCubit.state.timerSeconds,
           'isRunning': homeCubit.state.isTimerRunning,
           'isPaused': homeCubit.state.isPaused,
+          'isCountingUp': homeCubit.state.isCountingUp,
         });
       }
     }
@@ -102,10 +104,12 @@ class HomeScreenStateManager {
             'timerSeconds': homeCubit.state.timerSeconds,
             'isRunning': true,
             'isPaused': false,
+            'isCountingUp': homeCubit.state.isCountingUp,
           });
           await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
           await prefs.setBool('isRunning', true);
           await prefs.setBool('isPaused', false);
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
           await _restoreTimerState();
         }
         break;
@@ -116,6 +120,7 @@ class HomeScreenStateManager {
           await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
           await prefs.setBool('isRunning', false);
           await prefs.setBool('isPaused', true);
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
           await _restoreTimerState();
         }
         break;
@@ -128,20 +133,23 @@ class HomeScreenStateManager {
             'timerSeconds': homeCubit.state.timerSeconds,
             'isRunning': true,
             'isPaused': false,
+            'isCountingUp': homeCubit.state.isCountingUp,
           });
           await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
           await prefs.setBool('isRunning', true);
           await prefs.setBool('isPaused', false);
-          await _restoreTimerState(); // Update UI immediately
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+          await _restoreTimerState();
         }
         break;
       case 'stop':
         if (homeCubit.state.isTimerRunning || homeCubit.state.isPaused) {
           homeCubit.stopTimer();
           await _channel.invokeMethod('com.example.moji_todo.STOP');
-          await prefs.setInt('timerSeconds', homeCubit.state.workDuration * 60);
+          await prefs.setInt('timerSeconds', homeCubit.state.isCountingUp ? 0 : homeCubit.state.workDuration * 60);
           await prefs.setBool('isRunning', false);
           await prefs.setBool('isPaused', false);
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
           await _restoreTimerState();
         }
         break;

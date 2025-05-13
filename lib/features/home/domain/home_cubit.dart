@@ -11,9 +11,10 @@ import 'home_state.dart';
 const String prefTimerSeconds = "timerSeconds";
 const String prefIsRunning = "isRunning";
 const String prefIsPaused = "isPaused";
-const String prefWhiteNoiseEnabled = "whiteNoiseEnabled"; // Thêm
-const String prefSelectedWhiteNoise = "selectedWhiteNoise"; // Thêm
+const String prefWhiteNoiseEnabled = "whiteNoiseEnabled";
+const String prefSelectedWhiteNoise = "selectedWhiteNoise";
 const String prefWhiteNoiseVolume = "whiteNoiseVolume";
+const String prefIsCountingUp = "isCountingUp";
 
 class TimerActions {
   static const String start = 'START';
@@ -35,37 +36,46 @@ class HomeCubit extends Cubit<HomeState> {
   static const EventChannel _eventChannel = EventChannel('com.example.moji_todo/timer_events');
   StreamSubscription? _timerSubscription;
   bool _lastAppBlockingState = false;
+  Timer? _localTimer;
 
   Future<void> _initialize() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Khôi phục trạng thái white noise từ SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     final isWhiteNoiseEnabled = prefs.getBool(prefWhiteNoiseEnabled) ?? false;
-    final selectedWhiteNoise = prefs.getString(prefSelectedWhiteNoise);
-    final whiteNoiseVolume = prefs.getDouble(prefWhiteNoiseVolume) ?? 1;
+    final selectedWhiteNoise = prefs.getString(prefSelectedWhiteNoise) ?? 'none';
+    final whiteNoiseVolume = prefs.getDouble(prefWhiteNoiseVolume) ?? 1.0;
+    final isCountingUp = prefs.getBool(prefIsCountingUp) ?? false;
     emit(state.copyWith(
       isWhiteNoiseEnabled: isWhiteNoiseEnabled,
       selectedWhiteNoise: selectedWhiteNoise,
       whiteNoiseVolume: whiteNoiseVolume,
+      isCountingUp: isCountingUp,
     ));
-
 
     _timerSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
       final args = event as Map;
       final timerSeconds = args['timerSeconds'] as int;
       final isRunning = args['isRunning'] as bool;
       final isPaused = args['isPaused'] as bool;
+      final isCountingUp = args['isCountingUp'] as bool? ?? state.isCountingUp;
+
+      // Hủy local timer nếu timer bị pause từ native
+      if (isPaused && _localTimer != null) {
+        _localTimer?.cancel();
+        _localTimer = null;
+        _audioPlayer.pause();
+      }
 
       emit(state.copyWith(
         timerSeconds: timerSeconds,
         isTimerRunning: isRunning && !isPaused,
         isPaused: isPaused,
+        isCountingUp: isCountingUp,
       ));
-      _updateSharedPreferences(timerSeconds, isRunning, isPaused);
-      print('Received timer update: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused');
-      if (timerSeconds <= 0 && isRunning && !isPaused) {
+
+      if (!isCountingUp && timerSeconds <= 0 && isRunning && !isPaused) {
         if (state.soundEnabled) {
           _playSound();
         }
@@ -113,6 +123,7 @@ class HomeCubit extends Cubit<HomeState> {
           }
         }
       }
+      print('Received timer update: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp');
     });
 
     _notificationChannel.setMethodCallHandler((call) async {
@@ -123,6 +134,7 @@ class HomeCubit extends Cubit<HomeState> {
             isWorkSession: false,
             isTimerRunning: state.autoSwitch,
             isPaused: !state.autoSwitch,
+            isCountingUp: false,
           ));
           if (state.autoSwitch) {
             _startTimer(state.breakDuration * 60);
@@ -135,6 +147,7 @@ class HomeCubit extends Cubit<HomeState> {
             isTimerRunning: state.autoSwitch,
             isPaused: !state.autoSwitch,
             currentSession: state.currentSession + 1,
+            isCountingUp: false,
           ));
           if (state.autoSwitch) {
             _startTimer(state.workDuration * 60);
@@ -176,6 +189,7 @@ class HomeCubit extends Cubit<HomeState> {
             currentSession: task.completedPomodoros ?? 0,
             totalSessions: task.estimatedPomodoros ?? state.totalSessions,
             isWorkSession: true,
+            isCountingUp: false,
           ));
           _startTimer(task.remainingPomodoroSeconds ?? (state.workDuration * 60));
         }
@@ -192,14 +206,24 @@ class HomeCubit extends Cubit<HomeState> {
       isTimerRunning: false,
       isPaused: false,
       isWorkSession: true,
+      isCountingUp: state.isCountingUp,
     ));
   }
 
   void startTimer() {
     if (state.isTimerRunning) return;
 
-    final timerSeconds = state.isWorkSession ? state.workDuration * 60 : state.breakDuration * 60;
-    if (timerSeconds <= 0) return;
+    _localTimer?.cancel();
+    int timerSeconds;
+    if (state.isCountingUp) {
+      timerSeconds = 0;
+    } else {
+      timerSeconds = state.isWorkSession ? state.workDuration * 60 : state.breakDuration * 60;
+      if (timerSeconds <= 0) {
+        print('Invalid timer duration for counting down mode');
+        return;
+      }
+    }
 
     emit(state.copyWith(
       timerSeconds: timerSeconds,
@@ -209,12 +233,23 @@ class HomeCubit extends Cubit<HomeState> {
     ));
 
     _resetPreviousPomodoro();
+    _updateSharedPreferences(timerSeconds, true, false);
     _startTimer(timerSeconds);
+    if (state.isCountingUp) {
+      _localTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+        emit(state.copyWith(
+          timerSeconds: state.timerSeconds + 1,
+          isTimerRunning: true,
+          isPaused: false,
+        ));
+        _updateSharedPreferences(state.timerSeconds + 1, true, false);
+        print('Local timer tick: timerSeconds=${state.timerSeconds + 1}');
+      });
+    }
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
     }
-    // Bật white noise nếu được kích hoạt
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null) {
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
@@ -234,8 +269,8 @@ class HomeCubit extends Cubit<HomeState> {
       print('Error sending PAUSE intent: $e');
     });
     _updateSharedPreferences(state.timerSeconds, false, true);
-    // Tạm dừng white noise
     _audioPlayer.pause();
+    _localTimer?.cancel();
   }
 
   void continueTimer() {
@@ -251,21 +286,22 @@ class HomeCubit extends Cubit<HomeState> {
     }
     _updateSharedPreferences(state.timerSeconds, true, false);
 
-    _notificationChannel.invokeMethod('getTimerState').then((timerState) {
-      if (timerState != null) {
-        final serviceSeconds = timerState['timerSeconds'] as int? ?? state.timerSeconds;
-        final serviceRunning = timerState['isRunning'] as bool? ?? false;
-        final servicePaused = timerState['isPaused'] as bool? ?? true;
+    if (state.isCountingUp) {
+      _startTimer(state.timerSeconds);
+      _localTimer = Timer.periodic(Duration(seconds: 1), (timer) {
         emit(state.copyWith(
-          timerSeconds: serviceSeconds,
-          isTimerRunning: serviceRunning && !servicePaused,
-          isPaused: servicePaused,
+          timerSeconds: state.timerSeconds + 1,
+          isTimerRunning: true,
+          isPaused: false,
         ));
-        print('Synced state from TimerService: timerSeconds=$serviceSeconds, isRunning=$serviceRunning, isPaused=$servicePaused');
-      }
-    }).catchError((e) {
-      print('Error fetching timer state: $e');
-    });
+        _updateSharedPreferences(state.timerSeconds + 1, true, false);
+        print('Local timer tick: timerSeconds=${state.timerSeconds + 1}');
+      });
+    } else {
+      _notificationChannel.invokeMethod(TimerActions.resume).catchError((e) {
+        print('Error sending RESUME intent: $e');
+      });
+    }
 
     final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
     if (newAppBlockingState != _lastAppBlockingState) {
@@ -275,15 +311,16 @@ class HomeCubit extends Cubit<HomeState> {
       });
       _lastAppBlockingState = newAppBlockingState;
     }
-    // Tiếp tục white noise
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null) {
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
 
   void stopTimer({bool updateTaskState = true}) {
+    _localTimer?.cancel();
+    final timerSeconds = state.isCountingUp ? 0 : state.workDuration * 60;
     emit(state.copyWith(
-      timerSeconds: state.workDuration * 60,
+      timerSeconds: timerSeconds,
       isTimerRunning: false,
       isPaused: false,
       currentSession: 0,
@@ -296,8 +333,7 @@ class HomeCubit extends Cubit<HomeState> {
     _notificationChannel.invokeMethod(TimerActions.stop).catchError((e) {
       print('Error sending STOP intent: $e');
     });
-    _updateSharedPreferences(state.workDuration * 60, false, false);
-    // Dừng white noise
+    _updateSharedPreferences(timerSeconds, false, false);
     _audioPlayer.stop();
   }
 
@@ -316,7 +352,7 @@ class HomeCubit extends Cubit<HomeState> {
   }) {
     if (state.isTimerRunning && !state.isPaused) {
       print('Cannot update Strict Mode: Timer is running');
-      return; // Block update when timer is running
+      return;
     }
 
     final newAppBlockingEnabled = isAppBlockingEnabled ?? state.isAppBlockingEnabled;
@@ -340,17 +376,24 @@ class HomeCubit extends Cubit<HomeState> {
       });
       _lastAppBlockingState = newAppBlockingState;
     }
+
+    if (newExitBlockingEnabled && state.isWhiteNoiseEnabled) {
+      _audioPlayer.pause();
+    } else if (!newExitBlockingEnabled && state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
+      _playWhiteNoise(state.selectedWhiteNoise!);
+    }
   }
 
   void updateBlockedApps(List<String> blockedApps) {
     if (state.isTimerRunning && !state.isPaused) {
       print('Cannot update blocked apps: Timer is running');
-      return; // Block update when timer is running
+      return;
     }
-
-    emit(state.copyWith(
-      blockedApps: blockedApps,
-    ));
+    if (state.isAppBlockingEnabled && blockedApps.isEmpty) {
+      print('Cannot save empty blocked apps when App Blocking is enabled');
+      return;
+    }
+    emit(state.copyWith(blockedApps: blockedApps));
   }
 
   void updateTimerMode({
@@ -364,32 +407,63 @@ class HomeCubit extends Cubit<HomeState> {
   }) {
     if (state.isTimerRunning && !state.isPaused) {
       print('Cannot update Timer Mode: Timer is running');
-      return; // Block update when timer is running
+      return;
+    }
+
+    bool isCountingUp = false;
+    int newWorkDuration = workDuration;
+    int newBreakDuration = breakDuration;
+    bool newAutoSwitch = autoSwitch;
+
+    switch (timerMode) {
+      case '25:00 - 00:00':
+        newWorkDuration = 25;
+        newBreakDuration = 5;
+        isCountingUp = false;
+        break;
+      case '00:00 - 0∞':
+        newWorkDuration = 0;
+        newBreakDuration = 0;
+        isCountingUp = true;
+        newAutoSwitch = false;
+        break;
+      case 'Tùy chỉnh':
+        isCountingUp = false;
+        break;
     }
 
     emit(state.copyWith(
       timerMode: timerMode,
-      workDuration: workDuration,
-      breakDuration: breakDuration,
+      workDuration: newWorkDuration,
+      breakDuration: newBreakDuration,
       soundEnabled: soundEnabled,
-      autoSwitch: autoSwitch,
+      autoSwitch: newAutoSwitch,
       notificationSound: notificationSound,
       totalSessions: totalSessions ?? state.totalSessions,
-      timerSeconds: state.isTimerRunning ? state.timerSeconds : (workDuration * 60),
+      timerSeconds: state.isTimerRunning ? state.timerSeconds : (newWorkDuration * 60),
       isWorkSession: true,
+      isCountingUp: isCountingUp,
     ));
+    _updateSharedPreferences(state.isTimerRunning ? state.timerSeconds : (newWorkDuration * 60), false, false);
   }
 
   void restoreTimerState({
     required int timerSeconds,
     required bool isRunning,
     required bool isPaused,
+    required bool isCountingUp,
   }) {
     emit(state.copyWith(
       timerSeconds: timerSeconds,
       isTimerRunning: isRunning && !isPaused,
       isPaused: isPaused,
+      isCountingUp: isCountingUp,
     ));
+
+    if (isPaused && _localTimer != null) {
+      _localTimer?.cancel();
+      _localTimer = null;
+    }
 
     final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
     if (newAppBlockingState != _lastAppBlockingState) {
@@ -400,7 +474,7 @@ class HomeCubit extends Cubit<HomeState> {
       _lastAppBlockingState = newAppBlockingState;
     }
   }
-  // Thêm: Quản lý white noise
+
   void toggleWhiteNoise(bool enable) async {
     emit(state.copyWith(isWhiteNoiseEnabled: enable));
     final prefs = await SharedPreferences.getInstance();
@@ -412,11 +486,11 @@ class HomeCubit extends Cubit<HomeState> {
       _audioPlayer.stop();
     }
   }
-  // Sửa selectWhiteNoise
+
   void selectWhiteNoise(String sound) async {
     emit(state.copyWith(
       selectedWhiteNoise: sound,
-      isWhiteNoiseEnabled: sound != 'none', // Tắt nếu chọn "None"
+      isWhiteNoiseEnabled: sound != 'none',
     ));
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(prefSelectedWhiteNoise, sound);
@@ -427,44 +501,53 @@ class HomeCubit extends Cubit<HomeState> {
       _audioPlayer.stop();
     }
   }
-  // Thêm phương thức mới
+
   void setWhiteNoiseVolume(double volume) async {
     emit(state.copyWith(whiteNoiseVolume: volume));
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(prefWhiteNoiseVolume, volume);
 
     if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
-      await _audioPlayer.setVolume(volume); // Cập nhật âm lượng ngay
+      await _audioPlayer.setVolume(volume);
     }
   }
 
   Future<void> _playWhiteNoise(String sound) async {
+    if (sound == 'none' || sound.isEmpty) return;
     try {
-      await _audioPlayer.stop(); // Dừng âm thanh hiện tại nếu có
+      await _audioPlayer.stop();
       await _audioPlayer.setSource(AssetSource('sounds/whiteNoise/$sound.mp3'));
-      await _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop âm thanh
-      await _audioPlayer.setVolume(state.whiteNoiseVolume); // Áp dụng âm lượng
-      // Áp dụng tốc độ phát dựa trên âm thanh
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.setVolume(state.whiteNoiseVolume);
       final playbackRate = ['clock_ticking'].contains(sound) ? 0.8 : 1.0;
       await _audioPlayer.setPlaybackRate(playbackRate);
-      await _audioPlayer.resume();
-      print('Playing white noise: $sound');
+      if (state.isTimerRunning && !state.isPaused) {
+        await _audioPlayer.resume();
+        print('Playing white noise: $sound');
+      }
     } catch (e) {
       print('Error playing white noise: $e');
     }
   }
-  void _startTimer(int seconds) {
+
+  Future<void> _startTimer(int seconds) async {
     final intent = {
       'action': TimerActions.start,
       'timerSeconds': seconds,
       'isRunning': true,
       'isPaused': false,
+      'isCountingUp': state.isCountingUp,
     };
     print('Sending START intent: $intent');
-    _notificationChannel.invokeMethod('startTimerService', intent).catchError((e) {
-      print('Error starting timer: $e');
-    });
-    _updateSharedPreferences(seconds, true, false);
+    for (int i = 0; i < 3; i++) {
+      try {
+        await _notificationChannel.invokeMethod('startTimerService', intent);
+        break;
+      } catch (e) {
+        print('Retry ${i+1}/3: Error starting timer: $e');
+        await Future.delayed(Duration(milliseconds: 500));
+      }
+    }
   }
 
   Future<void> _resetPreviousPomodoro() async {
@@ -519,12 +602,14 @@ class HomeCubit extends Cubit<HomeState> {
     await prefs.setInt(prefTimerSeconds, timerSeconds);
     await prefs.setBool(prefIsRunning, isRunning);
     await prefs.setBool(prefIsPaused, isPaused);
-    print('Updated SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused');
+    await prefs.setBool(prefIsCountingUp, state.isCountingUp);
+    print('Updated SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=${state.isCountingUp}');
   }
 
   @override
   Future<void> close() {
     _timerSubscription?.cancel();
+    _localTimer?.cancel();
     _audioPlayer.dispose();
     return super.close();
   }
