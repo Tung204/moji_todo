@@ -53,4 +53,5 @@ flutter:
     - assets/sounds/bell.mp3
     - assets/sounds/chime.mp3
     - assets/sounds/alarm.mp3
+    - assets/sounds/whiteNoise/
   uses-material-design: true

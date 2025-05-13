@@ -11,6 +11,9 @@ import 'home_state.dart';
 const String prefTimerSeconds = "timerSeconds";
 const String prefIsRunning = "isRunning";
 const String prefIsPaused = "isPaused";
+const String prefWhiteNoiseEnabled = "whiteNoiseEnabled"; // Thêm
+const String prefSelectedWhiteNoise = "selectedWhiteNoise"; // Thêm
+const String prefWhiteNoiseVolume = "whiteNoiseVolume";
 
 class TimerActions {
   static const String start = 'START';
@@ -36,6 +39,18 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> _initialize() async {
     final user = _auth.currentUser;
     if (user == null) return;
+
+    // Khôi phục trạng thái white noise từ SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final isWhiteNoiseEnabled = prefs.getBool(prefWhiteNoiseEnabled) ?? false;
+    final selectedWhiteNoise = prefs.getString(prefSelectedWhiteNoise);
+    final whiteNoiseVolume = prefs.getDouble(prefWhiteNoiseVolume) ?? 1;
+    emit(state.copyWith(
+      isWhiteNoiseEnabled: isWhiteNoiseEnabled,
+      selectedWhiteNoise: selectedWhiteNoise,
+      whiteNoiseVolume: whiteNoiseVolume,
+    ));
+
 
     _timerSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
       final args = event as Map;
@@ -198,6 +213,10 @@ class HomeCubit extends Cubit<HomeState> {
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
     }
+    // Bật white noise nếu được kích hoạt
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null) {
+      _playWhiteNoise(state.selectedWhiteNoise!);
+    }
   }
 
   void pauseTimer() {
@@ -215,6 +234,8 @@ class HomeCubit extends Cubit<HomeState> {
       print('Error sending PAUSE intent: $e');
     });
     _updateSharedPreferences(state.timerSeconds, false, true);
+    // Tạm dừng white noise
+    _audioPlayer.pause();
   }
 
   void continueTimer() {
@@ -254,6 +275,10 @@ class HomeCubit extends Cubit<HomeState> {
       });
       _lastAppBlockingState = newAppBlockingState;
     }
+    // Tiếp tục white noise
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null) {
+      _playWhiteNoise(state.selectedWhiteNoise!);
+    }
   }
 
   void stopTimer({bool updateTaskState = true}) {
@@ -272,6 +297,8 @@ class HomeCubit extends Cubit<HomeState> {
       print('Error sending STOP intent: $e');
     });
     _updateSharedPreferences(state.workDuration * 60, false, false);
+    // Dừng white noise
+    _audioPlayer.stop();
   }
 
   void resetTask() async {
@@ -373,7 +400,59 @@ class HomeCubit extends Cubit<HomeState> {
       _lastAppBlockingState = newAppBlockingState;
     }
   }
+  // Thêm: Quản lý white noise
+  void toggleWhiteNoise(bool enable) async {
+    emit(state.copyWith(isWhiteNoiseEnabled: enable));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(prefWhiteNoiseEnabled, enable);
 
+    if (enable && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
+      _playWhiteNoise(state.selectedWhiteNoise!);
+    } else {
+      _audioPlayer.stop();
+    }
+  }
+  // Sửa selectWhiteNoise
+  void selectWhiteNoise(String sound) async {
+    emit(state.copyWith(
+      selectedWhiteNoise: sound,
+      isWhiteNoiseEnabled: sound != 'none', // Tắt nếu chọn "None"
+    ));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(prefSelectedWhiteNoise, sound);
+
+    if (sound != 'none' && state.isWhiteNoiseEnabled && state.isTimerRunning) {
+      _playWhiteNoise(sound);
+    } else {
+      _audioPlayer.stop();
+    }
+  }
+  // Thêm phương thức mới
+  void setWhiteNoiseVolume(double volume) async {
+    emit(state.copyWith(whiteNoiseVolume: volume));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(prefWhiteNoiseVolume, volume);
+
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
+      await _audioPlayer.setVolume(volume); // Cập nhật âm lượng ngay
+    }
+  }
+
+  Future<void> _playWhiteNoise(String sound) async {
+    try {
+      await _audioPlayer.stop(); // Dừng âm thanh hiện tại nếu có
+      await _audioPlayer.setSource(AssetSource('sounds/whiteNoise/$sound.mp3'));
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop âm thanh
+      await _audioPlayer.setVolume(state.whiteNoiseVolume); // Áp dụng âm lượng
+      // Áp dụng tốc độ phát dựa trên âm thanh
+      final playbackRate = ['clock_ticking'].contains(sound) ? 0.8 : 1.0;
+      await _audioPlayer.setPlaybackRate(playbackRate);
+      await _audioPlayer.resume();
+      print('Playing white noise: $sound');
+    } catch (e) {
+      print('Error playing white noise: $e');
+    }
+  }
   void _startTimer(int seconds) {
     final intent = {
       'action': TimerActions.start,

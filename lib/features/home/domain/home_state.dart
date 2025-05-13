@@ -19,6 +19,9 @@ class HomeState extends Equatable {
   final bool autoSwitch;
   final bool isWorkSession;
   final String notificationSound;
+  final bool isWhiteNoiseEnabled; // Thêm: trạng thái bật/tắt white noise
+  final String? selectedWhiteNoise; // Thêm: âm thanh white noise được chọn
+  final double whiteNoiseVolume;
 
   const HomeState({
     this.selectedTask,
@@ -39,6 +42,9 @@ class HomeState extends Equatable {
     this.autoSwitch = false,
     this.isWorkSession = true,
     this.notificationSound = 'bell',
+    this.isWhiteNoiseEnabled = false, // Mặc định tắt
+    this.selectedWhiteNoise, // Mặc định không chọn âm thanh
+    this.whiteNoiseVolume = 1.0, // Mặc định âm lượng 50%
   });
 
   HomeState copyWith({
@@ -60,6 +66,9 @@ class HomeState extends Equatable {
     bool? autoSwitch,
     bool? isWorkSession,
     String? notificationSound,
+    bool? isWhiteNoiseEnabled, // Thêm
+    String? selectedWhiteNoise, // Thêm
+    double? whiteNoiseVolume,
   }) {
     return HomeState(
       selectedTask: selectedTask ?? this.selectedTask,
@@ -80,6 +89,9 @@ class HomeState extends Equatable {
       autoSwitch: autoSwitch ?? this.autoSwitch,
       isWorkSession: isWorkSession ?? this.isWorkSession,
       notificationSound: notificationSound ?? this.notificationSound,
+      isWhiteNoiseEnabled: isWhiteNoiseEnabled ?? this.isWhiteNoiseEnabled,
+      selectedWhiteNoise: selectedWhiteNoise ?? this.selectedWhiteNoise,
+      whiteNoiseVolume: whiteNoiseVolume ?? this.whiteNoiseVolume,
     );
   }
 
@@ -103,5 +115,8 @@ class HomeState extends Equatable {
     autoSwitch,
     isWorkSession,
     notificationSound,
+    isWhiteNoiseEnabled,
+    selectedWhiteNoise,
+    whiteNoiseVolume,
   ];
 }

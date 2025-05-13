@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moji_todo/features/home/presentation/strict_mode_menu.dart';
 import 'package:moji_todo/features/home/presentation/timer_mode_menu.dart';
+import 'package:moji_todo/features/home/presentation/white_noise_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
@@ -87,7 +88,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             previous.isStrictModeEnabled != current.isStrictModeEnabled ||
             previous.workDuration != current.workDuration ||
             previous.breakDuration != current.breakDuration ||
-            previous.isWorkSession != current.isWorkSession,
+            previous.isWorkSession != current.isWorkSession ||
+            previous.isWhiteNoiseEnabled != current.isWhiteNoiseEnabled ||
+            previous.selectedWhiteNoise != current.selectedWhiteNoise,
         builder: (context, state) {
           return WillPopScope(
             onWillPop: () async {
@@ -156,18 +159,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         children: [
                           const StrictModeMenu(),
                           const TimerModeMenu(),
-                          Column(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.music_note, color: Colors.grey, size: 28),
-                                onPressed: () {},
-                              ),
-                              Text(
-                                'White Noise',
-                                style: GoogleFonts.poppins(color: Colors.grey, fontSize: 12),
-                              ),
-                            ],
-                          ),
+                          const WhiteNoiseMenu(),
                         ],
                       ),
                       const SizedBox(height: 20),
