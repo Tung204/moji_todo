@@ -1,37 +1,10 @@
-import 'package:flutter/material.dart';
-import '../../routes/app_routes.dart';
+import 'package:flutter/foundation.dart';
 
 class NavigationManager {
-  static int currentIndex = 0;
+  static final ValueNotifier<int> currentIndex = ValueNotifier<int>(0);
 
-  static void navigate(BuildContext context, int index) {
-    if (currentIndex == index) return; // Không làm gì nếu đã ở màn hình hiện tại
-
-    currentIndex = index;
-    String route;
-    switch (index) {
-      case 0:
-        route = AppRoutes.pomodoro;
-        break;
-      case 1:
-        route = AppRoutes.tasks;
-        break;
-      case 2:
-        route = AppRoutes.calendar;
-        break;
-      case 3:
-        route = AppRoutes.report;
-        break;
-      case 4:
-        route = AppRoutes.aiChat;
-        break;
-      case 5:
-        route = AppRoutes.settings;
-        break;
-      default:
-        return;
-    }
-
-    Navigator.pushReplacementNamed(context, route);
+  static void navigate(int index) {
+    if (currentIndex.value == index) return;
+    currentIndex.value = index; // Chỉ cập nhật index
   }
 }

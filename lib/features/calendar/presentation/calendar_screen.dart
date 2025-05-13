@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../tasks/data/models/task_model.dart';
 import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/presentation/add_task/add_task_bottom_sheet.dart';
 import '../../tasks/presentation/task_detail_screen.dart';
 import '../../tasks/presentation/utils/tag_colors.dart';
+import '../../tasks/data/models/project_tag_repository.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -47,6 +49,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final projectTagRepository = ProjectTagRepository(
+      projectBox: Hive.box('projects'),
+      tagBox: Hive.box('tags'),
+    );
+
     return BlocBuilder<TaskCubit, TaskState>(
       builder: (context, state) {
         final tasks = state.tasks ?? [];
@@ -58,7 +65,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            automaticallyImplyLeading: false, // Bỏ nút back
+            automaticallyImplyLeading: false,
             title: const Text(
               'Lịch',
               style: TextStyle(
@@ -75,7 +82,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
-                    builder: (context) => const AddTaskBottomSheet(),
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.8,
+                    ),
+                    builder: (context) => AddTaskBottomSheet(
+                      repository: projectTagRepository,
+                    ),
                   );
                 },
               ),
@@ -158,7 +170,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         Center(
                           child: Container(
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: Color(0xFFD50F0F),
                               shape: BoxShape.circle,
                             ),
                             child: Padding(
@@ -356,7 +368,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                builder: (context) => const AddTaskBottomSheet(),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                builder: (context) => AddTaskBottomSheet(
+                  repository: projectTagRepository,
+                ),
               );
             },
             child: const Icon(Icons.add, color: Colors.white),

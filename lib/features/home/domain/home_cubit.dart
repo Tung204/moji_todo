@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +12,13 @@ const String prefTimerSeconds = "timerSeconds";
 const String prefIsRunning = "isRunning";
 const String prefIsPaused = "isPaused";
 
+class TimerActions {
+  static const String start = 'START';
+  static const String pause = 'com.example.moji_todo.PAUSE';
+  static const String resume = 'com.example.moji_todo.RESUME';
+  static const String stop = 'com.example.moji_todo.STOP';
+}
+
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit() : super(const HomeState()) {
     _initialize();
@@ -20,317 +26,33 @@ class HomeCubit extends Cubit<HomeState> {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  Timer? _timer;
-  final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   final AudioPlayer _audioPlayer = AudioPlayer();
   static const MethodChannel _notificationChannel = MethodChannel('com.example.moji_todo/notification');
   static const MethodChannel _serviceChannel = MethodChannel('com.example.moji_todo/app_block_service');
+  static const EventChannel _eventChannel = EventChannel('com.example.moji_todo/timer_events');
+  StreamSubscription? _timerSubscription;
   bool _lastAppBlockingState = false;
 
   Future<void> _initialize() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-    await _notificationsPlugin.initialize(initializationSettings);
-
     final user = _auth.currentUser;
     if (user == null) return;
 
-    _notificationChannel.setMethodCallHandler((call) async {
-      switch (call.method) {
-        case 'startBreak':
-        // Chuyển sang "Phiên nghỉ" khi ấn vào thông báo "Hết phiên làm việc"
-          emit(state.copyWith(
-            timerSeconds: state.breakDuration * 60,
-            isWorkSession: false,
-            isTimerRunning: state.autoSwitch,
-            isPaused: !state.autoSwitch,
-          ));
-          if (state.autoSwitch) {
-            _startTimer(state.breakDuration * 60);
-          }
-          return null;
-        case 'startWork':
-        // Chuyển sang "Phiên làm việc" khi ấn vào thông báo "Hết phiên nghỉ"
-          emit(state.copyWith(
-            timerSeconds: state.workDuration * 60,
-            isWorkSession: true,
-            isTimerRunning: state.autoSwitch,
-            isPaused: !state.autoSwitch,
-            currentSession: state.currentSession + 1,
-          ));
-          if (state.autoSwitch) {
-            _startTimer(state.workDuration * 60);
-          }
-          return null;
-        default:
-          return null;
-      }
-    });
-    _listenToTasks(user.uid);
-  }
-  void _listenToTasks(String uid) {
-    _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('tasks')
-        .where('isPomodoroActive', isEqualTo: true)
-        .snapshots()
-        .listen((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        if (state.selectedTask == null) {
-          final taskDoc = snapshot.docs.first;
-          final task = Task.fromJson(taskDoc.data());
-          emit(state.copyWith(
-            selectedTask: task.title,
-            timerSeconds: task.remainingPomodoroSeconds ??
-                (state.workDuration * 60),
-            isTimerRunning: true,
-            isPaused: false,
-            currentSession: task.completedPomodoros ?? 0,
-            totalSessions: task.estimatedPomodoros ?? state.totalSessions,
-            isWorkSession: true,
-          ));
-          _startTimer(
-              task.remainingPomodoroSeconds ?? (state.workDuration * 60));
-        }
-      }
-    });
-  }
-  void selectTask(String? taskTitle, int estimatedPomodoros) {
-    emit(state.copyWith(
-      selectedTask: taskTitle,
-      totalSessions: taskTitle != null ? estimatedPomodoros : state.totalSessions,
-      currentSession: 0,
-      timerSeconds: state.workDuration * 60,
-      isTimerRunning: false,
-      isPaused: false,
-      isWorkSession: true,
-    ));
-  }
+    _timerSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
+      final args = event as Map;
+      final timerSeconds = args['timerSeconds'] as int;
+      final isRunning = args['isRunning'] as bool;
+      final isPaused = args['isPaused'] as bool;
 
-  void startTimer() {
-    if (state.isTimerRunning) return;
-
-    final timerSeconds = state.isWorkSession ? state.workDuration * 60 : state.breakDuration * 60;
-    if (timerSeconds <= 0) return; // Ngăn gọi nếu timerSeconds không hợp lệ
-
-    emit(state.copyWith(
-      timerSeconds: timerSeconds,
-      isTimerRunning: true,
-      isPaused: false,
-      currentSession: state.isWorkSession ? state.currentSession + 1 : state.currentSession,
-    ));
-
-    _resetPreviousPomodoro();
-    _startTimer(timerSeconds);
-    if (state.selectedTask != null) {
-      _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
-    }
-
-    final intent = {
-      'action': 'START',
-      'timerSeconds': timerSeconds,
-      'isRunning': true,
-      'isPaused': false,
-    };
-    print('Sending START intent: $intent');
-    _notificationChannel.invokeMethod('startTimerService', intent).catchError((e) {
-      print('Error sending START intent: $e');
-    });
-    _updateSharedPreferences(timerSeconds, true, false, sendUpdate: false); // Không gửi UPDATE
-
-    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
-  }
-
-  void pauseTimer() {
-    if (!state.isTimerRunning || state.isPaused) return;
-
-    _timer?.cancel();
-    emit(state.copyWith(
-      isTimerRunning: false,
-      isPaused: true,
-    ));
-    if (state.selectedTask != null) {
-      _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
-    }
-
-    final intent = {
-      'action': 'com.example.moji_todo.PAUSE',
-    };
-    print('Sending PAUSE intent: $intent');
-    _notificationChannel.invokeMethod('com.example.moji_todo.PAUSE').catchError((e) {
-      print('Error sending PAUSE intent: $e');
-    });
-    _updateSharedPreferences(state.timerSeconds, false, true, sendUpdate: false); // Không gửi UPDATE
-  }
-
-  void continueTimer() {
-    if (state.isTimerRunning || !state.isPaused) return;
-
-    emit(state.copyWith(
-      isTimerRunning: true,
-      isPaused: false,
-    ));
-    _startTimer(state.timerSeconds);
-    if (state.selectedTask != null) {
-      _updateTaskPomodoroState(state.selectedTask, true, state.timerSeconds);
-    }
-
-    final intent = {
-      'action': 'com.example.moji_todo.RESUME',
-    };
-    print('Sending RESUME intent: $intent');
-    _notificationChannel.invokeMethod('com.example.moji_todo.RESUME').catchError((e) {
-      print('Error sending RESUME intent: $e');
-    });
-    _updateSharedPreferences(state.timerSeconds, true, false);
-
-    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
-  }
-
-  void stopTimer({bool updateTaskState = true}) {
-    _timer?.cancel();
-    emit(state.copyWith(
-      timerSeconds: state.workDuration * 60,
-      isTimerRunning: false,
-      isPaused: false,
-      currentSession: 0,
-      isWorkSession: true,
-    ));
-    if (updateTaskState && state.selectedTask != null) {
-      _updateTaskPomodoroState(state.selectedTask, false, 0);
-    }
-
-    final intent = {
-      'action': 'com.example.moji_todo.STOP',
-    };
-    print('Sending STOP intent: $intent');
-    _notificationChannel.invokeMethod('com.example.moji_todo.STOP').catchError((e) {
-      print('Error sending STOP intent: $e');
-    });
-    _updateSharedPreferences(0, false, false, sendUpdate: false); // Không gửi UPDATE
-  }
-
-  void resetTask() async {
-    if (state.selectedTask != null) {
-      await _updateTaskPomodoroState(state.selectedTask, false, 0);
-    }
-    stopTimer(updateTaskState: false);
-    selectTask(null, state.totalSessions);
-  }
-
-  void updateStrictMode({
-    bool? isAppBlockingEnabled,
-    bool? isFlipPhoneEnabled,
-    bool? isExitBlockingEnabled,
-  }) {
-    final newAppBlockingEnabled = isAppBlockingEnabled ?? state.isAppBlockingEnabled;
-    final newFlipPhoneEnabled = isFlipPhoneEnabled ?? state.isFlipPhoneEnabled;
-    final newExitBlockingEnabled = isExitBlockingEnabled ?? state.isExitBlockingEnabled;
-
-    final isStrictModeEnabled = newAppBlockingEnabled || newFlipPhoneEnabled || newExitBlockingEnabled;
-
-    emit(state.copyWith(
-      isStrictModeEnabled: isStrictModeEnabled,
-      isAppBlockingEnabled: newAppBlockingEnabled,
-      isFlipPhoneEnabled: newFlipPhoneEnabled,
-      isExitBlockingEnabled: newExitBlockingEnabled,
-    ));
-
-    final newAppBlockingState = newAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
-  }
-
-  void updateBlockedApps(List<String> blockedApps) {
-    emit(state.copyWith(
-      blockedApps: blockedApps,
-    ));
-  }
-
-  void updateTimerMode({
-    required String timerMode,
-    required int workDuration,
-    required int breakDuration,
-    required bool soundEnabled,
-    required bool autoSwitch,
-    required String notificationSound,
-    int? totalSessions,
-  }) {
-    emit(state.copyWith(
-      timerMode: timerMode,
-      workDuration: workDuration,
-      breakDuration: breakDuration,
-      soundEnabled: soundEnabled,
-      autoSwitch: autoSwitch,
-      notificationSound: notificationSound,
-      totalSessions: totalSessions ?? state.totalSessions,
-      timerSeconds: state.isTimerRunning ? state.timerSeconds : (workDuration * 60),
-      isWorkSession: true,
-    ));
-  }
-
-  void restoreTimerState({
-    required int timerSeconds,
-    required bool isRunning,
-    required bool isPaused,
-  }) {
-    emit(state.copyWith(
-      timerSeconds: timerSeconds,
-      isTimerRunning: isRunning,
-      isPaused: isPaused,
-    ));
-    if (isRunning && !isPaused) {
-      _startTimer(timerSeconds);
-    }
-
-    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
-    if (newAppBlockingState != _lastAppBlockingState) {
-      print('Setting app blocking enabled: $newAppBlockingState');
-      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
-        'enabled': newAppBlockingState,
-      });
-      _lastAppBlockingState = newAppBlockingState;
-    }
-  }
-
-  void _startTimer(int seconds) {
-    int remainingSeconds = seconds;
-    _timer?.cancel();
-    bool isUpdating = false; // Biến để ngăn gửi UPDATE đồng thời
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!state.isTimerRunning || state.isPaused) {
-        timer.cancel();
-        return;
-      }
-      remainingSeconds--;
-      if (remainingSeconds <= 0) {
-        timer.cancel();
+      emit(state.copyWith(
+        timerSeconds: timerSeconds,
+        isTimerRunning: isRunning && !isPaused,
+        isPaused: isPaused,
+      ));
+      _updateSharedPreferences(timerSeconds, isRunning, isPaused);
+      print('Received timer update: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused');
+      if (timerSeconds <= 0 && isRunning && !isPaused) {
         if (state.soundEnabled) {
           _playSound();
-          _showNotification();
         }
         if (state.autoSwitch) {
           if (state.isWorkSession) {
@@ -361,7 +83,6 @@ class HomeCubit extends Cubit<HomeState> {
               ));
               if (state.selectedTask != null) {
                 _updateTaskPomodoroState(state.selectedTask, false, 0);
-                _showTaskCompletedNotification();
               }
             }
           }
@@ -376,19 +97,295 @@ class HomeCubit extends Cubit<HomeState> {
             _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
           }
         }
-      } else {
-        emit(state.copyWith(timerSeconds: remainingSeconds));
-        if (state.selectedTask != null) {
-          _updateTaskPomodoroState(state.selectedTask, true, remainingSeconds);
-        }
-        if (!isUpdating) {
-          isUpdating = true;
-          _updateSharedPreferences(remainingSeconds, true, false).then((_) {
-            isUpdating = false;
-          });
+      }
+    });
+
+    _notificationChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'startBreak':
+          emit(state.copyWith(
+            timerSeconds: state.breakDuration * 60,
+            isWorkSession: false,
+            isTimerRunning: state.autoSwitch,
+            isPaused: !state.autoSwitch,
+          ));
+          if (state.autoSwitch) {
+            _startTimer(state.breakDuration * 60);
+          }
+          return null;
+        case 'startWork':
+          emit(state.copyWith(
+            timerSeconds: state.workDuration * 60,
+            isWorkSession: true,
+            isTimerRunning: state.autoSwitch,
+            isPaused: !state.autoSwitch,
+            currentSession: state.currentSession + 1,
+          ));
+          if (state.autoSwitch) {
+            _startTimer(state.workDuration * 60);
+          }
+          return null;
+        case 'pause':
+          pauseTimer();
+          return null;
+        case 'resume':
+          continueTimer();
+          return null;
+        case 'stop':
+          stopTimer();
+          return null;
+        default:
+          return null;
+      }
+    });
+    _listenToTasks(user.uid);
+  }
+
+  void _listenToTasks(String uid) {
+    _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('tasks')
+        .where('isPomodoroActive', isEqualTo: true)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        if (state.selectedTask == null) {
+          final taskDoc = snapshot.docs.first;
+          final task = Task.fromJson(taskDoc.data());
+          emit(state.copyWith(
+            selectedTask: task.title,
+            timerSeconds: task.remainingPomodoroSeconds ?? (state.workDuration * 60),
+            isTimerRunning: true,
+            isPaused: false,
+            currentSession: task.completedPomodoros ?? 0,
+            totalSessions: task.estimatedPomodoros ?? state.totalSessions,
+            isWorkSession: true,
+          ));
+          _startTimer(task.remainingPomodoroSeconds ?? (state.workDuration * 60));
         }
       }
     });
+  }
+
+  void selectTask(String? taskTitle, int estimatedPomodoros) {
+    emit(state.copyWith(
+      selectedTask: taskTitle,
+      totalSessions: taskTitle != null ? estimatedPomodoros : state.totalSessions,
+      currentSession: 0,
+      timerSeconds: state.workDuration * 60,
+      isTimerRunning: false,
+      isPaused: false,
+      isWorkSession: true,
+    ));
+  }
+
+  void startTimer() {
+    if (state.isTimerRunning) return;
+
+    final timerSeconds = state.isWorkSession ? state.workDuration * 60 : state.breakDuration * 60;
+    if (timerSeconds <= 0) return;
+
+    emit(state.copyWith(
+      timerSeconds: timerSeconds,
+      isTimerRunning: true,
+      isPaused: false,
+      currentSession: state.isWorkSession ? state.currentSession + 1 : state.currentSession,
+    ));
+
+    _resetPreviousPomodoro();
+    _startTimer(timerSeconds);
+    if (state.selectedTask != null) {
+      _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
+    }
+  }
+
+  void pauseTimer() {
+    if (!state.isTimerRunning || state.isPaused) return;
+
+    emit(state.copyWith(
+      isTimerRunning: false,
+      isPaused: true,
+    ));
+    if (state.selectedTask != null) {
+      _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
+    }
+
+    _notificationChannel.invokeMethod(TimerActions.pause).catchError((e) {
+      print('Error sending PAUSE intent: $e');
+    });
+    _updateSharedPreferences(state.timerSeconds, false, true);
+  }
+
+  void continueTimer() {
+    if (state.isTimerRunning || !state.isPaused) return;
+
+    emit(state.copyWith(
+      isTimerRunning: true,
+      isPaused: false,
+    ));
+
+    if (state.selectedTask != null) {
+      _updateTaskPomodoroState(state.selectedTask, true, state.timerSeconds);
+    }
+    _updateSharedPreferences(state.timerSeconds, true, false);
+
+    _notificationChannel.invokeMethod('getTimerState').then((timerState) {
+      if (timerState != null) {
+        final serviceSeconds = timerState['timerSeconds'] as int? ?? state.timerSeconds;
+        final serviceRunning = timerState['isRunning'] as bool? ?? false;
+        final servicePaused = timerState['isPaused'] as bool? ?? true;
+        emit(state.copyWith(
+          timerSeconds: serviceSeconds,
+          isTimerRunning: serviceRunning && !servicePaused,
+          isPaused: servicePaused,
+        ));
+        print('Synced state from TimerService: timerSeconds=$serviceSeconds, isRunning=$serviceRunning, isPaused=$servicePaused');
+      }
+    }).catchError((e) {
+      print('Error fetching timer state: $e');
+    });
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
+  }
+
+  void stopTimer({bool updateTaskState = true}) {
+    emit(state.copyWith(
+      timerSeconds: state.workDuration * 60,
+      isTimerRunning: false,
+      isPaused: false,
+      currentSession: 0,
+      isWorkSession: true,
+    ));
+    if (updateTaskState && state.selectedTask != null) {
+      _updateTaskPomodoroState(state.selectedTask, false, 0);
+    }
+
+    _notificationChannel.invokeMethod(TimerActions.stop).catchError((e) {
+      print('Error sending STOP intent: $e');
+    });
+    _updateSharedPreferences(state.workDuration * 60, false, false);
+  }
+
+  void resetTask() async {
+    if (state.selectedTask != null) {
+      await _updateTaskPomodoroState(state.selectedTask, false, 0);
+    }
+    stopTimer(updateTaskState: false);
+    selectTask(null, state.totalSessions);
+  }
+
+  void updateStrictMode({
+    bool? isAppBlockingEnabled,
+    bool? isFlipPhoneEnabled,
+    bool? isExitBlockingEnabled,
+  }) {
+    if (state.isTimerRunning && !state.isPaused) {
+      print('Cannot update Strict Mode: Timer is running');
+      return; // Block update when timer is running
+    }
+
+    final newAppBlockingEnabled = isAppBlockingEnabled ?? state.isAppBlockingEnabled;
+    final newFlipPhoneEnabled = isFlipPhoneEnabled ?? state.isFlipPhoneEnabled;
+    final newExitBlockingEnabled = isExitBlockingEnabled ?? state.isExitBlockingEnabled;
+
+    final isStrictModeEnabled = newAppBlockingEnabled || newFlipPhoneEnabled || newExitBlockingEnabled;
+
+    emit(state.copyWith(
+      isStrictModeEnabled: isStrictModeEnabled,
+      isAppBlockingEnabled: newAppBlockingEnabled,
+      isFlipPhoneEnabled: newFlipPhoneEnabled,
+      isExitBlockingEnabled: newExitBlockingEnabled,
+    ));
+
+    final newAppBlockingState = newAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
+  }
+
+  void updateBlockedApps(List<String> blockedApps) {
+    if (state.isTimerRunning && !state.isPaused) {
+      print('Cannot update blocked apps: Timer is running');
+      return; // Block update when timer is running
+    }
+
+    emit(state.copyWith(
+      blockedApps: blockedApps,
+    ));
+  }
+
+  void updateTimerMode({
+    required String timerMode,
+    required int workDuration,
+    required int breakDuration,
+    required bool soundEnabled,
+    required bool autoSwitch,
+    required String notificationSound,
+    int? totalSessions,
+  }) {
+    if (state.isTimerRunning && !state.isPaused) {
+      print('Cannot update Timer Mode: Timer is running');
+      return; // Block update when timer is running
+    }
+
+    emit(state.copyWith(
+      timerMode: timerMode,
+      workDuration: workDuration,
+      breakDuration: breakDuration,
+      soundEnabled: soundEnabled,
+      autoSwitch: autoSwitch,
+      notificationSound: notificationSound,
+      totalSessions: totalSessions ?? state.totalSessions,
+      timerSeconds: state.isTimerRunning ? state.timerSeconds : (workDuration * 60),
+      isWorkSession: true,
+    ));
+  }
+
+  void restoreTimerState({
+    required int timerSeconds,
+    required bool isRunning,
+    required bool isPaused,
+  }) {
+    emit(state.copyWith(
+      timerSeconds: timerSeconds,
+      isTimerRunning: isRunning && !isPaused,
+      isPaused: isPaused,
+    ));
+
+    final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
+    if (newAppBlockingState != _lastAppBlockingState) {
+      print('Setting app blocking enabled: $newAppBlockingState');
+      _serviceChannel.invokeMethod('setAppBlockingEnabled', {
+        'enabled': newAppBlockingState,
+      });
+      _lastAppBlockingState = newAppBlockingState;
+    }
+  }
+
+  void _startTimer(int seconds) {
+    final intent = {
+      'action': TimerActions.start,
+      'timerSeconds': seconds,
+      'isRunning': true,
+      'isPaused': false,
+    };
+    print('Sending START intent: $intent');
+    _notificationChannel.invokeMethod('startTimerService', intent).catchError((e) {
+      print('Error starting timer: $e');
+    });
+    _updateSharedPreferences(seconds, true, false);
   }
 
   Future<void> _resetPreviousPomodoro() async {
@@ -438,98 +435,17 @@ class HomeCubit extends Cubit<HomeState> {
     await _audioPlayer.play(AssetSource(soundFile.substring('assets/'.length)));
   }
 
-  Future<void> _showNotification() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'pomodoro_channel',
-      'Pomodoro Notifications',
-      channelDescription: 'Notifications for Pomodoro completion',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-      playSound: false,
-      enableVibration: false,
-      actions: [
-        AndroidNotificationAction(
-          'action_open',
-          'Open',
-          showsUserInterface: true,
-        ),
-      ],
-    );
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-    await _notificationsPlugin.show(
-      0,
-      state.isWorkSession ? 'Hết phiên làm việc' : 'Hết phiên nghỉ',
-      state.selectedTask != null
-          ? 'Your ${state.isWorkSession ? "work" : "break"} session for "${state.selectedTask}" has finished!'
-          : 'Your ${state.isWorkSession ? "work" : "break"} session has finished!',
-      platformDetails,
-      payload: state.isWorkSession ? 'START_BREAK' : 'START_WORK',
-    );
-  }
-
-  Future<void> _showTaskCompletedNotification() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'pomodoro_channel',
-      'Pomodoro Notifications',
-      channelDescription: 'Notifications for Pomodoro completion',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-      playSound: false,
-      enableVibration: false,
-    );
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-    await _notificationsPlugin.show(
-      1, // ID khác để không ghi đè thông báo "Hết phiên"
-      'Hoàn thành công việc',
-      state.selectedTask != null
-          ? 'Bạn đã hoàn thành tất cả phiên Pomodoro cho "${state.selectedTask}"!'
-          : 'Bạn đã hoàn thành tất cả phiên Pomodoro!',
-      platformDetails,
-    );
-  }
-
-  Future<void> _updateSharedPreferences(int timerSeconds, bool isRunning, bool isPaused, {bool sendUpdate = true}) async {
+  Future<void> _updateSharedPreferences(int timerSeconds, bool isRunning, bool isPaused) async {
     final prefs = await SharedPreferences.getInstance();
-    final previousSeconds = prefs.getInt(prefTimerSeconds) ?? timerSeconds;
-    final previousIsRunning = prefs.getBool(prefIsRunning) ?? isRunning;
-    final previousIsPaused = prefs.getBool(prefIsPaused) ?? isPaused;
-
     await prefs.setInt(prefTimerSeconds, timerSeconds);
     await prefs.setBool(prefIsRunning, isRunning);
     await prefs.setBool(prefIsPaused, isPaused);
-
-    // Kiểm tra trạng thái TimerService
-    bool isTimerServiceRunning = false;
-    try {
-      final timerState = await _notificationChannel.invokeMethod('getTimerState');
-      isTimerServiceRunning = timerState?['isRunning'] ?? false;
-    } catch (e) {
-      print('Error checking TimerService state: $e');
-    }
-
-    if (sendUpdate && timerSeconds >= 0 && isTimerServiceRunning &&
-        (timerSeconds != previousSeconds || isRunning != previousIsRunning || isPaused != previousIsPaused)) {
-      final intent = {
-        'action': 'UPDATE',
-        'timerSeconds': timerSeconds,
-        'isRunning': isRunning,
-        'isPaused': isPaused,
-      };
-      print('Sending UPDATE intent from Flutter: $intent');
-      await _notificationChannel.invokeMethod('startTimerService', intent).catchError((e) {
-        print('Error sending UPDATE intent: $e');
-      });
-    } else {
-      print('Skipping UPDATE intent: no change in state or TimerService not running (timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, previousSeconds=$previousSeconds, previousIsRunning=$previousIsRunning, previousIsPaused=$previousIsPaused, isTimerServiceRunning=$isTimerServiceRunning)');
-    }
+    print('Updated SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused');
   }
+
   @override
   Future<void> close() {
-    _timer?.cancel();
+    _timerSubscription?.cancel();
     _audioPlayer.dispose();
     return super.close();
   }

@@ -7,7 +7,6 @@ class PomodoroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    NavigationManager.currentIndex = 0;
 
     return Scaffold(
       appBar: const CustomAppBar(),

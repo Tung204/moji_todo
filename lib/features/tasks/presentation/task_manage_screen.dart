@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/navigation/navigation_manager.dart';
-import '../../../routes/app_routes.dart';
 import '../data/models/project_tag_repository.dart';
 import '../domain/task_cubit.dart';
 import 'add_project_and_tags/add_project_screen.dart';
@@ -14,15 +12,13 @@ import 'widgets/task_category_card.dart';
 import 'add_task/add_task_bottom_sheet.dart';
 import 'task_list_screen.dart';
 import 'trash_screen.dart';
-import 'completed_tasks_screen.dart'; // Thêm import mới
+import 'completed_tasks_screen.dart';
 
 class TaskManageScreen extends StatelessWidget {
   const TaskManageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    NavigationManager.currentIndex = 1;
-
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Scaffold(
@@ -32,6 +28,11 @@ class TaskManageScreen extends StatelessWidget {
         ),
       );
     }
+
+    final projectTagRepository = ProjectTagRepository(
+      projectBox: Hive.box('projects'),
+      tagBox: Hive.box('tags'),
+    );
 
     return BlocBuilder<TaskCubit, TaskState>(
       builder: (context, state) {
@@ -64,7 +65,6 @@ class TaskManageScreen extends StatelessWidget {
             backgroundColor: Colors.transparent,
             elevation: 0,
             automaticallyImplyLeading: false,
-            leading: null,
             title: const Text(
               'Manage Tasks',
               style: TextStyle(
@@ -83,10 +83,7 @@ class TaskManageScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => ManageProjectsTagsScreen(
-                          repository: ProjectTagRepository(
-                            projectBox: Hive.box('projects'),
-                            tagBox: Hive.box('tags'),
-                          ),
+                          repository: projectTagRepository,
                         ),
                       ),
                     );
@@ -191,7 +188,7 @@ class TaskManageScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const CompletedTasksScreen(), // Sửa thành CompletedTasksScreen
+                            builder: (context) => const CompletedTasksScreen(),
                           ),
                         );
                       },
@@ -254,7 +251,12 @@ class TaskManageScreen extends StatelessWidget {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                builder: (context) => const AddTaskBottomSheet(),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                builder: (context) => AddTaskBottomSheet(
+                  repository: projectTagRepository,
+                ),
               );
             },
             child: const Icon(Icons.add, color: Colors.white),

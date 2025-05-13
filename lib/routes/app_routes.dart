@@ -13,7 +13,8 @@ import '../features/tasks/presentation/task_manage_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
 import '../features/report/presentation/report_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
-import '../main.dart'; // Import AppData
+import '../main.dart';
+import '../core/navigation/main_screen.dart';
 import '../features/settings/presentation/profile_settings_screen.dart';
 
 class AppRoutes {
@@ -37,11 +38,13 @@ class AppRoutes {
   static const String aiChat = '/ai-chat';
   static const String backupSync = '/backup-sync';
   static const String profileSettings = '/profile_settings';
+
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
       case AppRoutes.home:
+        return MaterialPageRoute(builder: (_) => const MainScreen()); // Sửa để dùng MainScreen
       case AppRoutes.pomodoro:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
       case AppRoutes.login:
@@ -54,9 +57,9 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const TaskManageScreen());
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
-      case aiChat:
+      case AppRoutes.aiChat:
         return MaterialPageRoute(builder: (_) => const AIChatScreen());
-      case backupSync:
+      case AppRoutes.backupSync:
         return MaterialPageRoute(
           builder: (context) {
             final appData = AppData.of(context);
@@ -70,7 +73,7 @@ class AppRoutes {
             );
           },
         );
-      case AppRoutes.profileSettings: // Thêm route mới
+      case AppRoutes.profileSettings:
         return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
       case AppRoutes.pomodoroPreferences:
         return MaterialPageRoute(
