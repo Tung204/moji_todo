@@ -5,6 +5,9 @@ class AppStrings {
   static const String strictModeTitle = 'Cài đặt Strict Mode';
   static const String timerModeLabel = 'Chế độ timer';
   static const String timerModeHelper = 'Chọn chế độ timer phù hợp';
+  static const String timerModeCountdown = '25:00 - 00:00';
+  static const String timerModeCountUp = '00:00 - 0∞';
+  static const String timerModeCustom = 'Tùy chỉnh';
   static const String workDurationLabel = 'Thời gian làm việc (phút)';
   static const String workDurationHelper = 'Nhập từ 1-120 phút';
   static const String breakDurationLabel = 'Thời gian nghỉ (phút)';
@@ -28,4 +31,13 @@ class AppStrings {
   static const String selectApps = 'Chọn ứng dụng';
   static const String selectAppsTitle = 'Chọn ứng dụng để chặn';
   static const String timerRunningError = 'Tạm dừng hoặc dừng timer để chỉnh!';
+  // Thêm các chuỗi cho thời gian cơ bản
+  static const String workDuration15Min = '15 phút';
+  static const String workDuration25Min = '25 phút';
+  static const String workDuration45Min = '45 phút';
+  static const String workDuration60Min = '60 phút';
+  static const String breakDuration5Min = '5 phút';
+  static const String breakDuration10Min = '10 phút';
+  static const String breakDuration15Min = '15 phút';
+  static const String breakDuration30Min = '30 phút';
 }

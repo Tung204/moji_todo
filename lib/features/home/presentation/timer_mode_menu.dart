@@ -12,14 +12,31 @@ class TimerModeMenu extends StatelessWidget {
   const TimerModeMenu({super.key});
 
   void _showTimerModeMenu(BuildContext context) {
+    final homeState = context.read<HomeCubit>().state;
+
+    // Chỉ cho phép chỉnh sửa khi timer dừng hẳn hoặc hết giờ
+    bool isEditable = (!homeState.isTimerRunning && !homeState.isPaused) ||
+        (!homeState.isCountingUp && homeState.timerSeconds <= 0);
+
+    if (!isEditable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
+          backgroundColor: AppColors.snackbarError,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     print('Opening Timer Mode dialog');
-    String timerMode = context.read<HomeCubit>().state.timerMode;
-    int workDuration = context.read<HomeCubit>().state.workDuration;
-    int breakDuration = context.read<HomeCubit>().state.breakDuration;
-    bool soundEnabled = context.read<HomeCubit>().state.soundEnabled;
-    bool autoSwitch = context.read<HomeCubit>().state.autoSwitch;
-    String notificationSound = context.read<HomeCubit>().state.notificationSound;
-    int totalSessions = context.read<HomeCubit>().state.totalSessions;
+    String timerMode = homeState.timerMode;
+    int workDuration = homeState.workDuration;
+    int breakDuration = homeState.breakDuration;
+    bool soundEnabled = homeState.soundEnabled;
+    bool autoSwitch = homeState.autoSwitch;
+    String notificationSound = homeState.notificationSound;
+    int totalSessions = homeState.totalSessions;
 
     TextEditingController workController = TextEditingController(text: workDuration.toString());
     TextEditingController breakController = TextEditingController(text: breakDuration.toString());
@@ -37,12 +54,14 @@ class TimerModeMenu extends StatelessWidget {
               elevation: 8,
               backgroundColor: Colors.white,
               contentPadding: const EdgeInsets.all(AppSizes.dialogPadding),
-              title: Text(
-                AppStrings.timerModeTitle,
-                style: GoogleFonts.poppins(
-                  fontSize: AppSizes.titleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              title: Center(
+                child: Text(
+                  AppStrings.timerModeTitle,
+                  style: GoogleFonts.poppins(
+                    fontSize: AppSizes.titleFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               content: SizedBox(
@@ -94,31 +113,31 @@ class TimerModeMenu extends StatelessWidget {
                             ),
                             items: const [
                               DropdownMenuItem(
-                                value: 'Pomodoro',
-                                child: Text('Pomodoro (1/5)', style: TextStyle(fontSize: 16)),
+                                value: '25:00 - 00:00',
+                                child: Text('25:00 - 00:00', style: TextStyle(fontSize: 16)),
                               ),
                               DropdownMenuItem(
-                                value: '50/10',
-                                child: Text('50/10', style: TextStyle(fontSize: 16)),
+                                value: '00:00 - 0∞',
+                                child: Text('00:00 - 0∞', style: TextStyle(fontSize: 16)),
                               ),
                               DropdownMenuItem(
-                                value: 'Custom',
+                                value: 'Tùy chỉnh',
                                 child: Text('Tùy chỉnh', style: TextStyle(fontSize: 16)),
                               ),
                             ],
                             onChanged: (value) {
                               setState(() {
-                                timerMode = value ?? 'Pomodoro';
-                                if (timerMode == 'Pomodoro') {
-                                  workDuration = 1;
+                                timerMode = value ?? '25:00 - 00:00';
+                                if (timerMode == '25:00 - 00:00') {
+                                  workDuration = 25;
                                   breakDuration = 5;
-                                  workController.text = '1';
+                                  workController.text = '25';
                                   breakController.text = '5';
-                                } else if (timerMode == '50/10') {
-                                  workDuration = 50;
-                                  breakDuration = 10;
-                                  workController.text = '50';
-                                  breakController.text = '10';
+                                } else if (timerMode == '00:00 - 0∞') {
+                                  workDuration = 0;
+                                  breakDuration = 0;
+                                  workController.text = '0';
+                                  breakController.text = '0';
                                 }
                               });
                             },
@@ -126,7 +145,7 @@ class TimerModeMenu extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: AppSizes.spacing),
-                      if (timerMode == 'Custom') ...[
+                      if (timerMode == 'Tùy chỉnh') ...[
                         Card(
                           elevation: 2,
                           color: AppColors.cardBackground,
@@ -171,9 +190,7 @@ class TimerModeMenu extends StatelessWidget {
                                 ),
                               ),
                               onChanged: (value) {
-                                final parsed = int.tryParse(value) ?? 1;
-                                workDuration = parsed.clamp(1, 120);
-                                workController.text = workDuration.toString();
+                                workDuration = int.tryParse(value) ?? 1;
                               },
                             ),
                           ),
@@ -223,9 +240,7 @@ class TimerModeMenu extends StatelessWidget {
                                 ),
                               ),
                               onChanged: (value) {
-                                final parsed = int.tryParse(value) ?? 5;
-                                breakDuration = parsed.clamp(1, 60);
-                                breakController.text = breakDuration.toString();
+                                breakDuration = int.tryParse(value) ?? 5;
                               },
                             ),
                           ),
@@ -276,9 +291,7 @@ class TimerModeMenu extends StatelessWidget {
                               ),
                             ),
                             onChanged: (value) {
-                              final parsed = int.tryParse(value) ?? 4;
-                              totalSessions = parsed.clamp(1, 10);
-                              sessionsController.text = totalSessions.toString();
+                              totalSessions = int.tryParse(value) ?? 4;
                             },
                           ),
                         ),
@@ -428,30 +441,35 @@ class TimerModeMenu extends StatelessWidget {
                 ),
               ),
               actions: [
-                CustomButton(
-                  label: AppStrings.cancel,
-                  onPressed: () => Navigator.pop(dialogContext),
-                  backgroundColor: AppColors.cancelButton,
-                  textColor: AppColors.textPrimary,
-                  borderRadius: AppSizes.borderRadius,
-                ),
-                CustomButton(
-                  label: AppStrings.ok,
-                  onPressed: () {
-                    context.read<HomeCubit>().updateTimerMode(
-                      timerMode: timerMode,
-                      workDuration: workDuration,
-                      breakDuration: breakDuration,
-                      soundEnabled: soundEnabled,
-                      autoSwitch: autoSwitch,
-                      notificationSound: notificationSound,
-                      totalSessions: totalSessions,
-                    );
-                    Navigator.pop(dialogContext);
-                  },
-                  backgroundColor: AppColors.primary,
-                  textColor: Colors.white,
-                  borderRadius: AppSizes.borderRadius,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    CustomButton(
+                      label: AppStrings.cancel,
+                      onPressed: () => Navigator.pop(dialogContext),
+                      backgroundColor: AppColors.cancelButton,
+                      textColor: AppColors.textPrimary,
+                      borderRadius: AppSizes.borderRadius,
+                    ),
+                    CustomButton(
+                      label: AppStrings.ok,
+                      onPressed: () {
+                        context.read<HomeCubit>().updateTimerMode(
+                          timerMode: timerMode,
+                          workDuration: workDuration,
+                          breakDuration: breakDuration,
+                          soundEnabled: soundEnabled,
+                          autoSwitch: autoSwitch,
+                          notificationSound: notificationSound,
+                          totalSessions: totalSessions,
+                        );
+                        Navigator.pop(dialogContext);
+                      },
+                      backgroundColor: AppColors.primary,
+                      textColor: Colors.white,
+                      borderRadius: AppSizes.borderRadius,
+                    ),
+                  ],
                 ),
               ],
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -466,12 +484,18 @@ class TimerModeMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-      previous.isTimerRunning != current.isTimerRunning || previous.isPaused != current.isPaused,
+      previous.isTimerRunning != current.isTimerRunning ||
+          previous.isPaused != current.isPaused ||
+          previous.timerSeconds != current.timerSeconds ||
+          previous.isCountingUp != current.isCountingUp,
       builder: (context, state) {
-        final isEditable = !state.isTimerRunning || state.isPaused;
+        // Chỉ cho phép chỉnh Timer Mode khi timer dừng hẳn hoặc hết giờ
+        final isEditable = (!state.isTimerRunning && !state.isPaused) ||
+            (!state.isCountingUp && state.timerSeconds <= 0);
         print('Timer Mode button build: isEditable=$isEditable');
+
         return Tooltip(
-          message: isEditable ? 'Chỉnh Timer Mode' : 'Tạm dừng timer để chỉnh Timer Mode',
+          message: isEditable ? 'Chỉnh Timer Mode' : 'Dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode',
           child: Opacity(
             opacity: isEditable ? 1.0 : 0.5,
             child: Column(
@@ -489,7 +513,7 @@ class TimerModeMenu extends StatelessWidget {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(AppStrings.timerRunningError),
+                          content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
                           backgroundColor: AppColors.snackbarError,
                           duration: const Duration(seconds: 3),
                         ),

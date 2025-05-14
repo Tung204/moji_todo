@@ -4,7 +4,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
@@ -12,6 +11,44 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+
+interface TimerStrategy {
+    fun tick(currentSeconds: Int): Int
+    fun getDisplayText(seconds: Int, isRunning: Boolean, isPaused: Boolean): String
+}
+
+class CountUpStrategy : TimerStrategy {
+    override fun tick(currentSeconds: Int): Int = currentSeconds + 1
+    override fun getDisplayText(seconds: Int, isRunning: Boolean, isPaused: Boolean): String {
+        val minutes = (seconds / 60).toString().padStart(2, '0')
+        val secondsStr = (seconds % 60).toString().padStart(2, '0')
+        val status = if (isRunning) if (isPaused) "Paused" else "Counting Up" else "Stopped"
+        return "Time: $minutes:$secondsStr ($status)"
+    }
+}
+
+class CountDownStrategy : TimerStrategy {
+    override fun tick(currentSeconds: Int): Int = if (currentSeconds > 0) currentSeconds - 1 else 0
+    override fun getDisplayText(seconds: Int, isRunning: Boolean, isPaused: Boolean): String {
+        val minutes = (seconds / 60).toString().padStart(2, '0')
+        val secondsStr = (seconds % 60).toString().padStart(2, '0')
+        val status = if (isRunning) if (isPaused) "Paused" else "Running" else "Stopped"
+        return "Time: $minutes:$secondsStr ($status)"
+    }
+}
+
+data class TimerState(
+    val timerSeconds: Int,
+    val isRunning: Boolean,
+    val isPaused: Boolean,
+    val isCountingUp: Boolean
+)
 
 class TimerService : Service() {
     companion object {
@@ -20,51 +57,87 @@ class TimerService : Service() {
         const val ACTION_PAUSE = "com.example.moji_todo.PAUSE"
         const val ACTION_RESUME = "com.example.moji_todo.RESUME"
         const val ACTION_STOP = "com.example.moji_todo.STOP"
-        private var isServiceRunning = false
     }
 
     private var timerSeconds: Int = 0
     private var isRunning: Boolean = false
     private var isPaused: Boolean = false
+    private var isCountingUp: Boolean = false
+    private var isServiceRunning: Boolean = false
+    private lateinit var timerStrategy: TimerStrategy
     private val handler = Handler(Looper.getMainLooper())
     private var timerRunnable: Runnable? = null
+    private val timerStateFlow = MutableStateFlow(TimerState(0, false, false, false))
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         Log.d("TimerService", "Service created")
+        coroutineScope.launch {
+            timerStateFlow.collect { state ->
+                MainActivity.timerEvents?.success(
+                    mapOf(
+                        "timerSeconds" to state.timerSeconds,
+                        "isRunning" to state.isRunning,
+                        "isPaused" to state.isPaused,
+                        "isCountingUp" to state.isCountingUp
+                    )
+                )
+                Log.d("TimerService", "StateFlow emitted: $state")
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("TimerService", "Received intent: ${intent?.action}")
         when (intent?.action) {
             "START" -> {
+                stopTimer()
                 val newSeconds = intent.getIntExtra("timerSeconds", 0)
-                if (newSeconds > 0) timerSeconds = newSeconds
+                if (newSeconds >= 0) timerSeconds = newSeconds
                 isRunning = intent.getBooleanExtra("isRunning", false)
                 isPaused = intent.getBooleanExtra("isPaused", false)
-                Log.d("TimerService", "START: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
-                if (isRunning && !isPaused) startTimer()
-                else stopTimer()
+                isCountingUp = intent.getBooleanExtra("isCountingUp", false)
+                timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
+                Log.d("TimerService", "START: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
+
+                if (isRunning && !isPaused) {
+                    startTimer()
+                } else {
+                    stopTimer()
+                }
+
                 if (!isServiceRunning) {
-                    val notification = createNotification()
-                    startForeground(NOTIFICATION_ID, notification)
-                    isServiceRunning = true
+                    try {
+                        val notification = createNotification()
+                        startForeground(NOTIFICATION_ID, notification)
+                        isServiceRunning = true
+                    } catch (e: Exception) {
+                        Log.e("TimerService", "Failed to start foreground service: ${e.message}")
+                        stopSelf()
+                    }
                 } else {
                     updateNotification()
                 }
-                sendTimerUpdateBroadcast()
+                updateTimerState()
             }
             "UPDATE" -> {
                 val newSeconds = intent.getIntExtra("timerSeconds", 0)
-                if (newSeconds > 0) timerSeconds = newSeconds
+                if (newSeconds >= 0) timerSeconds = newSeconds
                 isRunning = intent.getBooleanExtra("isRunning", false)
                 isPaused = intent.getBooleanExtra("isPaused", false)
-                Log.d("TimerService", "UPDATE: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
-                if (isRunning && !isPaused) startTimer()
-                else stopTimer()
+                isCountingUp = intent.getBooleanExtra("isCountingUp", false)
+                timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
+                Log.d("TimerService", "UPDATE: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
+
+                if (isRunning && !isPaused) {
+                    startTimer()
+                } else {
+                    stopTimer()
+                }
                 updateNotification()
-                sendTimerUpdateBroadcast()
+                updateTimerState()
             }
             ACTION_PAUSE -> {
                 Log.d("TimerService", "PAUSE action received")
@@ -72,78 +145,78 @@ class TimerService : Service() {
                     isPaused = true
                     stopTimer()
                     updateNotification()
-                    sendTimerUpdateBroadcast()
+                    updateTimerState()
                 }
             }
             ACTION_RESUME -> {
                 Log.d("TimerService", "RESUME action received")
                 if (isRunning && isPaused) {
                     isPaused = false
-                    isRunning = true // Ensure isRunning is true on resume
-                    startTimer() // Restart the timer
+                    isRunning = true
+                    startTimer()
                     updateNotification()
-                    sendTimerUpdateBroadcast() // Immediate broadcast
+                    updateTimerState()
                 }
             }
             ACTION_STOP -> {
                 Log.d("TimerService", "STOP action received")
                 isRunning = false
                 isPaused = false
-                timerSeconds = 0
+                timerSeconds = if (isCountingUp) 0 else 25 * 60
+                timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
                 stopTimer()
                 stopForeground(true)
-                stopSelf()
                 isServiceRunning = false
-                sendTimerUpdateBroadcast()
+                updateTimerState()
+                stopSelf()
             }
         }
         return START_NOT_STICKY
     }
 
     private fun startTimer() {
-        stopTimer() // Clear any existing timer
+        stopTimer()
         timerRunnable = object : Runnable {
             override fun run() {
-                if (isRunning && !isPaused && timerSeconds > 0) {
-                    timerSeconds--
+                if (isRunning && !isPaused) {
+                    timerSeconds = timerStrategy.tick(timerSeconds)
+                    if (!isCountingUp && timerSeconds == 0) {
+                        isRunning = false
+                        stopTimer()
+                        Log.d("TimerService", "Timer stopped due to completion")
+                    }
                     updateNotification()
-                    sendTimerUpdateBroadcast()
-                    handler.postDelayed(this, 1000)
-                } else if (timerSeconds <= 0) {
-                    isRunning = false
-                    sendTimerUpdateBroadcast()
+                    updateTimerState()
+                    if (isRunning) {
+                        handler.postDelayed(this, 1000)
+                    }
                 }
             }
         }
         timerRunnable?.let {
             handler.post(it)
-            sendTimerUpdateBroadcast() // Immediate update on start
+            updateTimerState()
+            Log.d("TimerService", "Timer started with timerSeconds=$timerSeconds, isCountingUp=$isCountingUp")
         }
     }
 
     private fun stopTimer() {
         timerRunnable?.let { handler.removeCallbacks(it) }
         timerRunnable = null
+        Log.d("TimerService", "Timer stopped")
     }
 
-    private fun sendTimerUpdateBroadcast() {
-        val intent = Intent().apply {
-            setComponent(ComponentName(this@TimerService, TimerBroadcastReceiver::class.java))
-            action = "com.example.moji_todo.TIMER_UPDATE"
-            putExtra("timerSeconds", timerSeconds)
-            putExtra("isRunning", isRunning)
-            putExtra("isPaused", isPaused)
-        }
-        sendBroadcast(intent)
-
+    private fun updateTimerState() {
+        timerStateFlow.value = TimerState(timerSeconds, isRunning, isPaused, isCountingUp)
         val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
         prefs.edit().apply {
             putInt("timerSeconds", timerSeconds)
             putBoolean("isRunning", isRunning)
             putBoolean("isPaused", isPaused)
+            putBoolean("isCountingUp", isCountingUp)
             apply()
         }
-        Log.d("TimerService", "Broadcast sent: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused")
+        Log.d("TimerService", "Updated state: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
     }
 
     private fun createNotificationChannel() {
@@ -160,7 +233,7 @@ class TimerService : Service() {
 
     private fun createNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
         .setContentTitle("Pomodoro Timer")
-        .setContentText(getTimeDisplay())
+        .setContentText(timerStrategy.getDisplayText(timerSeconds, isRunning, isPaused))
         .setSmallIcon(android.R.drawable.ic_notification_overlay)
         .setOngoing(isRunning && !isPaused)
         .setContentIntent(createContentIntent())
@@ -182,13 +255,6 @@ class TimerService : Service() {
         val notification = createNotification()
         val manager = getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, notification)
-    }
-
-    private fun getTimeDisplay(): String {
-        val minutes = (timerSeconds / 60).toString().padStart(2, '0')
-        val seconds = (timerSeconds % 60).toString().padStart(2, '0')
-        val status = if (isRunning) if (isPaused) "Paused" else "Running" else "Stopped"
-        return "Time remaining: $minutes:$seconds ($status)"
     }
 
     private fun createContentIntent(): PendingIntent {
@@ -214,6 +280,8 @@ class TimerService : Service() {
         super.onDestroy()
         stopTimer()
         isServiceRunning = false
+        coroutineScope.cancel()
+        Log.d("TimerService", "Service destroyed")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

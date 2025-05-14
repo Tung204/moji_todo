@@ -72,16 +72,22 @@ class HomeScreenStateManager {
         await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
         await prefs.setBool('isRunning', homeCubit.state.isTimerRunning);
         await prefs.setBool('isPaused', homeCubit.state.isPaused);
+        await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
       }
     } else if (state == AppLifecycleState.resumed) {
       await _restoreTimerState();
       if (homeCubit.state.isStrictModeEnabled && homeCubit.state.isTimerRunning && homeCubit.state.isFlipPhoneEnabled) {
-        await _channel.invokeMethod('startTimerService', {
-          'action': 'UPDATE',
-          'timerSeconds': homeCubit.state.timerSeconds,
-          'isRunning': homeCubit.state.isTimerRunning,
-          'isPaused': homeCubit.state.isPaused,
-        });
+        try {
+          await _channel.invokeMethod('startTimerService', {
+            'action': 'UPDATE',
+            'timerSeconds': homeCubit.state.timerSeconds,
+            'isRunning': homeCubit.state.isTimerRunning,
+            'isPaused': homeCubit.state.isPaused,
+            'isCountingUp': homeCubit.state.isCountingUp,
+          });
+        } catch (e) {
+          print('Error updating timer service: $e');
+        }
       }
     }
   }
@@ -89,9 +95,41 @@ class HomeScreenStateManager {
   Future<void> handleTimerAction(String action, {Task? task, int? estimatedPomodoros}) async {
     final homeCubit = context.read<HomeCubit>();
     final prefs = await sharedPreferences;
+
+    // Kiểm tra trạng thái trước khi thực hiện hành động
+    bool canProceed = true;
     switch (action) {
       case 'start':
-        if (!homeCubit.state.isTimerRunning) {
+        if (homeCubit.state.isTimerRunning) {
+          print('Timer already running, ignoring start action');
+          canProceed = false;
+        }
+        break;
+      case 'pause':
+        if (!homeCubit.state.isTimerRunning || homeCubit.state.isPaused) {
+          print('Timer not running or already paused, ignoring pause action');
+          canProceed = false;
+        }
+        break;
+      case 'continue':
+        if (homeCubit.state.isTimerRunning || !homeCubit.state.isPaused) {
+          print('Timer not paused or already running, ignoring continue action');
+          canProceed = false;
+        }
+        break;
+      case 'stop':
+        if (!homeCubit.state.isTimerRunning && !homeCubit.state.isPaused) {
+          print('Timer not running or paused, ignoring stop action');
+          canProceed = false;
+        }
+        break;
+    }
+
+    if (!canProceed) return;
+
+    switch (action) {
+      case 'start':
+        try {
           await checkAndRequestPermissionsForTimer();
           if (task != null && estimatedPomodoros != null) {
             homeCubit.selectTask(task.title, estimatedPomodoros);
@@ -102,25 +140,33 @@ class HomeScreenStateManager {
             'timerSeconds': homeCubit.state.timerSeconds,
             'isRunning': true,
             'isPaused': false,
+            'isCountingUp': homeCubit.state.isCountingUp,
           });
           await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
           await prefs.setBool('isRunning', true);
           await prefs.setBool('isPaused', false);
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
           await _restoreTimerState();
+        } catch (e) {
+          print('Error starting timer: $e');
+          homeCubit.stopTimer(); // Rollback nếu lỗi
         }
         break;
       case 'pause':
-        if (homeCubit.state.isTimerRunning && !homeCubit.state.isPaused) {
+        try {
           homeCubit.pauseTimer();
           await _channel.invokeMethod('com.example.moji_todo.PAUSE');
           await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
           await prefs.setBool('isRunning', false);
           await prefs.setBool('isPaused', true);
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
           await _restoreTimerState();
+        } catch (e) {
+          print('Error pausing timer: $e');
         }
         break;
       case 'continue':
-        if (!homeCubit.state.isTimerRunning && homeCubit.state.isPaused) {
+        try {
           await checkAndRequestPermissionsForTimer();
           homeCubit.continueTimer();
           await _channel.invokeMethod('startTimerService', {
@@ -128,21 +174,30 @@ class HomeScreenStateManager {
             'timerSeconds': homeCubit.state.timerSeconds,
             'isRunning': true,
             'isPaused': false,
+            'isCountingUp': homeCubit.state.isCountingUp,
           });
           await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
           await prefs.setBool('isRunning', true);
           await prefs.setBool('isPaused', false);
-          await _restoreTimerState(); // Update UI immediately
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+          await _restoreTimerState();
+        } catch (e) {
+          print('Error resuming timer: $e');
         }
         break;
       case 'stop':
-        if (homeCubit.state.isTimerRunning || homeCubit.state.isPaused) {
+        try {
           homeCubit.stopTimer();
           await _channel.invokeMethod('com.example.moji_todo.STOP');
-          await prefs.setInt('timerSeconds', homeCubit.state.workDuration * 60);
+          await prefs.setInt('timerSeconds', homeCubit.state.isCountingUp ? 0 : homeCubit.state.workDuration * 60);
           await prefs.setBool('isRunning', false);
           await prefs.setBool('isPaused', false);
+          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
           await _restoreTimerState();
+          // Đảm bảo service được dừng hoàn toàn
+          await Future.delayed(Duration(milliseconds: 500)); // Chờ service dừng
+        } catch (e) {
+          print('Error stopping timer: $e');
         }
         break;
     }

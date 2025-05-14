@@ -60,6 +60,7 @@ flutter {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.20")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // Chỉ sử dụng phiên bản desugar_jdk_libs 2.1.4
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

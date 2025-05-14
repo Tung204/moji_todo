@@ -87,11 +87,29 @@ class StrictModeMenu extends StatelessWidget {
   }
 
   void _showStrictModeMenu(BuildContext context) {
+    final homeState = context.read<HomeCubit>().state;
+
+    // Chỉ cho phép chỉnh sửa khi timer tạm dừng, dừng hẳn, hoặc hết giờ
+    bool isEditable = homeState.isPaused ||
+        (!homeState.isTimerRunning && !homeState.isPaused) ||
+        (!homeState.isCountingUp && homeState.timerSeconds <= 0);
+
+    if (!isEditable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
+          backgroundColor: AppColors.snackbarError,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     print('Opening Strict Mode dialog');
-    bool isAppBlockingEnabled = context.read<HomeCubit>().state.isAppBlockingEnabled;
-    bool isFlipPhoneEnabled = context.read<HomeCubit>().state.isFlipPhoneEnabled;
-    bool isExitBlockingEnabled = context.read<HomeCubit>().state.isExitBlockingEnabled;
-    List<String> blockedApps = List.from(context.read<HomeCubit>().state.blockedApps);
+    bool isAppBlockingEnabled = homeState.isAppBlockingEnabled;
+    bool isFlipPhoneEnabled = homeState.isFlipPhoneEnabled;
+    bool isExitBlockingEnabled = homeState.isExitBlockingEnabled;
+    List<String> blockedApps = List.from(homeState.blockedApps);
 
     final List<Map<String, String>> availableApps = [
       {'name': 'Facebook', 'package': 'com.facebook.katana'},
@@ -449,12 +467,18 @@ class StrictModeMenu extends StatelessWidget {
       buildWhen: (previous, current) =>
       previous.isTimerRunning != current.isTimerRunning ||
           previous.isPaused != current.isPaused ||
-          previous.isStrictModeEnabled != current.isStrictModeEnabled,
+          previous.isStrictModeEnabled != current.isStrictModeEnabled ||
+          previous.timerSeconds != current.timerSeconds ||
+          previous.isCountingUp != current.isCountingUp,
       builder: (context, state) {
-        final isEditable = !state.isTimerRunning || state.isPaused;
+        // Chỉ cho phép chỉnh Strict Mode khi timer tạm dừng, dừng hẳn, hoặc hết giờ
+        final isEditable = state.isPaused ||
+            (!state.isTimerRunning && !state.isPaused) ||
+            (!state.isCountingUp && state.timerSeconds <= 0);
         print('Strict Mode button build: isEditable=$isEditable');
+
         return Tooltip(
-          message: isEditable ? 'Chỉnh Strict Mode' : 'Tạm dừng timer để chỉnh Strict Mode',
+          message: isEditable ? 'Chỉnh Strict Mode' : 'Tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode',
           child: Opacity(
             opacity: isEditable ? 1.0 : 0.5,
             child: Column(
@@ -472,7 +496,7 @@ class StrictModeMenu extends StatelessWidget {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(AppStrings.timerRunningError),
+                          content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
                           backgroundColor: AppColors.snackbarError,
                           duration: const Duration(seconds: 3),
                         ),

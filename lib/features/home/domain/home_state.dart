@@ -19,13 +19,14 @@ class HomeState extends Equatable {
   final bool autoSwitch;
   final bool isWorkSession;
   final String notificationSound;
-  final bool isWhiteNoiseEnabled; // Thêm: trạng thái bật/tắt white noise
-  final String? selectedWhiteNoise; // Thêm: âm thanh white noise được chọn
+  final bool isWhiteNoiseEnabled;
+  final String? selectedWhiteNoise;
   final double whiteNoiseVolume;
+  final bool isCountingUp;
 
   const HomeState({
     this.selectedTask,
-    this.timerSeconds = 25 * 60, // Mặc định 25 phút
+    this.timerSeconds = 25 * 60,
     this.isTimerRunning = false,
     this.isPaused = false,
     this.currentSession = 0,
@@ -35,16 +36,17 @@ class HomeState extends Equatable {
     this.isFlipPhoneEnabled = false,
     this.isExitBlockingEnabled = false,
     this.blockedApps = const [],
-    this.timerMode = 'Pomodoro',
-    this.workDuration = 25, // Mặc định 25 phút
-    this.breakDuration = 5, // Mặc định 5 phút
+    this.timerMode = '25:00 - 00:00', // Đổi mặc định từ 'Pomodoro' thành '25:00 - 00:00'
+    this.workDuration = 25,
+    this.breakDuration = 5,
     this.soundEnabled = true,
     this.autoSwitch = false,
     this.isWorkSession = true,
     this.notificationSound = 'bell',
-    this.isWhiteNoiseEnabled = false, // Mặc định tắt
-    this.selectedWhiteNoise, // Mặc định không chọn âm thanh
-    this.whiteNoiseVolume = 1.0, // Mặc định âm lượng 50%
+    this.isWhiteNoiseEnabled = false,
+    this.selectedWhiteNoise,
+    this.whiteNoiseVolume = 1.0,
+    this.isCountingUp = false,
   });
 
   HomeState copyWith({
@@ -66,9 +68,10 @@ class HomeState extends Equatable {
     bool? autoSwitch,
     bool? isWorkSession,
     String? notificationSound,
-    bool? isWhiteNoiseEnabled, // Thêm
-    String? selectedWhiteNoise, // Thêm
+    bool? isWhiteNoiseEnabled,
+    String? selectedWhiteNoise,
     double? whiteNoiseVolume,
+    bool? isCountingUp,
   }) {
     return HomeState(
       selectedTask: selectedTask ?? this.selectedTask,
@@ -92,6 +95,7 @@ class HomeState extends Equatable {
       isWhiteNoiseEnabled: isWhiteNoiseEnabled ?? this.isWhiteNoiseEnabled,
       selectedWhiteNoise: selectedWhiteNoise ?? this.selectedWhiteNoise,
       whiteNoiseVolume: whiteNoiseVolume ?? this.whiteNoiseVolume,
+      isCountingUp: isCountingUp ?? this.isCountingUp,
     );
   }
 
@@ -118,5 +122,6 @@ class HomeState extends Equatable {
     isWhiteNoiseEnabled,
     selectedWhiteNoise,
     whiteNoiseVolume,
+    isCountingUp,
   ];
 }
