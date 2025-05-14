@@ -36,7 +36,6 @@ class HomeCubit extends Cubit<HomeState> {
   static const EventChannel _eventChannel = EventChannel('com.example.moji_todo/timer_events');
   StreamSubscription? _timerSubscription;
   bool _lastAppBlockingState = false;
-  Timer? _localTimer;
 
   Future<void> _initialize() async {
     final user = _auth.currentUser;
@@ -60,13 +59,6 @@ class HomeCubit extends Cubit<HomeState> {
       final isRunning = args['isRunning'] as bool;
       final isPaused = args['isPaused'] as bool;
       final isCountingUp = args['isCountingUp'] as bool? ?? state.isCountingUp;
-
-      // Hủy local timer nếu timer bị pause từ native
-      if (isPaused && _localTimer != null) {
-        _localTimer?.cancel();
-        _localTimer = null;
-        _audioPlayer.pause();
-      }
 
       emit(state.copyWith(
         timerSeconds: timerSeconds,
@@ -124,6 +116,8 @@ class HomeCubit extends Cubit<HomeState> {
         }
       }
       print('Received timer update: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp');
+    }, onError: (e) {
+      print('Error in timer event stream: $e');
     });
 
     _notificationChannel.setMethodCallHandler((call) async {
@@ -211,9 +205,11 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void startTimer() {
-    if (state.isTimerRunning) return;
+    if (state.isTimerRunning) {
+      print('Timer already running, ignoring start');
+      return;
+    }
 
-    _localTimer?.cancel();
     int timerSeconds;
     if (state.isCountingUp) {
       timerSeconds = 0;
@@ -235,27 +231,19 @@ class HomeCubit extends Cubit<HomeState> {
     _resetPreviousPomodoro();
     _updateSharedPreferences(timerSeconds, true, false);
     _startTimer(timerSeconds);
-    if (state.isCountingUp) {
-      _localTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-        emit(state.copyWith(
-          timerSeconds: state.timerSeconds + 1,
-          isTimerRunning: true,
-          isPaused: false,
-        ));
-        _updateSharedPreferences(state.timerSeconds + 1, true, false);
-        print('Local timer tick: timerSeconds=${state.timerSeconds + 1}');
-      });
-    }
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
     }
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none') {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
 
   void pauseTimer() {
-    if (!state.isTimerRunning || state.isPaused) return;
+    if (!state.isTimerRunning || state.isPaused) {
+      print('Timer not running or already paused, ignoring pause');
+      return;
+    }
 
     emit(state.copyWith(
       isTimerRunning: false,
@@ -265,16 +253,20 @@ class HomeCubit extends Cubit<HomeState> {
       _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
     }
 
-    _notificationChannel.invokeMethod(TimerActions.pause).catchError((e) {
+    try {
+      _notificationChannel.invokeMethod(TimerActions.pause);
+    } catch (e) {
       print('Error sending PAUSE intent: $e');
-    });
+    }
     _updateSharedPreferences(state.timerSeconds, false, true);
     _audioPlayer.pause();
-    _localTimer?.cancel();
   }
 
   void continueTimer() {
-    if (state.isTimerRunning || !state.isPaused) return;
+    if (state.isTimerRunning || !state.isPaused) {
+      print('Timer not paused or already running, ignoring continue');
+      return;
+    }
 
     emit(state.copyWith(
       isTimerRunning: true,
@@ -286,21 +278,10 @@ class HomeCubit extends Cubit<HomeState> {
     }
     _updateSharedPreferences(state.timerSeconds, true, false);
 
-    if (state.isCountingUp) {
-      _startTimer(state.timerSeconds);
-      _localTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-        emit(state.copyWith(
-          timerSeconds: state.timerSeconds + 1,
-          isTimerRunning: true,
-          isPaused: false,
-        ));
-        _updateSharedPreferences(state.timerSeconds + 1, true, false);
-        print('Local timer tick: timerSeconds=${state.timerSeconds + 1}');
-      });
-    } else {
-      _notificationChannel.invokeMethod(TimerActions.resume).catchError((e) {
-        print('Error sending RESUME intent: $e');
-      });
+    try {
+      _notificationChannel.invokeMethod(TimerActions.resume);
+    } catch (e) {
+      print('Error sending RESUME intent: $e');
     }
 
     final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
@@ -311,16 +292,14 @@ class HomeCubit extends Cubit<HomeState> {
       });
       _lastAppBlockingState = newAppBlockingState;
     }
-    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none' && state.isTimerRunning) {
+    if (state.isWhiteNoiseEnabled && state.selectedWhiteNoise != null && state.selectedWhiteNoise != 'none') {
       _playWhiteNoise(state.selectedWhiteNoise!);
     }
   }
 
   void stopTimer({bool updateTaskState = true}) {
-    _localTimer?.cancel();
-    final timerSeconds = state.isCountingUp ? 0 : state.workDuration * 60;
     emit(state.copyWith(
-      timerSeconds: timerSeconds,
+      timerSeconds: state.isCountingUp ? 0 : state.workDuration * 60,
       isTimerRunning: false,
       isPaused: false,
       currentSession: 0,
@@ -330,10 +309,12 @@ class HomeCubit extends Cubit<HomeState> {
       _updateTaskPomodoroState(state.selectedTask, false, 0);
     }
 
-    _notificationChannel.invokeMethod(TimerActions.stop).catchError((e) {
+    try {
+      _notificationChannel.invokeMethod(TimerActions.stop);
+    } catch (e) {
       print('Error sending STOP intent: $e');
-    });
-    _updateSharedPreferences(timerSeconds, false, false);
+    }
+    _updateSharedPreferences(state.isCountingUp ? 0 : state.workDuration * 60, false, false);
     _audioPlayer.stop();
   }
 
@@ -459,11 +440,6 @@ class HomeCubit extends Cubit<HomeState> {
       isPaused: isPaused,
       isCountingUp: isCountingUp,
     ));
-
-    if (isPaused && _localTimer != null) {
-      _localTimer?.cancel();
-      _localTimer = null;
-    }
 
     final newAppBlockingState = state.isAppBlockingEnabled && state.isTimerRunning;
     if (newAppBlockingState != _lastAppBlockingState) {
@@ -609,7 +585,6 @@ class HomeCubit extends Cubit<HomeState> {
   @override
   Future<void> close() {
     _timerSubscription?.cancel();
-    _localTimer?.cancel();
     _audioPlayer.dispose();
     return super.close();
   }

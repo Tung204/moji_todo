@@ -4,7 +4,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ComponentName
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
@@ -110,9 +109,14 @@ class TimerService : Service() {
                 }
 
                 if (!isServiceRunning) {
-                    val notification = createNotification()
-                    startForeground(NOTIFICATION_ID, notification)
-                    isServiceRunning = true
+                    try {
+                        val notification = createNotification()
+                        startForeground(NOTIFICATION_ID, notification)
+                        isServiceRunning = true
+                    } catch (e: Exception) {
+                        Log.e("TimerService", "Failed to start foreground service: ${e.message}")
+                        stopSelf()
+                    }
                 } else {
                     updateNotification()
                 }
@@ -136,7 +140,7 @@ class TimerService : Service() {
                 updateTimerState()
             }
             ACTION_PAUSE -> {
-                Log.d("MainActivity", "Handling PAUSE action from Flutter")
+                Log.d("TimerService", "PAUSE action received")
                 if (isRunning && !isPaused) {
                     isPaused = true
                     stopTimer()
@@ -158,7 +162,7 @@ class TimerService : Service() {
                 Log.d("TimerService", "STOP action received")
                 isRunning = false
                 isPaused = false
-                timerSeconds = 0
+                timerSeconds = if (isCountingUp) 0 else 25 * 60
                 timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
                 stopTimer()
                 stopForeground(true)
@@ -277,6 +281,7 @@ class TimerService : Service() {
         stopTimer()
         isServiceRunning = false
         coroutineScope.cancel()
+        Log.d("TimerService", "Service destroyed")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

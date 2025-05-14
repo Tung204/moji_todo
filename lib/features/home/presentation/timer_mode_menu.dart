@@ -12,14 +12,31 @@ class TimerModeMenu extends StatelessWidget {
   const TimerModeMenu({super.key});
 
   void _showTimerModeMenu(BuildContext context) {
+    final homeState = context.read<HomeCubit>().state;
+
+    // Chỉ cho phép chỉnh sửa khi timer dừng hẳn hoặc hết giờ
+    bool isEditable = (!homeState.isTimerRunning && !homeState.isPaused) ||
+        (!homeState.isCountingUp && homeState.timerSeconds <= 0);
+
+    if (!isEditable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
+          backgroundColor: AppColors.snackbarError,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     print('Opening Timer Mode dialog');
-    String timerMode = context.read<HomeCubit>().state.timerMode;
-    int workDuration = context.read<HomeCubit>().state.workDuration;
-    int breakDuration = context.read<HomeCubit>().state.breakDuration;
-    bool soundEnabled = context.read<HomeCubit>().state.soundEnabled;
-    bool autoSwitch = context.read<HomeCubit>().state.autoSwitch;
-    String notificationSound = context.read<HomeCubit>().state.notificationSound;
-    int totalSessions = context.read<HomeCubit>().state.totalSessions;
+    String timerMode = homeState.timerMode;
+    int workDuration = homeState.workDuration;
+    int breakDuration = homeState.breakDuration;
+    bool soundEnabled = homeState.soundEnabled;
+    bool autoSwitch = homeState.autoSwitch;
+    String notificationSound = homeState.notificationSound;
+    int totalSessions = homeState.totalSessions;
 
     TextEditingController workController = TextEditingController(text: workDuration.toString());
     TextEditingController breakController = TextEditingController(text: breakDuration.toString());
@@ -467,12 +484,18 @@ class TimerModeMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-      previous.isTimerRunning != current.isTimerRunning || previous.isPaused != current.isPaused,
+      previous.isTimerRunning != current.isTimerRunning ||
+          previous.isPaused != current.isPaused ||
+          previous.timerSeconds != current.timerSeconds ||
+          previous.isCountingUp != current.isCountingUp,
       builder: (context, state) {
-        final isEditable = !state.isTimerRunning || state.isPaused;
+        // Chỉ cho phép chỉnh Timer Mode khi timer dừng hẳn hoặc hết giờ
+        final isEditable = (!state.isTimerRunning && !state.isPaused) ||
+            (!state.isCountingUp && state.timerSeconds <= 0);
         print('Timer Mode button build: isEditable=$isEditable');
+
         return Tooltip(
-          message: isEditable ? 'Chỉnh Timer Mode' : 'Tạm dừng timer để chỉnh Timer Mode',
+          message: isEditable ? 'Chỉnh Timer Mode' : 'Dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode',
           child: Opacity(
             opacity: isEditable ? 1.0 : 0.5,
             child: Column(
@@ -490,7 +513,7 @@ class TimerModeMenu extends StatelessWidget {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(AppStrings.timerRunningError),
+                          content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
                           backgroundColor: AppColors.snackbarError,
                           duration: const Duration(seconds: 3),
                         ),

@@ -179,8 +179,6 @@ class MainActivity : FlutterActivity() {
                         }
                         Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$currentSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
 
-                        // Gửi pause tới Flutter
-                        methodChannel?.invokeMethod("pause", null)
                         result.success(null)
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Error in PAUSE action: ${e.message}")
@@ -212,7 +210,6 @@ class MainActivity : FlutterActivity() {
                         }
                         Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$currentSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
 
-                        methodChannel?.invokeMethod("resume", null)
                         result.success(null)
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Error in RESUME action: ${e.message}")
@@ -243,7 +240,6 @@ class MainActivity : FlutterActivity() {
                         }
                         Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
 
-                        methodChannel?.invokeMethod("stop", null)
                         result.success(null)
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Error in STOP action: ${e.message}")
@@ -313,96 +309,102 @@ class MainActivity : FlutterActivity() {
     private fun handleNotificationIntent(intent: Intent?) {
         Log.d("MainActivity", "Handling intent with action: ${intent?.action}")
         val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
-        if (intent?.action == TimerService.ACTION_PAUSE) {
-            Log.d("MainActivity", "Pausing timer from notification")
-            val timerSeconds = intent.getIntExtra("timerSeconds", prefs.getInt("timerSeconds", 25 * 60))
-            val isCountingUp = prefs.getBoolean("isCountingUp", false)
-            methodChannel?.invokeMethod("pause", null)
-            prefs.edit().apply {
-                putInt("timerSeconds", timerSeconds)
-                putBoolean("isRunning", false)
-                putBoolean("isPaused", true)
-                putBoolean("isCountingUp", isCountingUp)
-                apply()
-            }
-            Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
-        } else if (intent?.action == TimerService.ACTION_RESUME) {
-            Log.d("MainActivity", "Resuming timer from notification")
-            val timerSeconds = prefs.getInt("timerSeconds", 25 * 60)
-            val isCountingUp = prefs.getBoolean("isCountingUp", false)
-            methodChannel?.invokeMethod("resume", null)
-            prefs.edit().apply {
-                putInt("timerSeconds", timerSeconds)
-                putBoolean("isRunning", true)
-                putBoolean("isPaused", false)
-                putBoolean("isCountingUp", isCountingUp)
-                apply()
-            }
-            Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
-        } else if (intent?.action == TimerService.ACTION_STOP) {
-            Log.d("MainActivity", "Stopping timer from notification")
-            methodChannel?.invokeMethod("stop", null)
-            NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
-            val isCountingUp = prefs.getBoolean("isCountingUp", false)
-            prefs.edit().apply {
-                putInt("timerSeconds", if (isCountingUp) 0 else 25 * 60)
-                putBoolean("isRunning", false)
-                putBoolean("isPaused", false)
-                putBoolean("isCountingUp", isCountingUp)
-                apply()
-            }
-            Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
-        } else if (intent?.action == "com.example.moji_todo.NOTIFICATION_ACTION") {
-            when (intent.getStringExtra("action")) {
-                "pause" -> {
-                    Log.d("MainActivity", "Pausing timer from notification action")
-                    val timerSeconds = intent.getIntExtra("timerSeconds", prefs.getInt("timerSeconds", 25 * 60))
-                    val isCountingUp = prefs.getBoolean("isCountingUp", false)
-                    methodChannel?.invokeMethod("pause", null)
-                    prefs.edit().apply {
-                        putInt("timerSeconds", timerSeconds)
-                        putBoolean("isRunning", false)
-                        putBoolean("isPaused", true)
-                        putBoolean("isCountingUp", isCountingUp)
-                        apply()
-                    }
-                    Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
+        when (intent?.action) {
+            TimerService.ACTION_PAUSE -> {
+                Log.d("MainActivity", "Pausing timer from notification")
+                val timerSeconds = intent.getIntExtra("timerSeconds", prefs.getInt("timerSeconds", 25 * 60))
+                val isCountingUp = prefs.getBoolean("isCountingUp", false)
+                methodChannel?.invokeMethod("pause", null)
+                prefs.edit().apply {
+                    putInt("timerSeconds", timerSeconds)
+                    putBoolean("isRunning", false)
+                    putBoolean("isPaused", true)
+                    putBoolean("isCountingUp", isCountingUp)
+                    apply()
                 }
-                "resume" -> {
-                    Log.d("MainActivity", "Resuming timer from notification action")
-                    val timerSeconds = prefs.getInt("timerSeconds", 25 * 60)
-                    val isCountingUp = prefs.getBoolean("isCountingUp", false)
-                    methodChannel?.invokeMethod("resume", null)
-                    prefs.edit().apply {
-                        putInt("timerSeconds", timerSeconds)
-                        putBoolean("isRunning", true)
-                        putBoolean("isPaused", false)
-                        putBoolean("isCountingUp", isCountingUp)
-                        apply()
-                    }
-                    Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
+                Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
+            }
+            TimerService.ACTION_RESUME -> {
+                Log.d("MainActivity", "Resuming timer from notification")
+                val timerSeconds = prefs.getInt("timerSeconds", 25 * 60)
+                val isCountingUp = prefs.getBoolean("isCountingUp", false)
+                methodChannel?.invokeMethod("resume", null)
+                prefs.edit().apply {
+                    putInt("timerSeconds", timerSeconds)
+                    putBoolean("isRunning", true)
+                    putBoolean("isPaused", false)
+                    putBoolean("isCountingUp", isCountingUp)
+                    apply()
                 }
-                "stop" -> {
-                    Log.d("MainActivity", "Stopping timer from notification action")
-                    methodChannel?.invokeMethod("stop", null)
-                    NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
-                    val isCountingUp = prefs.getBoolean("isCountingUp", false)
-                    prefs.edit().apply {
-                        putInt("timerSeconds", if (isCountingUp) 0 else 25 * 60)
-                        putBoolean("isRunning", false)
-                        putBoolean("isPaused", false)
-                        putBoolean("isCountingUp", isCountingUp)
-                        apply()
+                Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
+            }
+            TimerService.ACTION_STOP -> {
+                Log.d("MainActivity", "Stopping timer from notification")
+                methodChannel?.invokeMethod("stop", null)
+                NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+                val isCountingUp = prefs.getBoolean("isCountingUp", false)
+                prefs.edit().apply {
+                    putInt("timerSeconds", if (isCountingUp) 0 else 25 * 60)
+                    putBoolean("isRunning", false)
+                    putBoolean("isPaused", false)
+                    putBoolean("isCountingUp", isCountingUp)
+                    apply()
+                }
+                Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
+            }
+            "com.example.moji_todo.NOTIFICATION_ACTION" -> {
+                when (intent.getStringExtra("action")) {
+                    "pause" -> {
+                        Log.d("MainActivity", "Pausing timer from notification action")
+                        val timerSeconds = intent.getIntExtra("timerSeconds", prefs.getInt("timerSeconds", 25 * 60))
+                        val isCountingUp = prefs.getBoolean("isCountingUp", false)
+                        methodChannel?.invokeMethod("pause", null)
+                        prefs.edit().apply {
+                            putInt("timerSeconds", timerSeconds)
+                            putBoolean("isRunning", false)
+                            putBoolean("isPaused", true)
+                            putBoolean("isCountingUp", isCountingUp)
+                            apply()
+                        }
+                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
                     }
-                    Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
+                    "resume" -> {
+                        Log.d("MainActivity", "Resuming timer from notification action")
+                        val timerSeconds = prefs.getInt("timerSeconds", 25 * 60)
+                        val isCountingUp = prefs.getBoolean("isCountingUp", false)
+                        methodChannel?.invokeMethod("resume", null)
+                        prefs.edit().apply {
+                            putInt("timerSeconds", timerSeconds)
+                            putBoolean("isRunning", true)
+                            putBoolean("isPaused", false)
+                            putBoolean("isCountingUp", isCountingUp)
+                            apply()
+                        }
+                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
+                    }
+                    "stop" -> {
+                        Log.d("MainActivity", "Stopping timer from notification action")
+                        methodChannel?.invokeMethod("stop", null)
+                        NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+                        val isCountingUp = prefs.getBoolean("isCountingUp", false)
+                        prefs.edit().apply {
+                            putInt("timerSeconds", if (isCountingUp) 0 else 25 * 60)
+                            putBoolean("isRunning", false)
+                            putBoolean("isPaused", false)
+                            putBoolean("isCountingUp", isCountingUp)
+                            apply()
+                        }
+                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
+                    }
                 }
             }
-        } else {
-            val payload = intent?.extras?.getString("flutter_notification_payload")
-            if (payload != null) {
-                when (payload) {
-                    "START_BREAK" -> methodChannel?.invokeMethod("startBreak", null)
-                    "START_WORK" -> methodChannel?.invokeMethod("startWork", null)
+            else -> {
+                val payload = intent?.extras?.getString("flutter_notification_payload")
+                if (payload != null) {
+                    when (payload) {
+                        "START_BREAK" -> methodChannel?.invokeMethod("startBreak", null)
+                        "START_WORK" -> methodChannel?.invokeMethod("startWork", null)
+                    }
                 }
             }
         }
