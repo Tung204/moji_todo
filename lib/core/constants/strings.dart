@@ -9,7 +9,7 @@ class AppStrings {
   static const String timerModeCountUp = '00:00 - 0∞';
   static const String timerModeCustom = 'Tùy chỉnh';
   static const String workDurationLabel = 'Thời gian làm việc (phút)';
-  static const String workDurationHelper = 'Nhập từ 1-120 phút';
+  static const String workDurationHelper = 'Nhập từ 1-480 phút';
   static const String breakDurationLabel = 'Thời gian nghỉ (phút)';
   static const String breakDurationHelper = 'Nhập từ 1-60 phút';
   static const String sessionsLabel = 'Số phiên Pomodoro';

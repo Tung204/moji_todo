@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/colors.dart';
 
 class CustomButton extends StatelessWidget {
   final String label;
@@ -11,26 +12,46 @@ class CustomButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
-    this.backgroundColor = Colors.red,
+    this.backgroundColor = AppColors.primary,
     this.textColor = Colors.white,
-    this.borderRadius = 20,
+    this.borderRadius = 12,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor,
-        foregroundColor: textColor,
-        shape: RoundedRectangleBorder(
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              backgroundColor,
+              backgroundColor == AppColors.primary
+                  ? AppColors.primaryDark
+                  : backgroundColor.withOpacity(0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
       ),
     );
   }

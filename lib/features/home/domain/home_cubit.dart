@@ -396,6 +396,18 @@ class HomeCubit extends Cubit<HomeState> {
     int newBreakDuration = breakDuration;
     bool newAutoSwitch = autoSwitch;
 
+    // Validate inputs
+    if (newWorkDuration < 1 || newWorkDuration > 480) {
+      newWorkDuration = 25;
+    }
+    if (newBreakDuration < 1 || newBreakDuration > 60) {
+      newBreakDuration = 5;
+    }
+    final newTotalSessions = totalSessions ?? state.totalSessions;
+    if (newTotalSessions < 1 || newTotalSessions > 10) {
+      totalSessions = 4;
+    }
+
     switch (timerMode) {
       case '25:00 - 00:00':
         newWorkDuration = 25;
@@ -420,7 +432,7 @@ class HomeCubit extends Cubit<HomeState> {
       soundEnabled: soundEnabled,
       autoSwitch: newAutoSwitch,
       notificationSound: notificationSound,
-      totalSessions: totalSessions ?? state.totalSessions,
+      totalSessions: totalSessions ?? newTotalSessions,
       timerSeconds: state.isTimerRunning ? state.timerSeconds : (newWorkDuration * 60),
       isWorkSession: true,
       isCountingUp: isCountingUp,
