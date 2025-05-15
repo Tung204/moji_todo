@@ -35,11 +35,10 @@ class WhiteNoiseMenu extends StatelessWidget {
             backgroundColor: Colors.transparent,
             child: Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    AppColors.backgroundGradientStart,
-                    AppColors.backgroundGradientEnd,
-                  ],
+                gradient: LinearGradient(
+                  colors: Theme.of(context).brightness == Brightness.dark
+                      ? [const Color(0xFF2A2A2A), const Color(0xFF3A3A3A)]
+                      : [AppColors.backgroundGradientStart, AppColors.backgroundGradientEnd],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -62,7 +61,9 @@ class WhiteNoiseMenu extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: AppSizes.titleFontSize,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).textTheme.titleLarge!.color
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -75,20 +76,25 @@ class WhiteNoiseMenu extends StatelessWidget {
                           return Column(
                             children: [
                               _buildCard(
+                                context: context,
                                 child: CheckboxListTile(
                                   title: Text(
                                     'Tắt White Noise',
                                     style: GoogleFonts.inter(
                                       fontSize: AppSizes.labelFontSize - 2,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : AppColors.textPrimary,
                                     ),
                                   ),
                                   subtitle: Text(
                                     'Tắt âm thanh White Noise',
                                     style: GoogleFonts.inter(
                                       fontSize: AppSizes.helperFontSize,
-                                      color: AppColors.textSecondary,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                          : AppColors.textSecondary,
                                     ),
                                   ),
                                   value: !isWhiteNoiseEnabled,
@@ -100,14 +106,15 @@ class WhiteNoiseMenu extends StatelessWidget {
                                       }
                                     });
                                   },
-                                  activeColor: AppColors.primary,
-                                  checkColor: Colors.white,
+                                  activeColor: Theme.of(context).colorScheme.secondary,
+                                  checkColor: Theme.of(context).colorScheme.onSecondary,
                                   contentPadding: EdgeInsets.zero,
                                 ),
                               ),
                               if (isWhiteNoiseEnabled) ...[
                                 const SizedBox(height: AppSizes.spacing / 2),
                                 _buildCard(
+                                  context: context,
                                   child: Row(
                                     children: [
                                       Text(
@@ -115,7 +122,9 @@ class WhiteNoiseMenu extends StatelessWidget {
                                         style: GoogleFonts.inter(
                                           fontSize: AppSizes.labelFontSize - 2,
                                           fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Theme.of(context).colorScheme.onSurface
+                                              : AppColors.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -125,8 +134,8 @@ class WhiteNoiseMenu extends StatelessWidget {
                                           min: 0.0,
                                           max: 1.0,
                                           divisions: 20,
-                                          activeColor: AppColors.primary,
-                                          inactiveColor: AppColors.textDisabled,
+                                          activeColor: Theme.of(context).colorScheme.secondary,
+                                          inactiveColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                           onChanged: (value) {
                                             setState(() {
                                               whiteNoiseVolume = value;
@@ -139,6 +148,7 @@ class WhiteNoiseMenu extends StatelessWidget {
                                 ),
                                 const SizedBox(height: AppSizes.spacing / 2),
                                 _buildCard(
+                                  context: context,
                                   child: Theme(
                                     data: Theme.of(context).copyWith(
                                       popupMenuTheme: PopupMenuThemeData(
@@ -153,10 +163,14 @@ class WhiteNoiseMenu extends StatelessWidget {
                                         labelText: 'Chọn âm thanh',
                                         labelStyle: GoogleFonts.inter(
                                           fontSize: AppSizes.labelFontSize - 2,
-                                          color: AppColors.textPrimary,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? Theme.of(context).colorScheme.onSurface
+                                              : AppColors.textPrimary,
                                         ),
                                         filled: true,
-                                        fillColor: Colors.white,
+                                        fillColor: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).cardTheme.color
+                                            : Colors.white,
                                         contentPadding: const EdgeInsets.symmetric(
                                           horizontal: 12,
                                           vertical: 12,
@@ -210,7 +224,7 @@ class WhiteNoiseMenu extends StatelessWidget {
                                           isWhiteNoiseEnabled = value != 'none';
                                         });
                                       },
-                                      menuMaxHeight: 216, // 4.5 items * ~48 pixels/item
+                                      menuMaxHeight: 216,
                                     ),
                                   ),
                                 ),
@@ -241,8 +255,8 @@ class WhiteNoiseMenu extends StatelessWidget {
                             homeCubit.setWhiteNoiseVolume(whiteNoiseVolume);
                             Navigator.pop(context);
                           },
-                          backgroundColor: AppColors.primary,
-                          textColor: Colors.white,
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                          textColor: Theme.of(context).colorScheme.onSecondary,
                           borderRadius: 12,
                         ),
                       ],
@@ -272,10 +286,12 @@ class WhiteNoiseMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required BuildContext context, required Widget child}) {
     return Card(
       elevation: 0,
-      color: AppColors.cardBackground,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).cardTheme.color
+          : AppColors.cardBackground,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -301,14 +317,18 @@ class WhiteNoiseMenu extends StatelessWidget {
               children: [
                 Icon(
                   Icons.music_note_rounded,
-                  color: state.isWhiteNoiseEnabled ? AppColors.primary : AppColors.textDisabled,
+                  color: state.isWhiteNoiseEnabled
+                      ? Theme.of(context).colorScheme.secondary
+                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   size: AppSizes.iconSize,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'White Noise',
                   style: GoogleFonts.inter(
-                    color: state.isWhiteNoiseEnabled ? AppColors.primary : AppColors.textDisabled,
+                    color: state.isWhiteNoiseEnabled
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),

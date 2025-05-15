@@ -75,17 +75,11 @@ class GeminiService {
     try {
       final response = await _model.generateContent([Content.text(prompt)]);
       rawText = response.text?.trim() ?? '[]';
-
-      // Xử lý phản hồi để loại bỏ Markdown (nếu có)
-      String jsonString = rawText;
-      if (jsonString.startsWith('```json')) {
-        jsonString = jsonString.replaceFirst('```json', '').trim();
-      }
-      if (jsonString.endsWith('```')) {
-        jsonString = jsonString.substring(0, jsonString.length - 3).trim();
-      }
-
+      rawText = rawText.replaceAll(RegExp(r'[^\x00-\x7F]+'), '');
+      // Xử lý JSON an toàn
+      final jsonString = rawText.startsWith('[') ? rawText : '[$rawText]';
       return List<String>.from(jsonDecode(jsonString));
+
     } catch (e) {
       print('Error getting suggestions from Gemini API: $e');
       print('Raw response: $rawText');

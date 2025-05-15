@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../tasks/data/models/project_tag_repository.dart';
 import '../../tasks/data/models/task_model.dart';
 import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/presentation/add_task/add_task_bottom_sheet.dart';
 import '../../tasks/presentation/task_detail_screen.dart';
-import '../../tasks/presentation/utils/tag_colors.dart';
-import '../../tasks/data/models/project_tag_repository.dart';
+import '../../tasks/presentation/widgets/task_item_card.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -25,11 +26,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _selectedDay = _focusedDay;
     context.read<TaskCubit>().loadTasks();
+    // Cố định màu status bar
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark, // Light theme
+      statusBarBrightness: Brightness.light, // Dark theme
+    ));
   }
 
   List<Task> _getTasksForDay(DateTime day, List<Task> tasks) {
     return tasks.where((task) {
-      if (task.dueDate == null) return false;
+      if (task.dueDate == null || task.category == 'Trash') return false;
       final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
       final selectedDate = DateTime(day.year, day.month, day.day);
       final isSameDay = taskDate.isAtSameMomentAs(selectedDate);
@@ -40,7 +47,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   bool _hasTasksOnDay(DateTime day, List<Task> tasks) {
     return tasks.any((task) {
-      if (task.dueDate == null) return false;
+      if (task.dueDate == null || task.category == 'Trash') return false;
       final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
       final selectedDate = DateTime(day.year, day.month, day.day);
       return taskDate.isAtSameMomentAs(selectedDate);
@@ -61,23 +68,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final tasksForSelectedDay = _selectedDay != null ? _getTasksForDay(_selectedDay!, tasks) : [];
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.transparent,
+            scrolledUnderElevation: 0.0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Đồng bộ với Scaffold
             elevation: 0,
             automaticallyImplyLeading: false,
-            title: const Text(
+            title: Text(
               'Lịch',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             centerTitle: true,
             actions: [
               IconButton(
-                icon: const Icon(Icons.add, color: Colors.grey),
+                icon: Icon(Icons.add, color: Theme.of(context).iconTheme.color),
                 onPressed: () {
                   showModalBottomSheet(
                     context: context,
@@ -107,25 +111,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _focusedDay = focusedDay;
                   });
                 },
-                calendarStyle: const CalendarStyle(
+                calendarStyle: CalendarStyle(
                   selectedDecoration: BoxDecoration(
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.secondary,
                     shape: BoxShape.circle,
                   ),
                   todayDecoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   outsideDaysVisible: false,
                 ),
-                headerStyle: const HeaderStyle(
+                headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  titleTextStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  leftChevronIcon: Icon(Icons.chevron_left, color: Theme.of(context).iconTheme.color, size: 20),
+                  rightChevronIcon: Icon(Icons.chevron_right, color: Theme.of(context).iconTheme.color, size: 20),
                 ),
-                daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(fontSize: 12, color: Colors.grey),
-                  weekendStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                daysOfWeekStyle: DaysOfWeekStyle(
+                  weekdayStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  ),
+                  weekendStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  ),
                 ),
                 calendarFormat: CalendarFormat.month,
                 onPageChanged: (focusedDay) {
@@ -141,8 +156,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         Center(
                           child: Text(
                             '${day.day}',
-                            style: TextStyle(
-                              color: hasTasks ? Colors.black : Colors.grey,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: hasTasks
+                                  ? Theme.of(context).textTheme.bodyMedium?.color
+                                  : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               fontWeight: hasTasks ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
@@ -153,8 +170,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -169,16 +186,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       children: [
                         Center(
                           child: Container(
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD50F0F),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondary,
                               shape: BoxShape.circle,
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
                                 '${day.day}',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSecondary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -191,8 +208,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onSecondary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -207,16 +224,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       children: [
                         Center(
                           child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.blue,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
                                 '${day.day}',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -229,8 +246,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -249,20 +266,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     children: [
                       Text(
                         'Tasks cho ${(_selectedDay != null) ? "${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}" : "ngày được chọn"}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       state.isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : tasksForSelectedDay.isEmpty
-                          ? const Center(
+                          ? Center(
                         child: Text(
                           'Không có task nào cho ngày này.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
                         ),
                       )
                           : Expanded(
@@ -272,85 +285,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             final task = tasksForSelectedDay[index];
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => TaskDetailScreen(task: task),
-                                      ),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Checkbox(
-                                          value: task.isCompleted ?? false,
-                                          onChanged: (value) {
-                                            if (value != null) {
-                                              context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
-                                            }
-                                          },
-                                          shape: const CircleBorder(),
-                                          activeColor: Colors.green,
-                                          checkColor: Colors.white,
-                                          side: const BorderSide(color: Colors.red),
-                                        ),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                task.title ?? 'Task không có tiêu đề',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
-                                                ),
-                                              ),
-                                              if (task.tags != null && task.tags!.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 4.0),
-                                                  child: Wrap(
-                                                    spacing: 4,
-                                                    runSpacing: 4,
-                                                    children: task.tags!.map<Widget>((tag) {
-                                                      final colors = TagColors.getTagColors(tag);
-                                                      return Chip(
-                                                        label: Text(
-                                                          '#$tag',
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            color: colors['text'],
-                                                          ),
-                                                        ),
-                                                        backgroundColor: colors['background'],
-                                                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                        labelPadding: EdgeInsets.zero,
-                                                      );
-                                                    }).toList().cast<Widget>(),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
-                                          onPressed: () {
-                                            // Logic bắt đầu Pomodoro cho task
-                                          },
-                                        ),
-                                      ],
+                              child: TaskItemCard(
+                                task: task,
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TaskDetailScreen(task: task),
                                     ),
-                                  ),
-                                ),
+                                  );
+                                  if (result == true) {
+                                    context.read<TaskCubit>().loadTasks();
+                                  }
+                                },
+                                onCheckboxChanged: (value) {
+                                  if (value != null) {
+                                    context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
+                                  }
+                                },
+                                onPlayPressed: () {
+                                  // Logic bắt đầu Pomodoro cho task
+                                },
+                                showDetails: true,
+                                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                               ),
                             );
                           },
@@ -363,7 +320,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ],
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: const Color(0xFFFF5733),
+            heroTag: 'calendar_fab',
+            backgroundColor: Theme.of(context).floatingActionButtonTheme.backgroundColor,
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -376,7 +334,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               );
             },
-            child: const Icon(Icons.add, color: Colors.white),
+            child: Icon(
+              Icons.add,
+              color: Theme.of(context).floatingActionButtonTheme.foregroundColor,
+            ),
           ),
         );
       },

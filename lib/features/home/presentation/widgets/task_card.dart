@@ -20,9 +20,16 @@ class TaskCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
+        color: Theme.of(context).cardTheme.color,
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -31,7 +38,7 @@ class TaskCard extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey),
+              border: Border.all(color: Theme.of(context).iconTheme.color!.withOpacity(0.6)),
             ),
             child: Checkbox(
               value: task.isCompleted ?? false,
@@ -42,23 +49,20 @@ class TaskCard extends StatelessWidget {
               },
               shape: const CircleBorder(),
               activeColor: Colors.green,
-              checkColor: Colors.white,
-              side: const BorderSide(color: Colors.grey),
+              checkColor: Theme.of(context).colorScheme.onSurface,
+              side: BorderSide(color: Theme.of(context).iconTheme.color!.withOpacity(0.6)),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: GestureDetector(
-              onTap: onPlay, // Nhấn vào task để bắt đầu timer
+              onTap: onPlay,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     task.title ?? 'Untitled Task',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
                     ),
                   ),
@@ -68,36 +72,80 @@ class TaskCard extends StatelessWidget {
                       spacing: 8,
                       children: task.tags!.map((tag) {
                         final colors = TagColors.getTagColors(tag);
-                        return Chip(
-                          label: Text(
-                            '#$tag',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colors['text'],
-                            ),
+                        return Text(
+                          '#$tag',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 12,
+                            color: colors['text'],
                           ),
-                          backgroundColor: colors['background'],
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          labelPadding: EdgeInsets.zero,
                         );
                       }).toList(),
                     ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.timer, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${task.completedPomodoros ?? 0}/${task.estimatedPomodoros ?? 0}',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.bookmark, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        task.project ?? 'Pomodoro App',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
+                      if (task.estimatedPomodoros != null && task.estimatedPomodoros! > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                size: 16,
+                                color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${task.completedPomodoros ?? 0}/${task.estimatedPomodoros}',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                  color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (task.dueDate != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Icon(
+                            Icons.wb_sunny,
+                            size: 16,
+                            color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                          ),
+                        ),
+                      if (task.priority != null && task.priority!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Icon(
+                            Icons.flag,
+                            size: 16,
+                            color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                          ),
+                        ),
+                      if (task.project != null && task.project!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.bookmark,
+                                size: 16,
+                                color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                task.project!,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                  color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -105,8 +153,11 @@ class TaskCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.play_circle_fill, color: Color(0xFFFF5733)),
-            onPressed: onPlay, // Nhấn nút Play để bắt đầu timer
+            icon: Icon(
+              Icons.play_circle_fill,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+            onPressed: onPlay,
           ),
         ],
       ),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:moji_todo/features/tasks/presentation/widgets/task_item_card.dart';
 import '../domain/task_cubit.dart';
 import 'task_detail_screen.dart';
-import '../../../core/widgets/custom_app_bar.dart';
+import '../../../core/themes/theme.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -14,6 +15,12 @@ class TrashScreen extends StatefulWidget {
 class _TrashScreenState extends State<TrashScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<TaskCubit>().loadTasks(); // Tải tasks khi khởi tạo
+  }
 
   @override
   void dispose() {
@@ -29,15 +36,17 @@ class _TrashScreenState extends State<TrashScreen> {
         final trashTasks = categorizedTasks['Trash'] ?? [];
         final filteredTasks = _searchQuery.isEmpty
             ? trashTasks
-            : trashTasks.where((task) => task.title?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false).toList();
+            : trashTasks
+            .where((task) => task.title?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
+            .toList();
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.grey),
+              icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
               onPressed: () {
                 if (state.isSelectionMode) {
                   context.read<TaskCubit>().toggleSelectionMode();
@@ -49,119 +58,52 @@ class _TrashScreenState extends State<TrashScreen> {
             title: state.isSelectionMode
                 ? Text(
               '${state.selectedTasks.length} đã chọn',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             )
                 : const Text(
               'Thùng rác',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             centerTitle: true,
             actions: state.isSelectionMode
                 ? [
               IconButton(
-                icon: const Icon(Icons.restore, color: Colors.green),
+                icon: Icon(Icons.restore, color: Theme.of(context).extension<SuccessColor>()!.success),
                 onPressed: () async {
                   try {
                     await context.read<TaskCubit>().restoreSelectedTasks();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã khôi phục các task!'),
-                        backgroundColor: Colors.green,
+                      SnackBar(
+                        content: Text(
+                          'Đã khôi phục ${state.selectedTasks.length} task!',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        backgroundColor: Theme.of(context).extension<SuccessColor>()!.success,
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Lỗi khi khôi phục: $e'),
-                        backgroundColor: Colors.red,
+                        content: Text(
+                          'Lỗi khi khôi phục: $e',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.delete_forever, color: Colors.red),
-                onPressed: () async {
-                  showDialog(
-                    context: context,
-                    builder: (dialogContext) {
-                      bool isLoading = false;
-                      return StatefulBuilder(
-                        builder: (context, setState) {
-                          return AlertDialog(
-                            title: const Text('Xóa vĩnh viễn'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Bạn có chắc muốn xóa vĩnh viễn ${state.selectedTasks.length} task không?'),
-                                if (isLoading) ...[
-                                  const SizedBox(height: 16),
-                                  const CircularProgressIndicator(),
-                                ],
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () {
-                                  Navigator.pop(dialogContext);
-                                },
-                                child: const Text('Hủy'),
-                              ),
-                              TextButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () async {
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-                                  try {
-                                    await context.read<TaskCubit>().deleteSelectedTasks();
-                                    Navigator.pop(dialogContext);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Đã xóa vĩnh viễn các task!'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    setState(() {
-                                      isLoading = false;
-                                    });
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Lỗi khi xóa: $e'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: const Text(
-                                  'Xóa vĩnh viễn',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+                icon: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
+                onPressed: () => _showDeleteConfirmationDialog(context, state.selectedTasks.length),
               ),
             ]
                 : [
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
                 onSelected: (value) {
                   if (value == 'Sort by Title') {
                     context.read<TaskCubit>().sortTasksInTrash('title');
@@ -179,216 +121,230 @@ class _TrashScreenState extends State<TrashScreen> {
               ),
             ],
           ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm trong thùng rác...',
-                    hintStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              await context.read<TaskCubit>().loadTasks();
+            },
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Tìm kiếm trong thùng rác...',
+                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      prefixIcon: Icon(Icons.search, color: Theme.of(context).iconTheme.color),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                    context.read<TaskCubit>().searchTasksInTrash(value);
-                  },
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: state.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : filteredTasks.isEmpty
-                      ? const Center(child: Text('Thùng rác trống.', style: TextStyle(fontSize: 16, color: Colors.grey)))
-                      : ListView.builder(
-                    itemCount: filteredTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = filteredTasks[index];
-                      if (task == null) {
-                        return const SizedBox.shrink();
-                      }
-                      final isSelected = state.isSelectionMode && state.selectedTasks.contains(task);
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (state.isSelectionMode)
-                                  Checkbox(
-                                    value: isSelected,
-                                    onChanged: (value) {
-                                      context.read<TaskCubit>().toggleTaskSelection(task);
-                                    },
-                                    activeColor: Colors.green,
-                                    checkColor: Colors.white,
-                                  ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        task.title ?? 'Task không có tiêu đề',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      if (task.tags != null && task.tags!.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 4.0),
-                                          child: Wrap(
-                                            spacing: 4,
-                                            runSpacing: 4,
-                                            children: task.tags!
-                                                .map((tag) => Chip(
-                                              label: Text(
-                                                '#$tag',
-                                                style: const TextStyle(fontSize: 10, color: Colors.blue),
-                                              ),
-                                              backgroundColor: Colors.grey[200],
-                                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                                              labelPadding: EdgeInsets.zero,
-                                            ))
-                                                .toList(),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                if (!state.isSelectionMode)
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, color: Colors.grey, size: 24),
-                                    onSelected: (value) async {
-                                      if (value == 'Restore') {
-                                        try {
-                                          await context.read<TaskCubit>().restoreTask(task);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Task đã được khôi phục!'),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        } catch (e) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Lỗi khi khôi phục: $e'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      } else if (value == 'Delete Permanently') {
-                                        showDialog(
-                                          context: context,
-                                          builder: (dialogContext) {
-                                            bool isLoading = false;
-                                            return StatefulBuilder(
-                                              builder: (context, setState) {
-                                                return AlertDialog(
-                                                  title: const Text('Xóa vĩnh viễn'),
-                                                  content: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Text('Bạn có chắc muốn xóa vĩnh viễn task "${task.title}" không?'),
-                                                      if (isLoading) ...[
-                                                        const SizedBox(height: 16),
-                                                        const CircularProgressIndicator(),
-                                                      ],
-                                                    ],
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: isLoading
-                                                          ? null
-                                                          : () {
-                                                        Navigator.pop(dialogContext);
-                                                      },
-                                                      child: const Text('Hủy'),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: isLoading
-                                                          ? null
-                                                          : () async {
-                                                        setState(() {
-                                                          isLoading = true;
-                                                        });
-                                                        try {
-                                                          await context.read<TaskCubit>().deleteTask(task);
-                                                          Navigator.pop(dialogContext);
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text('Task đã được xóa vĩnh viễn!'),
-                                                              backgroundColor: Colors.red,
-                                                            ),
-                                                          );
-                                                        } catch (e) {
-                                                          setState(() {
-                                                            isLoading = false;
-                                                          });
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text('Lỗi khi xóa: $e'),
-                                                              backgroundColor: Colors.red,
-                                                            ),
-                                                          );
-                                                        }
-                                                      },
-                                                      child: const Text(
-                                                        'Xóa vĩnh viễn',
-                                                        style: TextStyle(color: Colors.red),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
-                                          },
-                                        );
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(value: 'Restore', child: Text('Khôi phục')),
-                                      const PopupMenuItem(value: 'Delete Permanently', child: Text('Xóa vĩnh viễn')),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
                     },
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: state.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : filteredTasks.isEmpty
+                        ? Center(
+                      child: Text(
+                        'Thùng rác trống.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                      ),
+                    )
+                        : ListView.builder(
+                      itemCount: filteredTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = filteredTasks[index];
+                        if (task == null) return const SizedBox.shrink();
+                        final isSelected = state.isSelectionMode && state.selectedTasks.contains(task);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: TaskItemCard(
+                            task: task,
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TaskDetailScreen(task: task),
+                                ),
+                              );
+                              if (result == true) {
+                                context.read<TaskCubit>().loadTasks();
+                              }
+                            },
+                            onCheckboxChanged: state.isSelectionMode
+                                ? (value) {
+                              context.read<TaskCubit>().toggleTaskSelection(task);
+                            }
+                                : null,
+                            onPlayPressed: () {},
+                            showDetails: false,
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                            actionButton: !state.isSelectionMode
+                                ? PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
+                              onSelected: (value) async {
+                                if (value == 'Restore') {
+                                  await _restoreTask(context, task);
+                                } else if (value == 'Delete Permanently') {
+                                  await _showDeleteConfirmationDialog(context, 1, task: task);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(value: 'Restore', child: Text('Khôi phục')),
+                                const PopupMenuItem(value: 'Delete Permanently', child: Text('Xóa vĩnh viễn')),
+                              ],
+                            )
+                                : null,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Future<void> _restoreTask(BuildContext context, dynamic task) async {
+    try {
+      await context.read<TaskCubit>().restoreTask(task);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Task "${task.title}" đã được khôi phục!',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          backgroundColor: Theme.of(context).extension<SuccessColor>()!.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Lỗi khi khôi phục: $e',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showDeleteConfirmationDialog(BuildContext context, int taskCount, {dynamic task}) async {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        bool isLoading = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Xóa vĩnh viễn',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    task != null
+                        ? 'Bạn có chắc muốn xóa vĩnh viễn task "${task.title}" không?'
+                        : 'Bạn có chắc muốn xóa vĩnh viễn $taskCount task không?',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  if (isLoading) ...[
+                    const SizedBox(height: 16),
+                    const CircularProgressIndicator(),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Hủy',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    try {
+                      if (task != null) {
+                        await context.read<TaskCubit>().deleteTask(task);
+                      } else {
+                        await context.read<TaskCubit>().deleteSelectedTasks();
+                      }
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            task != null
+                                ? 'Task "${task.title}" đã được xóa vĩnh viễn!'
+                                : 'Đã xóa vĩnh viễn $taskCount task!',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    } catch (e) {
+                      setState(() {
+                        isLoading = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Lỗi khi xóa: $e',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  child: Text(
+                    'Xóa vĩnh viễn',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

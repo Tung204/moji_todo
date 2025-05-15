@@ -6,8 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:moji_todo/routes/app_routes.dart';
+import 'package:provider/provider.dart';
 import 'core/services/backup_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/themes/theme.dart';
+import 'core/themes/theme_provider.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
 import 'features/pomodoro/data/pomodoro_repository.dart';
@@ -56,7 +59,6 @@ class AppData extends InheritedWidget {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Add this line to ensure the method channel is registered
   const MethodChannel('com.example.moji_todo/notification');
 
   await Firebase.initializeApp();
@@ -68,9 +70,6 @@ void main() async {
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
   Hive.registerAdapter(TagAdapter());
-
-  // SỬA: Xóa đoạn code xóa dữ liệu Hive cũ
-  // Không cần deleteBoxFromDisk nữa vì dữ liệu đã khớp schema mới
   final taskBox = await Hive.openBox<Task>('tasks');
   final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
   final projectBox = await Hive.openBox<Project>('projects');
@@ -212,21 +211,24 @@ class _MyAppState extends State<MyApp> {
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),
           BlocProvider(
-            create: (context) => HomeCubit(),
+            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
           ),
         ],
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Moji ToDo',
-          theme: ThemeData(
-            primaryColor: const Color(0xFF00C4FF),
-            scaffoldBackgroundColor: const Color(0xFFE6F7FA),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFFFF69B4)),
-            ),
+        child: ChangeNotifierProvider(
+          create: (context) => ThemeProvider(),
+          child: Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'Moji ToDo',
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: themeProvider.getThemeMode(),
+                home: const SplashScreen(),
+                onGenerateRoute: AppRoutes.generateRoute,
+              );
+            },
           ),
-          home: const SplashScreen(),
-          onGenerateRoute: AppRoutes.generateRoute,
         ),
       ),
     );

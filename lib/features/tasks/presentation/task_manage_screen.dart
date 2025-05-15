@@ -23,8 +23,11 @@ class TaskManageScreen extends StatelessWidget {
     if (user == null) {
       return Scaffold(
         appBar: const CustomAppBar(),
-        body: const Center(
-          child: Text('Vui lòng đăng nhập để tiếp tục.'),
+        body: Center(
+          child: Text(
+            'Vui lòng đăng nhập để tiếp tục.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
       );
     }
@@ -65,18 +68,14 @@ class TaskManageScreen extends StatelessWidget {
             backgroundColor: Colors.transparent,
             elevation: 0,
             automaticallyImplyLeading: false,
-            title: const Text(
+            title: Text(
               'Manage Tasks',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             centerTitle: true,
             actions: [
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
                 onSelected: (value) {
                   if (value == 'Manage Projects and Tags') {
                     Navigator.push(
@@ -216,11 +215,7 @@ class TaskManageScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 Text(
                   'Dự án',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color),
                 ),
                 const SizedBox(height: 16),
                 GridView.count(
@@ -254,7 +249,8 @@ class TaskManageScreen extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: const Color(0xFFFF5733),
+            heroTag: 'tasks_fab',
+            backgroundColor: Theme.of(context).floatingActionButtonTheme.backgroundColor,
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -267,7 +263,7 @@ class TaskManageScreen extends StatelessWidget {
                 ),
               );
             },
-            child: const Icon(Icons.add, color: Colors.white),
+            child: Icon(Icons.add, color: Theme.of(context).floatingActionButtonTheme.foregroundColor),
           ),
         );
       },

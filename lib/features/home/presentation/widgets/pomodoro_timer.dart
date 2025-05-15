@@ -4,6 +4,7 @@ import '../../domain/home_cubit.dart';
 import '../../domain/home_state.dart';
 import '../home_screen_state_manager.dart';
 import '../../../../core/widgets/custom_button.dart';
+import 'package:flutter/services.dart';
 
 class PomodoroTimer extends StatefulWidget {
   final HomeScreenStateManager? stateManager;
@@ -18,6 +19,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
   double _currentProgress = 0.0;
+  static const MethodChannel _notificationChannel = MethodChannel('com.example.moji_todo/notification');
 
   @override
   void initState() {
@@ -54,6 +56,10 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
           previous.totalSessions != current.totalSessions ||
           previous.isCountingUp != current.isCountingUp,
       builder: (context, state) {
+        final homeCubit = context.read<HomeCubit>();
+
+        final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
+        final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
         final totalDuration = (state.isWorkSession ? state.workDuration : state.breakDuration) * 60;
         final targetProgress = state.isCountingUp ? 0.0 : (totalDuration > 0 ? state.timerSeconds / totalDuration : 0.0);
 
@@ -73,19 +79,15 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
           _progressController.forward(from: 0.0);
         }
 
-        final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
-        final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
-
         return Column(
           children: [
             Text(
               state.isCountingUp
                   ? 'Đếm lên'
                   : (state.isWorkSession ? 'Phiên làm việc' : 'Phiên nghỉ'),
-              style: const TextStyle(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
               ),
             ),
             const SizedBox(height: 20),
@@ -98,9 +100,11 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                   child: CircularProgressIndicator(
                     value: state.isCountingUp ? null : _progressAnimation.value,
                     strokeWidth: 20,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      state.isTimerRunning ? Colors.blue : Colors.red,
+                      state.isTimerRunning
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.secondary,
                     ),
                   ),
                 ),
@@ -109,21 +113,20 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                   children: [
                     Text(
                       '$minutes:$seconds',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
                       ),
                     ),
                     Text(
                       state.isCountingUp
                           ? 'Counting Up'
-                          : (state.currentSession == 0
+                          : (state.currentSession ==0
                           ? 'No sessions'
                           : '${state.currentSession} of ${state.totalSessions} sessions'),
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 16,
-                        color: Colors.grey,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -141,8 +144,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                     widget.stateManager?.handleTimerAction('start');
                   }
                 },
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                textColor: Theme.of(context).colorScheme.onSecondary,
                 borderRadius: 20,
               ),
             if (state.isTimerRunning && !state.isPaused)
@@ -153,8 +156,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                     widget.stateManager?.handleTimerAction('pause');
                   }
                 },
-                backgroundColor: Colors.grey,
-                textColor: Colors.white,
+                backgroundColor: Theme.of(context).brightness == Brightness.light
+                    ? Colors.grey // #FF9E9E9E (light mode, khớp code cũ)
+                    : Colors.grey[700], // #616161 (dark mode)
+                textColor: Theme.of(context).brightness == Brightness.light
+                    ? Colors.white // Trắng trong light mode
+                    : Colors.black, // Đen trong dark mode
                 borderRadius: 20,
               ),
             if (state.isPaused)
@@ -168,8 +175,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                         widget.stateManager?.handleTimerAction('stop');
                       }
                     },
-                    backgroundColor: Colors.grey,
-                    textColor: Colors.white,
+                    backgroundColor: Theme.of(context).brightness == Brightness.light
+                        ? Colors.grey // #FF9E9E9E (light mode, khớp code cũ)
+                        : Colors.grey[700], // #616161 (dark mode)
+                    textColor: Theme.of(context).brightness == Brightness.light
+                        ? Colors.white // Trắng trong light mode
+                        : Colors.black, // Đen trong dark mode
                     borderRadius: 20,
                   ),
                   const SizedBox(width: 16),
@@ -180,8 +191,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                         widget.stateManager?.handleTimerAction('continue');
                       }
                     },
-                    backgroundColor: Colors.red,
-                    textColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                    textColor: Theme.of(context).colorScheme.onSecondary,
                     borderRadius: 20,
                   ),
                 ],

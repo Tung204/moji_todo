@@ -9,9 +9,520 @@ import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/sizes.dart';
 import '../../../../core/constants/strings.dart';
 
-// Widget chính cho Timer Mode Menu
 class TimerModeMenu extends StatelessWidget {
   const TimerModeMenu({super.key});
+
+  void _showTimerModeMenu(BuildContext context) {
+    final homeState = context.read<HomeCubit>().state;
+
+    bool isEditable = (!homeState.isTimerRunning && !homeState.isPaused) ||
+        (!homeState.isCountingUp && homeState.timerSeconds <= 0);
+
+    if (!isEditable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    String timerMode = homeState.timerMode;
+    int workDuration = homeState.workDuration;
+    int breakDuration = homeState.breakDuration;
+    bool soundEnabled = homeState.soundEnabled;
+    bool autoSwitch = homeState.autoSwitch;
+    String notificationSound = homeState.notificationSound;
+    int totalSessions = homeState.totalSessions;
+
+    TextEditingController workController = TextEditingController(text: workDuration.toString());
+    TextEditingController breakController = TextEditingController(text: breakDuration.toString());
+    TextEditingController sessionsController = TextEditingController(text: totalSessions.toString());
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, _, __) {
+        return Scaffold(
+          resizeToAvoidBottomInset: true,
+          backgroundColor: Colors.transparent,
+          body: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
+            ),
+            elevation: 10,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: Theme.of(context).brightness == Brightness.dark
+                      ? [const Color(0xFF2A2A2A), const Color(0xFF3A3A3A)]
+                      : [AppColors.backgroundGradientStart, AppColors.backgroundGradientEnd],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                    child: Text(
+                      AppStrings.timerModeTitle,
+                      style: GoogleFonts.inter(
+                        fontSize: AppSizes.titleFontSize,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).textTheme.titleLarge!.color
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 350),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SingleChildScrollView(
+                      child: StatefulBuilder(
+                        builder: (context, setState) {
+                          return Column(
+                            children: [
+                              _buildCard(
+                                context: context,
+                                child: DropdownButtonFormField<String>(
+                                  value: timerMode,
+                                  decoration: InputDecoration(
+                                    labelText: AppStrings.timerModeLabel,
+                                    labelStyle: GoogleFonts.inter(
+                                      fontSize: AppSizes.labelFontSize - 2,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : AppColors.textPrimary,
+                                    ),
+                                    filled: true,
+                                    fillColor: Theme.of(context).brightness == Brightness.dark
+                                        ? Theme.of(context).cardTheme.color
+                                        : Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: '25:00 - 00:00',
+                                      child: Text('25:00 - 00:00'),
+                                    ),
+                                    DropdownMenuItem(value: '00:00 - 0∞', child: Text('00:00 - 0∞')),
+                                    DropdownMenuItem(value: 'Tùy chỉnh', child: Text('Tùy chỉnh')),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      timerMode = value ?? '25:00 - 00:00';
+                                      if (timerMode == '25:00 - 00:00') {
+                                        workDuration = 25;
+                                        breakDuration = 5;
+                                        workController.text = '25';
+                                        breakController.text = '5';
+                                      } else if (timerMode == '00:00 - 0∞') {
+                                        workDuration = 0;
+                                        breakDuration = 0;
+                                        workController.text = '0';
+                                        breakController.text = '0';
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                              if (timerMode == 'Tùy chỉnh') ...[
+                                const SizedBox(height: AppSizes.spacing / 2),
+                                _buildCard(
+                                  context: context,
+                                  child: TextField(
+                                    controller: workController,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    decoration: InputDecoration(
+                                      labelText: AppStrings.workDurationLabel,
+                                      labelStyle: GoogleFonts.inter(
+                                        fontSize: AppSizes.labelFontSize - 2,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface
+                                            : AppColors.textPrimary,
+                                      ),
+                                      hintText: AppStrings.workDurationHelper,
+                                      hintStyle: GoogleFonts.inter(
+                                        fontSize: AppSizes.helperFontSize,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                            : AppColors.textDisabled,
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.timer,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                            : AppColors.textDisabled,
+                                      ),
+                                      filled: true,
+                                      fillColor: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).cardTheme.color
+                                          : Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    onSubmitted: (value) {
+                                      int? parsed = int.tryParse(value);
+                                      if (parsed == null || parsed < 1 || parsed > 480) {
+                                        workDuration = 25;
+                                        workController.text = '25';
+                                      } else {
+                                        workDuration = parsed;
+                                      }
+                                      setState(() {});
+                                    },
+                                    onChanged: (value) {
+                                      int? parsed = int.tryParse(value);
+                                      if (parsed != null && parsed >= 1 && parsed <= 480) {
+                                        workDuration = parsed;
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: AppSizes.spacing / 2),
+                                _buildCard(
+                                  context: context,
+                                  child: TextField(
+                                    controller: breakController,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    decoration: InputDecoration(
+                                      labelText: AppStrings.breakDurationLabel,
+                                      labelStyle: GoogleFonts.inter(
+                                        fontSize: AppSizes.labelFontSize - 2,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface
+                                            : AppColors.textPrimary,
+                                      ),
+                                      hintText: AppStrings.breakDurationHelper,
+                                      hintStyle: GoogleFonts.inter(
+                                        fontSize: AppSizes.helperFontSize,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                            : AppColors.textDisabled,
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.timer,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                            : AppColors.textDisabled,
+                                      ),
+                                      filled: true,
+                                      fillColor: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).cardTheme.color
+                                          : Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    onSubmitted: (value) {
+                                      int? parsed = int.tryParse(value);
+                                      if (parsed == null || parsed < 1 || parsed > 60) {
+                                        breakDuration = 5;
+                                        breakController.text = '5';
+                                      } else {
+                                        breakDuration = parsed;
+                                      }
+                                      setState(() {});
+                                    },
+                                    onChanged: (value) {
+                                      int? parsed = int.tryParse(value);
+                                      if (parsed != null && parsed >= 1 && parsed <= 60) {
+                                        breakDuration = parsed;
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: AppSizes.spacing / 2),
+                              _buildCard(
+                                context: context,
+                                child: TextField(
+                                  controller: sessionsController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  decoration: InputDecoration(
+                                    labelText: AppStrings.sessionsLabel,
+                                    labelStyle: GoogleFonts.inter(
+                                      fontSize: AppSizes.labelFontSize - 2,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : AppColors.textPrimary,
+                                    ),
+                                    hintText: AppStrings.sessionsHelper,
+                                    hintStyle: GoogleFonts.inter(
+                                      fontSize: AppSizes.helperFontSize,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                          : AppColors.textDisabled,
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.repeat,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                          : AppColors.textDisabled,
+                                    ),
+                                    filled: true,
+                                    fillColor: Theme.of(context).brightness == Brightness.dark
+                                        ? Theme.of(context).cardTheme.color
+                                        : Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  onSubmitted: (value) {
+                                    int? parsed = int.tryParse(value);
+                                    if (parsed == null || parsed < 1 || parsed > 10) {
+                                      totalSessions = 4;
+                                      sessionsController.text = '4';
+                                    } else {
+                                      totalSessions = parsed;
+                                    }
+                                    setState(() {});
+                                  },
+                                  onChanged: (value) {
+                                    int? parsed = int.tryParse(value);
+                                    if (parsed != null && parsed >= 1 && parsed <= 10) {
+                                      totalSessions = parsed;
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: AppSizes.spacing / 2),
+                              _buildCard(
+                                context: context,
+                                child: CheckboxListTile(
+                                  title: Text(
+                                    AppStrings.soundLabel,
+                                    style: GoogleFonts.inter(
+                                      fontSize: AppSizes.labelFontSize - 2,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    AppStrings.soundHelper,
+                                    style: GoogleFonts.inter(
+                                      fontSize: AppSizes.helperFontSize,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  value: soundEnabled,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      soundEnabled = value ?? true;
+                                    });
+                                  },
+                                  activeColor: Theme.of(context).colorScheme.secondary,
+                                  checkColor: Theme.of(context).colorScheme.onSecondary,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                              if (soundEnabled) ...[
+                                const SizedBox(height: AppSizes.spacing / 2),
+                                _buildCard(
+                                  context: context,
+                                  child: DropdownButtonFormField<String>(
+                                    value: notificationSound,
+                                    decoration: InputDecoration(
+                                      labelText: AppStrings.notificationSoundLabel,
+                                      labelStyle: GoogleFonts.inter(
+                                        fontSize: AppSizes.labelFontSize - 2,
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Theme.of(context).colorScheme.onSurface
+                                            : AppColors.textPrimary,
+                                      ),
+                                      filled: true,
+                                      fillColor: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).cardTheme.color
+                                          : Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(value: 'bell', child: Text('Bell')),
+                                      DropdownMenuItem(value: 'chime', child: Text('Chime')),
+                                      DropdownMenuItem(value: 'alarm', child: Text('Alarm')),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        notificationSound = value ?? 'bell';
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: AppSizes.spacing / 2),
+                              _buildCard(
+                                context: context,
+                                child: CheckboxListTile(
+                                  title: Text(
+                                    AppStrings.autoSwitchLabel,
+                                    style: GoogleFonts.inter(
+                                      fontSize: AppSizes.labelFontSize - 2,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    AppStrings.autoSwitchHelper,
+                                    style: GoogleFonts.inter(
+                                      fontSize: AppSizes.helperFontSize,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  value: autoSwitch,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      autoSwitch = value ?? false;
+                                    });
+                                  },
+                                  activeColor: Theme.of(context).colorScheme.secondary,
+                                  checkColor: Theme.of(context).colorScheme.onSecondary,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        CustomButton(
+                          label: AppStrings.cancel,
+                          onPressed: () => Navigator.pop(context),
+                          backgroundColor: AppColors.cancelButton,
+                          textColor: AppColors.textPrimary,
+                          borderRadius: 12,
+                        ),
+                        CustomButton(
+                          label: AppStrings.ok,
+                          onPressed: () {
+                            if (workController.text.isEmpty || workDuration < 1 || workDuration > 480) {
+                              workDuration = 25;
+                            }
+                            if (breakController.text.isEmpty || breakDuration < 1 || breakDuration > 60) {
+                              breakDuration = 5;
+                            }
+                            if (sessionsController.text.isEmpty || totalSessions < 1 || totalSessions > 10) {
+                              totalSessions = 4;
+                            }
+                            context.read<HomeCubit>().updateTimerMode(
+                              timerMode: timerMode,
+                              workDuration: workDuration,
+                              breakDuration: breakDuration,
+                              soundEnabled: soundEnabled,
+                              autoSwitch: autoSwitch,
+                              notificationSound: notificationSound,
+                              totalSessions: totalSessions,
+                            );
+                            Navigator.pop(context);
+                          },
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                          textColor: Theme.of(context).colorScheme.onSecondary,
+                          borderRadius: 12,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOut,
+          ),
+          child: ScaleTransition(
+            scale: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCard({required BuildContext context, required Widget child}) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).cardTheme.color
+          : AppColors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: child,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +537,19 @@ class TimerModeMenu extends StatelessWidget {
             (!state.isCountingUp && state.timerSeconds <= 0);
 
         return GestureDetector(
-          onTap: () => isEditable ? _showTimerModeDialog(context) : _showErrorSnackBar(context),
+          onTap: () {
+            if (isEditable) {
+              _showTimerModeMenu(context);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          },
           child: Tooltip(
             message: isEditable
                 ? 'Chỉnh Timer Mode'
@@ -37,14 +560,18 @@ class TimerModeMenu extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.hourglass_empty_rounded,
-                    color: isEditable ? AppColors.primary : AppColors.textDisabled,
+                    color: isEditable
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     size: AppSizes.iconSize,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Timer Mode',
                     style: GoogleFonts.inter(
-                      color: isEditable ? AppColors.primary : AppColors.textDisabled,
+                      color: isEditable
+                          ? Theme.of(context).colorScheme.secondary
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -56,464 +583,5 @@ class TimerModeMenu extends StatelessWidget {
         );
       },
     );
-  }
-
-  // Hiển thị SnackBar khi không thể chỉnh sửa
-  void _showErrorSnackBar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
-        backgroundColor: AppColors.snackbarError,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  // Hiển thị dialog chỉnh sửa Timer Mode
-  void _showTimerModeDialog(BuildContext context) {
-    final homeCubit = context.read<HomeCubit>();
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, _, __) => TimerModeDialog(homeCubit: homeCubit),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-          child: ScaleTransition(
-            scale: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-}
-
-// Widget cho Dialog chỉnh sửa Timer Mode
-class TimerModeDialog extends StatefulWidget {
-  final HomeCubit homeCubit;
-
-  const TimerModeDialog({super.key, required this.homeCubit});
-
-  @override
-  State<TimerModeDialog> createState() => _TimerModeDialogState();
-}
-
-class _TimerModeDialogState extends State<TimerModeDialog> {
-  late String _timerMode;
-  late int _workDuration;
-  late int _breakDuration;
-  late bool _soundEnabled;
-  late bool _autoSwitch;
-  late String _notificationSound;
-  late int _totalSessions;
-  late TextEditingController _workController;
-  late TextEditingController _breakController;
-  late TextEditingController _sessionsController;
-
-  @override
-  void initState() {
-    super.initState();
-    final state = widget.homeCubit.state;
-    _timerMode = state.timerMode;
-    _workDuration = state.workDuration;
-    _breakDuration = state.breakDuration;
-    _soundEnabled = state.soundEnabled;
-    _autoSwitch = state.autoSwitch;
-    _notificationSound = state.notificationSound;
-    _totalSessions = state.totalSessions;
-    _workController = TextEditingController(text: _workDuration.toString());
-    _breakController = TextEditingController(text: _breakDuration.toString());
-    _sessionsController = TextEditingController(text: _totalSessions.toString());
-  }
-
-  @override
-  void dispose() {
-    _workController.dispose();
-    _breakController.dispose();
-    _sessionsController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.transparent,
-      body: Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
-        ),
-        elevation: 10,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [
-                AppColors.backgroundGradientStart,
-                AppColors.backgroundGradientEnd,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [_buildTitle(), _buildForm(), _buildButtons()],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Widget tiêu đề
-  Widget _buildTitle() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-      child: Text(
-        AppStrings.timerModeTitle,
-        style: GoogleFonts.inter(
-          fontSize: AppSizes.titleFontSize,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-        ),
-      ),
-    );
-  }
-
-  // Widget form nhập liệu
-  Widget _buildForm() {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 350),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildTimerModeDropdown(),
-            if (_timerMode == 'Tùy chỉnh') ...[
-              const SizedBox(height: AppSizes.spacing / 2),
-              _buildWorkDurationField(),
-              const SizedBox(height: AppSizes.spacing / 2),
-              _buildBreakDurationField(),
-            ],
-            const SizedBox(height: AppSizes.spacing / 2),
-            _buildSessionsField(),
-            const SizedBox(height: AppSizes.spacing / 2),
-            _buildSoundCheckbox(),
-            if (_soundEnabled) ...[
-              const SizedBox(height: AppSizes.spacing / 2),
-              _buildNotificationSoundDropdown(),
-            ],
-            const SizedBox(height: AppSizes.spacing / 2),
-            _buildAutoSwitchCheckbox(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Dropdown chọn Timer Mode
-  Widget _buildTimerModeDropdown() {
-    return _buildCard(
-      child: DropdownButtonFormField<String>(
-        value: _timerMode,
-        decoration: _inputDecoration(label: AppStrings.timerModeLabel),
-        items: const [
-          DropdownMenuItem(value: '25:00 - 00:00', child: Text('25:00 - 00:00')),
-          DropdownMenuItem(value: '00:00 - 0∞', child: Text('00:00 - 0∞')),
-          DropdownMenuItem(value: 'Tùy chỉnh', child: Text('Tùy chỉnh')),
-        ],
-        onChanged: (value) {
-          setState(() {
-            _timerMode = value ?? '25:00 - 00:00';
-            if (_timerMode == '25:00 - 00:00') {
-              _workDuration = 25;
-              _breakDuration = 5;
-              _workController.text = '25';
-              _breakController.text = '5';
-            } else if (_timerMode == '00:00 - 0∞') {
-              _workDuration = 0;
-              _breakDuration = 0;
-              _workController.text = '0';
-              _breakController.text = '0';
-            }
-          });
-        },
-      ),
-    );
-  }
-
-  // TextField thời gian làm việc
-  Widget _buildWorkDurationField() {
-    return _buildCard(
-      child: TextField(
-        controller: _workController,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: _inputDecoration(
-          label: AppStrings.workDurationLabel,
-          hint: AppStrings.workDurationHelper,
-          icon: Icons.timer,
-        ),
-        onSubmitted: (value) => _validateWorkDuration(value),
-        onChanged: (value) {
-          if (int.tryParse(value) case int parsed when parsed >= 1 && parsed <= 480) {
-            _workDuration = parsed;
-          }
-        },
-      ),
-    );
-  }
-
-  // TextField thời gian nghỉ
-  Widget _buildBreakDurationField() {
-    return _buildCard(
-      child: TextField(
-        controller: _breakController,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: _inputDecoration(
-          label: AppStrings.breakDurationLabel,
-          hint: AppStrings.breakDurationHelper,
-          icon: Icons.timer,
-        ),
-        onSubmitted: (value) => _validateBreakDuration(value),
-        onChanged: (value) {
-          if (int.tryParse(value) case int parsed when parsed >= 1 && parsed <= 60) {
-            _breakDuration = parsed;
-          }
-        },
-      ),
-    );
-  }
-
-  // TextField số phiên
-  Widget _buildSessionsField() {
-    return _buildCard(
-      child: TextField(
-        controller: _sessionsController,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: _inputDecoration(
-          label: AppStrings.sessionsLabel,
-          hint: AppStrings.sessionsHelper,
-          icon: Icons.repeat,
-        ),
-        onSubmitted: (value) => _validateSessions(value),
-        onChanged: (value) {
-          if (int.tryParse(value) case int parsed when parsed >= 1 && parsed <= 10) {
-            _totalSessions = parsed;
-          }
-        },
-      ),
-    );
-  }
-
-  // Checkbox bật/tắt âm thanh
-  Widget _buildSoundCheckbox() {
-    return _buildCard(
-      child: CheckboxListTile(
-        title: Text(
-          AppStrings.soundLabel,
-          style: GoogleFonts.inter(
-            fontSize: AppSizes.labelFontSize - 2,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        subtitle: Text(
-          AppStrings.soundHelper,
-          style: GoogleFonts.inter(
-            fontSize: AppSizes.helperFontSize,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        value: _soundEnabled,
-        onChanged: (value) => setState(() => _soundEnabled = value ?? true),
-        activeColor: AppColors.primary,
-        checkColor: Colors.white,
-        contentPadding: EdgeInsets.zero,
-      ),
-    );
-  }
-
-  // Dropdown chọn âm thanh thông báo
-  Widget _buildNotificationSoundDropdown() {
-    return _buildCard(
-      child: DropdownButtonFormField<String>(
-        value: _notificationSound,
-        decoration: _inputDecoration(label: AppStrings.notificationSoundLabel),
-        items: const [
-          DropdownMenuItem(value: 'bell', child: Text('Bell')),
-          DropdownMenuItem(value: 'chime', child: Text('Chime')),
-          DropdownMenuItem(value: 'alarm', child: Text('Alarm')),
-        ],
-        onChanged: (value) => setState(() => _notificationSound = value ?? 'bell'),
-      ),
-    );
-  }
-
-  // Checkbox tự động chuyển đổi
-  Widget _buildAutoSwitchCheckbox() {
-    return _buildCard(
-      child: CheckboxListTile(
-        title: Text(
-          AppStrings.autoSwitchLabel,
-          style: GoogleFonts.inter(
-            fontSize: AppSizes.labelFontSize - 2,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        subtitle: Text(
-          AppStrings.autoSwitchHelper,
-          style: GoogleFonts.inter(
-            fontSize: AppSizes.helperFontSize,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        value: _autoSwitch,
-        onChanged: (value) => setState(() => _autoSwitch = value ?? false),
-        activeColor: AppColors.primary,
-        checkColor: Colors.white,
-        contentPadding: EdgeInsets.zero,
-      ),
-    );
-  }
-
-  // Nút Cancel và OK
-  Widget _buildButtons() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          CustomButton(
-            label: AppStrings.cancel,
-            onPressed: () => Navigator.pop(context),
-            backgroundColor: AppColors.cancelButton,
-            textColor: AppColors.textPrimary,
-            borderRadius: 12,
-          ),
-          CustomButton(
-            label: AppStrings.ok,
-            onPressed: _saveSettings,
-            backgroundColor: AppColors.primary,
-            textColor: Colors.white,
-            borderRadius: 12,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // InputDecoration chung
-  InputDecoration _inputDecoration({
-    required String label,
-    String? hint,
-    IconData? icon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: GoogleFonts.inter(
-        fontSize: AppSizes.labelFontSize - 2,
-        color: AppColors.textPrimary,
-      ),
-      hintText: hint,
-      hintStyle: GoogleFonts.inter(
-        fontSize: AppSizes.helperFontSize,
-        color: AppColors.textDisabled,
-      ),
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.textDisabled) : null,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
-      ),
-    );
-  }
-
-  // Card wrapper
-  Widget _buildCard({required Widget child}) {
-    return Card(
-      elevation: 0,
-      color: AppColors.cardBackground,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(padding: const EdgeInsets.all(12), child: child),
-    );
-  }
-
-  // Validate thời gian làm việc
-  void _validateWorkDuration(String value) {
-    final parsed = int.tryParse(value);
-    setState(() {
-      if (parsed == null || parsed < 1 || parsed > 480) {
-        _workDuration = 25;
-        _workController.text = '25';
-      } else {
-        _workDuration = parsed;
-      }
-    });
-  }
-
-  // Validate thời gian nghỉ
-  void _validateBreakDuration(String value) {
-    final parsed = int.tryParse(value);
-    setState(() {
-      if (parsed == null || parsed < 1 || parsed > 60) {
-        _breakDuration = 5;
-        _breakController.text = '5';
-      } else {
-        _breakDuration = parsed;
-      }
-    });
-  }
-
-  // Validate số phiên
-  void _validateSessions(String value) {
-    final parsed = int.tryParse(value);
-    setState(() {
-      if (parsed == null || parsed < 1 || parsed > 10) {
-        _totalSessions = 4;
-        _sessionsController.text = '4';
-      } else {
-        _totalSessions = parsed;
-      }
-    });
-  }
-
-  // Lưu cài đặt
-  void _saveSettings() {
-    if (_workController.text.isEmpty || _workDuration < 1 || _workDuration > 480) {
-      _workDuration = 25;
-    }
-    if (_breakController.text.isEmpty || _breakDuration < 1 || _breakDuration > 60) {
-      _breakDuration = 5;
-    }
-    if (_sessionsController.text.isEmpty || _totalSessions < 1 || _totalSessions > 10) {
-      _totalSessions = 4;
-    }
-    widget.homeCubit.updateTimerMode(
-      timerMode: _timerMode,
-      workDuration: _workDuration,
-      breakDuration: _breakDuration,
-      soundEnabled: _soundEnabled,
-      autoSwitch: _autoSwitch,
-      notificationSound: _notificationSound,
-      totalSessions: _totalSessions,
-    );
-    Navigator.pop(context);
   }
 }
