@@ -1,28 +1,47 @@
 <p align="center">
   <a href="https://github.com/Tung204/dntu_focus">
-    <img src="assets/images/logo_moji.png" width="100">
+    <img src="assets/images/logo_moji.png" width="120" alt="DNTU-Focus logo"/>
   </a>
 </p>
 
+<h1 align="center">DNTU-Focus</h1>
+
 <p align="center">
-<a href="https://github.com/Tung204/dntu_focus">
-<img alt="Awesome" src="https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg" />
-</a>
-<a href="https://github.com/Tung204/dntu_focus/blob/main/LICENSE">
-<img alt="Giấy phép: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
-</a>
+  Ứng dụng Pomodoro hỗ trợ học tập, tích hợp AI ChatBot và quản lý công việc thông minh.
 </p>
 
-[DNTU-Focus](https://github.com/Tung204/dntu_focus) là một ứng dụng di động được xây dựng bằng [Flutter](https://flutter.dev/) để nâng cao năng suất học tập của sinh viên thông qua kỹ thuật [Pomodoro](https://en.wikipedia.org/wiki/Pomodoro_Technique), tích hợp ChatBot AI. Được phát triển bởi sinh viên [Đại học Công nghệ Đồng Nai (DNTU)](https://dntu.edu.vn/), ứng dụng cung cấp quản lý công việc, thông báo, và môi trường học tập không bị phân tâm.
-Nếu bạn yêu thích dự án 📱, hãy ủng hộ bằng cách 👍 | ⭐ | 👏 trên [GitHub](https://github.com/Tung204/dntu_focus)!
 <p align="center">
-  Được phát triển như một dự án nghiên cứu tại Đại học Công nghệ Đồng Nai, DNTU-Focus kết hợp các công nghệ hiện đại để cung cấp công cụ học tập thông minh cho sinh viên.
+  <a href="https://github.com/Tung204/dntu_focus">
+    <img alt="Awesome" src="https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg"/>
+  </a>
+  <a href="https://github.com/Tung204/dntu_focus/blob/main/LICENSE">
+    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"/>
+  </a>
 </p>
 
-## Nhóm dự án
+---
 
-- [Nguyễn Sơn Tùng](https://github.com/Tung204) – Chủ nhiệm dự án  
-- [Võ Văn Tín](https://github.com/TINVO04) – Nhà phát triển
+## 👥 Nhóm phát triển
+
+| Tên | Vai trò | GitHub |
+|-----|---------|--------|
+| Nguyễn Sơn Tùng | Chủ nhiệm dự án | [@Tung204](https://github.com/Tung204) |
+| Võ Văn Tín     | Nhà phát triển   | [@TINVO04](https://github.com/TINVO04) |
+
+---
+
+## 📝 Giới thiệu
+
+**[DNTU-Focus](https://github.com/Tung204/dntu_focus)** là ứng dụng di động được phát triển bằng [Flutter](https://flutter.dev/), sử dụng kỹ thuật [Pomodoro](https://en.wikipedia.org/wiki/Pomodoro_Technique) và tích hợp ChatBot AI để nâng cao hiệu suất học tập. Ứng dụng được phát triển bởi sinh viên [Đại học Công nghệ Đồng Nai (DNTU)](https://dntu.edu.vn/), hỗ trợ quản lý công việc, lịch học, và tạo môi trường học tập tập trung.
+
+📱 Nếu bạn thấy dự án hữu ích, hãy **⭐ Star**, **👍 Like**, hoặc **👏 Share** nhé!
+
+---
+
+<p align="center">
+  <em>Phát triển như một dự án nghiên cứu tại Đại học Công nghệ Đồng Nai – kết hợp công nghệ hiện đại và trải nghiệm người dùng.</em>
+</p>
+
 
 ## Trình diễn
 
