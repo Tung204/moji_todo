@@ -58,6 +58,7 @@ class AppData extends InheritedWidget {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Add this line to ensure the method channel is registered
   const MethodChannel('com.example.moji_todo/notification');
 
   await Firebase.initializeApp();
@@ -67,6 +68,7 @@ void main() async {
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
   Hive.registerAdapter(TagAdapter());
+
   final taskBox = await Hive.openBox<Task>('tasks');
   final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
   final projectBox = await Hive.openBox<Project>('projects');

@@ -23,17 +23,6 @@ class ProjectPicker extends StatefulWidget {
 class _ProjectPickerState extends State<ProjectPicker> {
   late String? selectedProject;
 
-  final Map<String, Color> projectColors = {
-    'General': Colors.green,
-    'Pomodoro App': Colors.red,
-    'Fashion App': Colors.green,
-    'AI Chatbot App': Colors.cyan,
-    'Dating App': Colors.pink,
-    'Quiz App': Colors.blue,
-    'News App': Colors.teal,
-    'Work Project': Colors.orange,
-  };
-
   @override
   void initState() {
     super.initState();
@@ -87,29 +76,30 @@ class _ProjectPickerState extends State<ProjectPicker> {
               builder: (context, Box<Project> box, _) {
                 final availableProjects = box.values
                     .where((project) => !project.isArchived)
-                    .map((project) => project.name)
-                    .toList();
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: availableProjects.length,
-                  itemBuilder: (context, index) {
-                    final project = availableProjects[index];
-                    final isSelected = selectedProject == project;
-                    final projectColor = projectColors[project] ?? Colors.grey;
-                    return ListTile(
-                      leading: Icon(
-                        Icons.work,
-                        color: projectColor,
-                        size: 24,
-                      ),
-                      title: Text(project),
-                      trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
-                      onTap: () {
-                        _updateProject(project);
-                      },
-                    );
-                  },
+                    .toList(); // SỬA: Lấy danh sách Project thay vì chỉ tên
+                return SizedBox(
+                  height: 252, // Giới hạn 4.5 dòng (56dp * 4.5)
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: availableProjects.length,
+                    itemBuilder: (context, index) {
+                      final project = availableProjects[index];
+                      final isSelected = selectedProject == project.name;
+                      return ListTile(
+                        leading: Icon(
+                          Icons.work,
+                          color: project.color, // SỬA: Lấy màu từ Project.color
+                          size: 24,
+                        ),
+                        title: Text(project.name),
+                        trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
+                        onTap: () {
+                          _updateProject(project.name);
+                        },
+                      );
+                    },
+                  ),
                 );
               },
             ),

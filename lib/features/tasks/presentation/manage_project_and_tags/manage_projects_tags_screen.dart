@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
+import '../../data/models/project_model.dart';
 import '../../data/models/project_tag_repository.dart';
+import '../../data/models/tag_model.dart';
 import '../add_project_and_tags/add_project_screen.dart';
 import '../add_project_and_tags/add_tag_screen.dart';
 import 'edit_project_and_tags/edit_project_screen.dart';
@@ -69,242 +73,244 @@ class _ManageProjectsTagsScreenState extends State<ManageProjectsTagsScreen> wit
         controller: _tabController,
         children: [
           // Tab Projects
-          Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: widget.repository.getProjects().length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == widget.repository.getProjects().length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ListTile(
-                            title: const Text(
-                              'Archived Projects',
-                              style: TextStyle(fontSize: 16, color: Colors.black),
-                            ),
-                            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ArchivedProjectsScreen(repository: widget.repository),
+          ValueListenableBuilder( // SỬA: Thêm ValueListenableBuilder để tự động làm mới
+            valueListenable: widget.repository.projectBox.listenable(),
+            builder: (context, Box<Project> box, _) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: widget.repository.getProjects().length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == widget.repository.getProjects().length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ListTile(
+                                title: const Text(
+                                  'Archived Projects',
+                                  style: TextStyle(fontSize: 16, color: Colors.black),
                                 ),
-                              ).then((_) => setState(() {}));
-                            },
-                          ),
-                        ),
-                      );
-                    }
-
-                    final project = widget.repository.getProjects()[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.work, // Biểu tượng balo
-                            color: project.color,
-                            size: 40,
-                          ),
-                          title: Text(
-                            project.name,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                          ),
-                          trailing: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: Colors.grey),
-                            onSelected: (value) {
-                              if (value == 'Edit') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditProjectScreen(
-                                      repository: widget.repository,
-                                      project: project,
-                                      index: index,
-                                      onProjectUpdated: () {
-                                        setState(() {});
-                                      },
+                                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ArchivedProjectsScreen(repository: widget.repository),
                                     ),
+                                  ); // SỬA: Không cần then setState vì ValueListenableBuilder sẽ tự làm mới
+                                },
+                              ),
+                            ),
+                          );
+                        }
+
+                        final project = widget.repository.getProjects()[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.work,
+                                color: project.color,
+                                size: 40,
+                              ),
+                              title: Text(
+                                project.name,
+                                style: const TextStyle(fontSize: 16, color: Colors.black),
+                              ),
+                              trailing: PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                                onSelected: (value) {
+                                  if (value == 'Edit') {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditProjectScreen(
+                                          repository: widget.repository,
+                                          project: project,
+                                          index: index,
+                                          onProjectUpdated: () {}, // SỬA: Không cần setState
+                                        ),
+                                      ),
+                                    );
+                                  } else if (value == 'Lưu trữ') {
+                                    widget.repository.archiveProject(index);
+                                    // SỬA: Không cần setState vì ValueListenableBuilder sẽ tự làm mới
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'Edit',
+                                    child: Text('Edit'),
                                   ),
-                                );
-                              } else if (value == 'Lưu trữ') {
-                                widget.repository.archiveProject(index);
-                                setState(() {});
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'Edit',
-                                child: Text('Edit'),
+                                  const PopupMenuItem(
+                                    value: 'Lưu trữ',
+                                    child: Text('Lưu trữ'),
+                                  ),
+                                ],
                               ),
-                              const PopupMenuItem(
-                                value: 'Lưu trữ',
-                                child: Text('Lưu trữ'),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddProjectScreen(
-                          repository: widget.repository,
-                          onProjectAdded: () {
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Add New Project',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.blue,
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-            ],
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddProjectScreen(
+                              repository: widget.repository,
+                              onProjectAdded: () {}, // SỬA: Không cần setState
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Add New Project',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           // Tab Tags
-          Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: widget.repository.getTags().length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == widget.repository.getTags().length) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ListTile(
-                            title: const Text(
-                              'Archived Tags',
-                              style: TextStyle(fontSize: 16, color: Colors.black),
-                            ),
-                            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ArchivedTagsScreen(repository: widget.repository),
+          ValueListenableBuilder( // SỬA: Thêm ValueListenableBuilder để tự động làm mới
+            valueListenable: widget.repository.tagBox.listenable(),
+            builder: (context, Box<Tag> box, _) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: widget.repository.getTags().length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == widget.repository.getTags().length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ListTile(
+                                title: const Text(
+                                  'Archived Tags',
+                                  style: TextStyle(fontSize: 16, color: Colors.black),
                                 ),
-                              ).then((_) => setState(() {}));
-                            },
-                          ),
-                        ),
-                      );
-                    }
-
-                    final tag = widget.repository.getTags()[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.label, // Biểu tượng thẻ
-                            color: tag.textColor,
-                            size: 40,
-                          ),
-                          title: Text(
-                            tag.name,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                          ),
-                          trailing: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: Colors.grey),
-                            onSelected: (value) {
-                              if (value == 'Edit') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditTagScreen(
-                                      repository: widget.repository,
-                                      tag: tag,
-                                      index: index,
-                                      onTagUpdated: () {
-                                        setState(() {});
-                                      },
+                                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ArchivedTagsScreen(repository: widget.repository),
                                     ),
+                                  ); // SỬA: Không cần then setState
+                                },
+                              ),
+                            ),
+                          );
+                        }
+
+                        final tag = widget.repository.getTags()[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.label,
+                                color: tag.textColor,
+                                size: 40,
+                              ),
+                              title: Text(
+                                tag.name,
+                                style: const TextStyle(fontSize: 16, color: Colors.black),
+                              ),
+                              trailing: PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                                onSelected: (value) {
+                                  if (value == 'Edit') {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditTagScreen(
+                                          repository: widget.repository,
+                                          tag: tag,
+                                          index: index,
+                                          onTagUpdated: () {}, // SỬA: Không cần setState
+                                        ),
+                                      ),
+                                    );
+                                  } else if (value == 'Lưu trữ') {
+                                    widget.repository.archiveTag(index);
+                                    // SỬA: Không cần setState
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'Edit',
+                                    child: Text('Edit'),
                                   ),
-                                );
-                              } else if (value == 'Lưu trữ') {
-                                widget.repository.archiveTag(index);
-                                setState(() {});
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'Edit',
-                                child: Text('Edit'),
+                                  const PopupMenuItem(
+                                    value: 'Lưu trữ',
+                                    child: Text('Lưu trữ'),
+                                  ),
+                                ],
                               ),
-                              const PopupMenuItem(
-                                value: 'Lưu trữ',
-                                child: Text('Lưu trữ'),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddTagScreen(
-                          repository: widget.repository,
-                          onTagAdded: () {
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Add New Tag',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.blue,
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-            ],
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddTagScreen(
+                              repository: widget.repository,
+                              onTagAdded: () {}, // SỬA: Không cần setState
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Add New Tag',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

@@ -23,17 +23,6 @@ class TagsPicker extends StatefulWidget {
 class _TagsPickerState extends State<TagsPicker> {
   late List<String> selectedTags;
 
-  final Map<String, Color> tagColors = {
-    'Urgent': Colors.red,
-    'Personal': Colors.green,
-    'Work': Colors.blue,
-    'Home': Colors.cyan,
-    'Important': Colors.orange,
-    'Design': Colors.lightGreen,
-    'Research': Colors.brown,
-    'Productive': Colors.purple,
-  };
-
   @override
   void initState() {
     super.initState();
@@ -91,29 +80,30 @@ class _TagsPickerState extends State<TagsPicker> {
               builder: (context, Box<Tag> box, _) {
                 final availableTags = box.values
                     .where((tag) => !tag.isArchived)
-                    .map((tag) => tag.name)
-                    .toList();
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: availableTags.length,
-                  itemBuilder: (context, index) {
-                    final tag = availableTags[index];
-                    final isSelected = selectedTags.contains(tag);
-                    final tagColor = tagColors[tag] ?? Colors.grey;
-                    return ListTile(
-                      leading: Icon(
-                        Icons.local_offer,
-                        color: tagColor,
-                        size: 24,
-                      ),
-                      title: Text(tag),
-                      trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
-                      onTap: () {
-                        _updateTags(tag);
-                      },
-                    );
-                  },
+                    .toList(); // SỬA: Lấy danh sách Tag thay vì chỉ tên
+                return SizedBox(
+                  height: 252, // Giới hạn 4.5 dòng (56dp * 4.5)
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: availableTags.length,
+                    itemBuilder: (context, index) {
+                      final tag = availableTags[index];
+                      final isSelected = selectedTags.contains(tag.name);
+                      return ListTile(
+                        leading: Icon(
+                          Icons.local_offer,
+                          color: tag.textColor, // SỬA: Lấy màu từ Tag.textColor
+                          size: 24,
+                        ),
+                        title: Text(tag.name),
+                        trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
+                        onTap: () {
+                          _updateTags(tag.name);
+                        },
+                      );
+                    },
+                  ),
                 );
               },
             ),

@@ -46,7 +46,10 @@ class TaskListScreen extends StatelessWidget {
         }
 
         final categorizedTasks = context.read<TaskCubit>().getCategorizedTasks();
-        final tasks = categorizedTasks[category] ?? [];
+        final tasksByProject = context.read<TaskCubit>().getTasksByProject();
+        final tasks = categorizedTasks.containsKey(category)
+            ? categorizedTasks[category]!
+            : tasksByProject[category] ?? [];
         final completedTasks = tasks.where((task) => task.isCompleted == true).toList();
         final waitingTasks = tasks.where((task) => task.isCompleted != true).toList();
 

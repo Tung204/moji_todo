@@ -313,6 +313,8 @@ class TaskCubit extends Cubit<TaskState> {
 
     for (var task in state.tasks) {
       if (task.userId != user.uid) continue;
+      // SỬA: Loại bỏ task trong thùng rác
+      if (task.category == 'Trash') continue;
       final project = task.project ?? 'General';
       if (!tasksByProject.containsKey(project)) {
         tasksByProject[project] = [];

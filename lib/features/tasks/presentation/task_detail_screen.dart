@@ -116,13 +116,14 @@ class TaskDetailScreen extends StatelessWidget {
                                       SnackBar(
                                         content: Text('Task đã được xóa vĩnh viễn!',style: Theme.of(context).textTheme.bodyMedium,),
                                         backgroundColor: Colors.red,
+                                        duration: Duration(seconds: 2),
                                       ),
                                     );
                                   } else {
                                     await context.read<TaskCubit>().updateTask(
                                       task!.copyWith(
                                         category: 'Trash',
-                                        originalCategory: task!.category ?? 'Completed',
+                                        originalCategory: task!.category ?? 'Planned',
                                       ),
                                     );
                                     Navigator.pop(dialogContext);
@@ -131,6 +132,7 @@ class TaskDetailScreen extends StatelessWidget {
                                       SnackBar(
                                         content: Text('Task đã được chuyển vào Thùng rác!', style: Theme.of(context).textTheme.bodyMedium,),
                                         backgroundColor: Colors.red,
+                                        duration: Duration(seconds: 2),
                                       ),
                                     );
                                   }
@@ -142,6 +144,7 @@ class TaskDetailScreen extends StatelessWidget {
                                     SnackBar(
                                       content: Text('Lỗi: $e',style: Theme.of(context).textTheme.bodyMedium,),
                                       backgroundColor: Colors.red,
+                                      duration: Duration(seconds: 2),
                                     ),
                                   );
                                 }
@@ -167,6 +170,7 @@ class TaskDetailScreen extends StatelessWidget {
                                       const SnackBar(
                                         content: Text('Task đã được khôi phục!'),
                                         backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
                                       ),
                                     );
                                   } catch (e) {
@@ -177,6 +181,7 @@ class TaskDetailScreen extends StatelessWidget {
                                       SnackBar(
                                         content: Text('Lỗi khi khôi phục: $e'),
                                         backgroundColor: Colors.red,
+                                        duration: Duration(seconds: 2),
                                       ),
                                     );
                                   }

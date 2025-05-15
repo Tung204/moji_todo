@@ -17,21 +17,24 @@ class ProjectAdapter extends TypeAdapter<Project> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Project(
-      name: fields[0] as String,
-      color: Color(fields[1] as int), // Truyền color từ fields[1]
-      isArchived: fields[2] as bool? ?? false,
+      id: fields[0] as String,
+      name: fields[1] as String,
+      color: Color(fields[2] as int), // SỬA: Đảm bảo truyền color vào constructor
+      isArchived: fields[3] as bool? ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, Project obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
-      ..write(obj.name)
+      ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.colorValue)
+      ..write(obj.name)
       ..writeByte(2)
+      ..write(obj.colorValue)
+      ..writeByte(3)
       ..write(obj.isArchived);
   }
 

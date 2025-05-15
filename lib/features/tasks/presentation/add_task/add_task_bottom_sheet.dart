@@ -27,6 +27,7 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
   String? _priority;
   List<String> _tags = [];
   String? _project;
+  String? _titleError; // THÊM: Biến lưu thông báo lỗi cho TextField
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +44,20 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Add a Task...',
                 border: InputBorder.none,
+                errorText: _titleError, // THÊM: Hiển thị lỗi ngay dưới TextField
+                errorStyle: const TextStyle(color: Colors.red), // Tùy chỉnh kiểu lỗi
               ),
+              onChanged: (value) {
+                // THÊM: Xóa lỗi khi người dùng bắt đầu nhập
+                if (_titleError != null && value.isNotEmpty) {
+                  setState(() {
+                    _titleError = null;
+                  });
+                }
+              },
             ),
             const SizedBox(height: 16),
             const Text(
@@ -173,20 +184,26 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_titleController.text.isNotEmpty) {
-                      final task = Task(
-                        id: DateTime.now().millisecondsSinceEpoch,
-                        title: _titleController.text,
-                        estimatedPomodoros: _estimatedPomodoros,
-                        completedPomodoros: 0,
-                        dueDate: _dueDate,
-                        priority: _priority,
-                        tags: _tags,
-                        project: _project,
-                      );
-                      context.read<TaskCubit>().addTask(task);
-                      Navigator.pop(context);
+                    if (_titleController.text.isEmpty) {
+                      setState(() {
+                        _titleError = 'Vui lòng nhập tên task!'; // THÊM: Đặt lỗi cho TextField
+                      });
+                      return;
                     }
+                    // SỬA: Gán dueDate mặc định là hôm nay nếu không chọn
+                    final dueDate = _dueDate ?? DateTime.now();
+                    final task = Task(
+                      id: DateTime.now().millisecondsSinceEpoch,
+                      title: _titleController.text,
+                      estimatedPomodoros: _estimatedPomodoros,
+                      completedPomodoros: 0,
+                      dueDate: dueDate,
+                      priority: _priority, // Có thể null
+                      tags: _tags, // Có thể rỗng
+                      project: _project, // Có thể null
+                    );
+                    context.read<TaskCubit>().addTask(task);
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
