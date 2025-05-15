@@ -1,4 +1,4 @@
-[<img src="assets/images/logo_moji.png" align="center" width="50">](https://github.com/Tung204/dntu_focus)
+[<img src="assets/images/logo_moji.png" align="center" width="250">](https://github.com/Tung204/dntu_focus)
 
 <p align="center">
 <a href="https://github.com/Tung204/dntu_focus">
@@ -15,7 +15,7 @@ Nếu bạn yêu thích dự án 📱, hãy ủng hộ bằng cách 👍 | ⭐ |
 
 <p align="center">
   <a href="https://dntu.edu.vn/">
-    <img src="assets/images/logo_moji.png" width="450" alt="Logo DNTU" style="margin: 20px auto;" />
+    <img src="assets/images/logo_moji.png" width="50" alt="Logo DNTU" style="margin: 20px auto;" />
   </a>
 </p>
 
