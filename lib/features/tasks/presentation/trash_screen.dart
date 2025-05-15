@@ -32,12 +32,12 @@ class _TrashScreenState extends State<TrashScreen> {
             : trashTasks.where((task) => task.title?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false).toList();
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.grey),
+              icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
               onPressed: () {
                 if (state.isSelectionMode) {
                   context.read<TaskCubit>().toggleSelectionMode();
@@ -49,19 +49,11 @@ class _TrashScreenState extends State<TrashScreen> {
             title: state.isSelectionMode
                 ? Text(
               '${state.selectedTasks.length} đã chọn',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             )
-                : const Text(
+                : Text(
               'Thùng rác',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             centerTitle: true,
             actions: state.isSelectionMode
@@ -72,15 +64,21 @@ class _TrashScreenState extends State<TrashScreen> {
                   try {
                     await context.read<TaskCubit>().restoreSelectedTasks();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã khôi phục các task!'),
+                      SnackBar(
+                        content: Text(
+                          'Đã khôi phục các task!',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                         backgroundColor: Colors.green,
                       ),
                     );
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Lỗi khi khôi phục: $e'),
+                        content: Text(
+                          'Lỗi khi khôi phục: $e',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -97,11 +95,17 @@ class _TrashScreenState extends State<TrashScreen> {
                       return StatefulBuilder(
                         builder: (context, setState) {
                           return AlertDialog(
-                            title: const Text('Xóa vĩnh viễn'),
+                            title: Text(
+                              'Xóa vĩnh viễn',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('Bạn có chắc muốn xóa vĩnh viễn ${state.selectedTasks.length} task không?'),
+                                Text(
+                                  'Bạn có chắc muốn xóa vĩnh viễn ${state.selectedTasks.length} task không?',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
                                 if (isLoading) ...[
                                   const SizedBox(height: 16),
                                   const CircularProgressIndicator(),
@@ -115,7 +119,10 @@ class _TrashScreenState extends State<TrashScreen> {
                                     : () {
                                   Navigator.pop(dialogContext);
                                 },
-                                child: const Text('Hủy'),
+                                child: Text(
+                                  'Hủy',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
                               ),
                               TextButton(
                                 onPressed: isLoading
@@ -128,8 +135,11 @@ class _TrashScreenState extends State<TrashScreen> {
                                     await context.read<TaskCubit>().deleteSelectedTasks();
                                     Navigator.pop(dialogContext);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Đã xóa vĩnh viễn các task!'),
+                                      SnackBar(
+                                        content: Text(
+                                          'Đã xóa vĩnh viễn các task!',
+                                          style: Theme.of(context).textTheme.bodyMedium,
+                                        ),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -139,15 +149,18 @@ class _TrashScreenState extends State<TrashScreen> {
                                     });
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('Lỗi khi xóa: $e'),
+                                        content: Text(
+                                          'Lỗi khi xóa: $e',
+                                          style: Theme.of(context).textTheme.bodyMedium,
+                                        ),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
                                   }
                                 },
-                                child: const Text(
+                                child: Text(
                                   'Xóa vĩnh viễn',
-                                  style: TextStyle(color: Colors.red),
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.red),
                                 ),
                               ),
                             ],
@@ -161,7 +174,7 @@ class _TrashScreenState extends State<TrashScreen> {
             ]
                 : [
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
                 onSelected: (value) {
                   if (value == 'Sort by Title') {
                     context.read<TaskCubit>().sortTasksInTrash('title');
@@ -187,21 +200,21 @@ class _TrashScreenState extends State<TrashScreen> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Tìm kiếm trong thùng rác...',
-                    hintStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                    prefixIcon: Icon(Icons.search, color: Theme.of(context).iconTheme.color),
                     filled: true,
-                    fillColor: Colors.grey[200],
+                    fillColor: Theme.of(context).colorScheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey[300]!),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                     ),
                   ),
                   onChanged: (value) {
@@ -218,7 +231,12 @@ class _TrashScreenState extends State<TrashScreen> {
                   child: state.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : filteredTasks.isEmpty
-                      ? const Center(child: Text('Thùng rác trống.', style: TextStyle(fontSize: 16, color: Colors.grey)))
+                      ? Center(
+                    child: Text(
+                      'Thùng rác trống.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
+                    ),
+                  )
                       : ListView.builder(
                     itemCount: filteredTasks.length,
                     itemBuilder: (context, index) {
@@ -247,7 +265,7 @@ class _TrashScreenState extends State<TrashScreen> {
                                       context.read<TaskCubit>().toggleTaskSelection(task);
                                     },
                                     activeColor: Colors.green,
-                                    checkColor: Colors.white,
+                                    checkColor: Theme.of(context).colorScheme.onSurface,
                                   ),
                                 Expanded(
                                   child: Column(
@@ -255,11 +273,7 @@ class _TrashScreenState extends State<TrashScreen> {
                                     children: [
                                       Text(
                                         task.title ?? 'Task không có tiêu đề',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
+                                        style: Theme.of(context).textTheme.titleLarge,
                                       ),
                                       if (task.tags != null && task.tags!.isNotEmpty)
                                         Padding(
@@ -271,9 +285,12 @@ class _TrashScreenState extends State<TrashScreen> {
                                                 .map((tag) => Chip(
                                               label: Text(
                                                 '#$tag',
-                                                style: const TextStyle(fontSize: 10, color: Colors.blue),
+                                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                  fontSize: 10,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
                                               ),
-                                              backgroundColor: Colors.grey[200],
+                                              backgroundColor: Theme.of(context).colorScheme.surface,
                                               padding: const EdgeInsets.symmetric(horizontal: 4),
                                               labelPadding: EdgeInsets.zero,
                                             ))
@@ -285,21 +302,27 @@ class _TrashScreenState extends State<TrashScreen> {
                                 ),
                                 if (!state.isSelectionMode)
                                   PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, color: Colors.grey, size: 24),
+                                    icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
                                     onSelected: (value) async {
                                       if (value == 'Restore') {
                                         try {
                                           await context.read<TaskCubit>().restoreTask(task);
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Task đã được khôi phục!'),
+                                            SnackBar(
+                                              content: Text(
+                                                'Task đã được khôi phục!',
+                                                style: Theme.of(context).textTheme.bodyMedium,
+                                              ),
                                               backgroundColor: Colors.green,
                                             ),
                                           );
                                         } catch (e) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
-                                              content: Text('Lỗi khi khôi phục: $e'),
+                                              content: Text(
+                                                'Lỗi khi khôi phục: $e',
+                                                style: Theme.of(context).textTheme.bodyMedium,
+                                              ),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
@@ -312,11 +335,17 @@ class _TrashScreenState extends State<TrashScreen> {
                                             return StatefulBuilder(
                                               builder: (context, setState) {
                                                 return AlertDialog(
-                                                  title: const Text('Xóa vĩnh viễn'),
+                                                  title: Text(
+                                                    'Xóa vĩnh viễn',
+                                                    style: Theme.of(context).textTheme.titleLarge,
+                                                  ),
                                                   content: Column(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [
-                                                      Text('Bạn có chắc muốn xóa vĩnh viễn task "${task.title}" không?'),
+                                                      Text(
+                                                        'Bạn có chắc muốn xóa vĩnh viễn task "${task.title}" không?',
+                                                        style: Theme.of(context).textTheme.bodyMedium,
+                                                      ),
                                                       if (isLoading) ...[
                                                         const SizedBox(height: 16),
                                                         const CircularProgressIndicator(),
@@ -330,7 +359,10 @@ class _TrashScreenState extends State<TrashScreen> {
                                                           : () {
                                                         Navigator.pop(dialogContext);
                                                       },
-                                                      child: const Text('Hủy'),
+                                                      child: Text(
+                                                        'Hủy',
+                                                        style: Theme.of(context).textTheme.bodyMedium,
+                                                      ),
                                                     ),
                                                     TextButton(
                                                       onPressed: isLoading
@@ -343,8 +375,11 @@ class _TrashScreenState extends State<TrashScreen> {
                                                           await context.read<TaskCubit>().deleteTask(task);
                                                           Navigator.pop(dialogContext);
                                                           ScaffoldMessenger.of(context).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text('Task đã được xóa vĩnh viễn!'),
+                                                            SnackBar(
+                                                              content: Text(
+                                                                'Task đã được xóa vĩnh viễn!',
+                                                                style: Theme.of(context).textTheme.bodyMedium,
+                                                              ),
                                                               backgroundColor: Colors.red,
                                                             ),
                                                           );
@@ -354,15 +389,18 @@ class _TrashScreenState extends State<TrashScreen> {
                                                           });
                                                           ScaffoldMessenger.of(context).showSnackBar(
                                                             SnackBar(
-                                                              content: Text('Lỗi khi xóa: $e'),
+                                                              content: Text(
+                                                                'Lỗi khi xóa: $e',
+                                                                style: Theme.of(context).textTheme.bodyMedium,
+                                                              ),
                                                               backgroundColor: Colors.red,
                                                             ),
                                                           );
                                                         }
                                                       },
-                                                      child: const Text(
+                                                      child: Text(
                                                         'Xóa vĩnh viễn',
-                                                        style: TextStyle(color: Colors.red),
+                                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.red),
                                                       ),
                                                     ),
                                                   ],

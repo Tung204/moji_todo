@@ -5,9 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/sizes.dart';
-import '../../../../core/constants/strings.dart';
 
 class StrictModeMenu extends StatelessWidget {
   const StrictModeMenu({super.key});
@@ -26,14 +24,14 @@ class StrictModeMenu extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
             ),
-            elevation: 10,
+            elevation: 8,
             backgroundColor: Colors.transparent,
             child: Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [
-                    AppColors.backgroundGradientStart,
-                    AppColors.backgroundGradientEnd,
+                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -54,21 +52,19 @@ class StrictModeMenu extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                     child: Text(
                       'Yêu cầu quyền Accessibility',
-                      style: GoogleFonts.inter(
-                        fontSize: AppSizes.titleFontSize,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontFamily: GoogleFonts.inter().fontFamily,
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Ứng dụng cần quyền Accessibility để chặn ứng dụng khi Strict Mode được bật. Vui lòng cấp quyền trong cài đặt.',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontFamily: GoogleFonts.inter().fontFamily,
+                          ),
                     ),
                   ),
                   Padding(
@@ -77,11 +73,11 @@ class StrictModeMenu extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         CustomButton(
-                          label: AppStrings.cancel,
+                          label: 'Từ chối',
                           onPressed: () => Navigator.pop(context, false),
-                          backgroundColor: AppColors.cancelButton,
-                          textColor: AppColors.textPrimary,
-                          borderRadius: 12,
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          textColor: Theme.of(context).colorScheme.onError,
+                          borderRadius: AppSizes.borderRadius,
                         ),
                         CustomButton(
                           label: 'Cấp quyền',
@@ -89,9 +85,9 @@ class StrictModeMenu extends StatelessWidget {
                             await _permissionChannel.invokeMethod('requestAccessibilityPermission');
                             Navigator.pop(context, true);
                           },
-                          backgroundColor: AppColors.primary,
-                          textColor: Colors.white,
-                          borderRadius: 12,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          textColor: Theme.of(context).colorScheme.onPrimary,
+                          borderRadius: AppSizes.borderRadius,
                         ),
                       ],
                     ),
@@ -115,7 +111,7 @@ class StrictModeMenu extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi khi kiểm tra quyền Accessibility: $e'),
-          backgroundColor: AppColors.snackbarError,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -134,7 +130,7 @@ class StrictModeMenu extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
-          backgroundColor: AppColors.snackbarError,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -166,14 +162,14 @@ class StrictModeMenu extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
               ),
-              elevation: 10,
+              elevation: 8,
               backgroundColor: Colors.transparent,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [
-                      AppColors.backgroundGradientStart,
-                      AppColors.backgroundGradientEnd,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -193,316 +189,359 @@ class StrictModeMenu extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                       child: Text(
-                        AppStrings.strictModeTitle,
-                        style: GoogleFonts.inter(
-                          fontSize: AppSizes.titleFontSize,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                        'Strict Mode',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontFamily: GoogleFonts.inter().fontFamily,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 350),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    SizedBox(
+                      height: 350,
                       child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            _buildCard(
-                              child: CheckboxListTile(
-                                title: Text(
-                                  AppStrings.strictModeOffLabel,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.labelFontSize - 2,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            children: [
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                                 ),
-                                subtitle: Text(
-                                  AppStrings.strictModeOffHelper,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.helperFontSize,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                value: !isAppBlockingEnabled && !isFlipPhoneEnabled && !isExitBlockingEnabled,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      isAppBlockingEnabled = false;
-                                      isFlipPhoneEnabled = false;
-                                      isExitBlockingEnabled = false;
-                                      blockedApps = [];
-                                    }
-                                  });
-                                },
-                                activeColor: AppColors.primary,
-                                checkColor: Colors.white,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                            const SizedBox(height: AppSizes.spacing / 2),
-                            _buildCard(
-                              child: CheckboxListTile(
-                                title: Text(
-                                  AppStrings.appBlockingLabel,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.labelFontSize - 2,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  AppStrings.appBlockingHelper,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.helperFontSize,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                value: isAppBlockingEnabled,
-                                onChanged: (value) async {
-                                  if (value == true) {
-                                    bool permissionGranted = await _checkAndRequestAccessibilityPermission(context);
-                                    if (!permissionGranted) {
-                                      return;
-                                    }
-                                  }
-                                  setState(() {
-                                    isAppBlockingEnabled = value ?? false;
-                                    if (!isAppBlockingEnabled) {
-                                      blockedApps = [];
-                                    }
-                                  });
-                                },
-                                activeColor: AppColors.primary,
-                                checkColor: Colors.white,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                            if (isAppBlockingEnabled)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: OutlinedButton(
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (appDialogContext) {
-                                        return StatefulBuilder(
-                                          builder: (context, setAppDialogState) {
-                                            return Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
-                                              ),
-                                              elevation: 10,
-                                              backgroundColor: Colors.transparent,
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  gradient: const LinearGradient(
-                                                    colors: [
-                                                      AppColors.backgroundGradientStart,
-                                                      AppColors.backgroundGradientEnd,
-                                                    ],
-                                                    begin: Alignment.topLeft,
-                                                    end: Alignment.bottomRight,
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black.withOpacity(0.1),
-                                                      blurRadius: 10,
-                                                      offset: const Offset(0, 4),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Padding(
-                                                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                                                      child: Text(
-                                                        AppStrings.selectAppsTitle,
-                                                        style: GoogleFonts.inter(
-                                                          fontSize: AppSizes.titleFontSize,
-                                                          fontWeight: FontWeight.w700,
-                                                          color: AppColors.textPrimary,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Container(
-                                                      constraints: const BoxConstraints(maxHeight: 200),
-                                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                      child: SingleChildScrollView(
-                                                        child: Column(
-                                                          children: availableApps.map((app) {
-                                                            return _buildCard(
-                                                              child: CheckboxListTile(
-                                                                title: Text(
-                                                                  app['name']!,
-                                                                  style: GoogleFonts.inter(
-                                                                    fontSize: AppSizes.labelFontSize - 2,
-                                                                    fontWeight: FontWeight.w600,
-                                                                    color: AppColors.textPrimary,
-                                                                  ),
-                                                                ),
-                                                                value: blockedApps.contains(app['package']),
-                                                                onChanged: (value) {
-                                                                  setAppDialogState(() {
-                                                                    if (value == true) {
-                                                                      blockedApps.add(app['package']!);
-                                                                    } else {
-                                                                      blockedApps.remove(app['package']);
-                                                                    }
-                                                                  });
-                                                                },
-                                                                activeColor: AppColors.primary,
-                                                                checkColor: Colors.white,
-                                                                contentPadding: EdgeInsets.zero,
-                                                              ),
-                                                            );
-                                                          }).toList(),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding: const EdgeInsets.all(16),
-                                                      child: Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                        children: [
-                                                          CustomButton(
-                                                            label: AppStrings.cancel,
-                                                            onPressed: () => Navigator.pop(appDialogContext),
-                                                            backgroundColor: AppColors.cancelButton,
-                                                            textColor: AppColors.textPrimary,
-                                                            borderRadius: 12,
-                                                          ),
-                                                          CustomButton(
-                                                            label: AppStrings.ok,
-                                                            onPressed: () {
-                                                              setState(() {
-                                                                context.read<HomeCubit>().updateBlockedApps(blockedApps);
-                                                                _serviceChannel.invokeMethod('setBlockedApps', {'apps': blockedApps});
-                                                              });
-                                                              Navigator.pop(appDialogContext);
-                                                            },
-                                                            backgroundColor: AppColors.primary,
-                                                            textColor: Colors.white,
-                                                            borderRadius: 12,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                    );
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: AppColors.primary),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSizes.cardPadding),
+                                  child: CheckboxListTile(
+                                    title: Text(
+                                      'Tắt Strict Mode',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    subtitle: Text(
+                                      'Không áp dụng các hạn chế khi sử dụng timer.',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                          ),
+                                    ),
+                                    value: !isAppBlockingEnabled && !isFlipPhoneEnabled && !isExitBlockingEnabled,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (value == true) {
+                                          isAppBlockingEnabled = false;
+                                          isFlipPhoneEnabled = false;
+                                          isExitBlockingEnabled = false;
+                                          blockedApps = [];
+                                        }
+                                      });
+                                    },
+                                    activeColor: Theme.of(context).colorScheme.primary,
+                                    checkColor: Theme.of(context).colorScheme.onPrimary,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                                   ),
-                                  child: Text(
-                                    AppStrings.selectApps,
-                                    style: GoogleFonts.inter(
-                                      color: AppColors.primary,
-                                      fontSize: AppSizes.helperFontSize,
-                                      fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: AppSizes.spacing),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSizes.cardPadding),
+                                  child: CheckboxListTile(
+                                    title: Text(
+                                      'Chặn ứng dụng',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    subtitle: Text(
+                                      'Chặn các ứng dụng được chọn khi timer đang chạy.',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                          ),
+                                    ),
+                                    value: isAppBlockingEnabled,
+                                    onChanged: (value) async {
+                                      if (value == true) {
+                                        bool permissionGranted = await _checkAndRequestAccessibilityPermission(context);
+                                        if (!permissionGranted) {
+                                          return;
+                                        }
+                                      }
+                                      setState(() {
+                                        isAppBlockingEnabled = value ?? false;
+                                        if (!isAppBlockingEnabled) {
+                                          blockedApps = [];
+                                        }
+                                      });
+                                    },
+                                    activeColor: Theme.of(context).colorScheme.primary,
+                                    checkColor: Theme.of(context).colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                  ),
+                                ),
+                              ),
+                              if (isAppBlockingEnabled)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 16.0, top: AppSizes.spacing),
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (appDialogContext) {
+                                          return StatefulBuilder(
+                                            builder: (context, setAppDialogState) {
+                                              return Dialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
+                                                ),
+                                                elevation: 8,
+                                                backgroundColor: Colors.transparent,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    gradient: LinearGradient(
+                                                      colors: [
+                                                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                                                        Theme.of(context).colorScheme.secondary.withOpacity(0.8),
+                                                      ],
+                                                      begin: Alignment.topLeft,
+                                                      end: Alignment.bottomRight,
+                                                    ),
+                                                    borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black.withOpacity(0.1),
+                                                        blurRadius: 10,
+                                                        offset: const Offset(0, 4),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Padding(
+                                                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                                                        child: Text(
+                                                          'Chọn ứng dụng',
+                                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                                fontFamily: GoogleFonts.inter().fontFamily,
+                                                                fontWeight: FontWeight.w700,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      SizedBox(
+                                                        height: 200,
+                                                        child: SingleChildScrollView(
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                                                            child: Column(
+                                                              children: availableApps.map((app) {
+                                                                return CheckboxListTile(
+                                                                  title: Text(
+                                                                    app['name']!,
+                                                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                                          fontFamily: GoogleFonts.inter().fontFamily,
+                                                                          fontWeight: FontWeight.w600,
+                                                                        ),
+                                                                  ),
+                                                                  value: blockedApps.contains(app['package']),
+                                                                  onChanged: (value) {
+                                                                    setAppDialogState(() {
+                                                                      if (value == true) {
+                                                                        blockedApps.add(app['package']!);
+                                                                      } else {
+                                                                        blockedApps.remove(app['package']);
+                                                                      }
+                                                                    });
+                                                                  },
+                                                                  activeColor: Theme.of(context).colorScheme.primary,
+                                                                  checkColor: Theme.of(context).colorScheme.onPrimary,
+                                                                  shape: RoundedRectangleBorder(
+                                                                    borderRadius: BorderRadius.circular(4),
+                                                                  ),
+                                                                  controlAffinity: ListTileControlAffinity.leading,
+                                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                                                );
+                                                              }).toList(),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding: const EdgeInsets.all(16),
+                                                        child: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          children: [
+                                                            CustomButton(
+                                                              label: 'Hủy',
+                                                              onPressed: () => Navigator.pop(appDialogContext),
+                                                              backgroundColor: Theme.of(context).colorScheme.error,
+                                                              textColor: Theme.of(context).colorScheme.onError,
+                                                              borderRadius: AppSizes.borderRadius,
+                                                            ),
+                                                            CustomButton(
+                                                              label: 'OK',
+                                                              onPressed: () {
+                                                                setState(() {
+                                                                  context.read<HomeCubit>().updateBlockedApps(blockedApps);
+                                                                  _serviceChannel.invokeMethod('setBlockedApps', {'apps': blockedApps});
+                                                                });
+                                                                Navigator.pop(appDialogContext);
+                                                              },
+                                                              backgroundColor: Theme.of(context).colorScheme.primary,
+                                                              textColor: Theme.of(context).colorScheme.onPrimary,
+                                                              borderRadius: AppSizes.borderRadius,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    ),
+                                    child: Text(
+                                      'Chọn ứng dụng',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            color: Theme.of(context).colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                 ),
+                              const SizedBox(height: AppSizes.spacing),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSizes.cardPadding),
+                                  child: CheckboxListTile(
+                                    title: Text(
+                                      'Chế độ lật điện thoại',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    subtitle: Text(
+                                      'Yêu cầu lật điện thoại để tiếp tục timer.',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                          ),
+                                    ),
+                                    value: isFlipPhoneEnabled,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        isFlipPhoneEnabled = value ?? false;
+                                      });
+                                    },
+                                    activeColor: Theme.of(context).colorScheme.primary,
+                                    checkColor: Theme.of(context).colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                  ),
+                                ),
                               ),
-                            const SizedBox(height: AppSizes.spacing / 2),
-                            _buildCard(
-                              child: CheckboxListTile(
-                                title: Text(
-                                  AppStrings.flipPhoneLabel,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.labelFontSize - 2,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
+                              const SizedBox(height: AppSizes.spacing),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSizes.cardPadding),
+                                  child: CheckboxListTile(
+                                    title: Text(
+                                      'Chặn thoát ứng dụng',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    subtitle: Text(
+                                      'Ngăn thoát ứng dụng khi timer đang chạy.',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                          ),
+                                    ),
+                                    value: isExitBlockingEnabled,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        isExitBlockingEnabled = value ?? false;
+                                      });
+                                    },
+                                    activeColor: Theme.of(context).colorScheme.primary,
+                                    checkColor: Theme.of(context).colorScheme.onPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                                   ),
                                 ),
-                                subtitle: Text(
-                                  AppStrings.flipPhoneHelper,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.helperFontSize,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                value: isFlipPhoneEnabled,
-                                onChanged: (value) {
-                                  setState(() {
-                                    isFlipPhoneEnabled = value ?? false;
-                                  });
-                                },
-                                activeColor: AppColors.primary,
-                                checkColor: Colors.white,
-                                contentPadding: EdgeInsets.zero,
                               ),
-                            ),
-                            const SizedBox(height: AppSizes.spacing / 2),
-                            _buildCard(
-                              child: CheckboxListTile(
-                                title: Text(
-                                  AppStrings.exitBlockingLabel,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.labelFontSize - 2,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  AppStrings.exitBlockingHelper,
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.helperFontSize,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                value: isExitBlockingEnabled,
-                                onChanged: (value) {
-                                  setState(() {
-                                    isExitBlockingEnabled = value ?? false;
-                                  });
-                                },
-                                activeColor: AppColors.primary,
-                                checkColor: Colors.white,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           CustomButton(
-                            label: AppStrings.cancel,
+                            label: 'Hủy',
                             onPressed: () => Navigator.pop(context),
-                            backgroundColor: AppColors.cancelButton,
-                            textColor: AppColors.textPrimary,
-                            borderRadius: 12,
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                            textColor: Theme.of(context).colorScheme.onError,
+                            borderRadius: AppSizes.borderRadius,
                           ),
                           CustomButton(
-                            label: AppStrings.ok,
+                            label: 'OK',
                             onPressed: () {
                               context.read<HomeCubit>().updateStrictMode(
-                                isAppBlockingEnabled: isAppBlockingEnabled,
-                                isFlipPhoneEnabled: isFlipPhoneEnabled,
-                                isExitBlockingEnabled: isExitBlockingEnabled,
-                              );
+                                    isAppBlockingEnabled: isAppBlockingEnabled,
+                                    isFlipPhoneEnabled: isFlipPhoneEnabled,
+                                    isExitBlockingEnabled: isExitBlockingEnabled,
+                                  );
                               Navigator.pop(context);
                             },
-                            backgroundColor: AppColors.primary,
-                            textColor: Colors.white,
-                            borderRadius: 12,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            textColor: Theme.of(context).colorScheme.onPrimary,
+                            borderRadius: AppSizes.borderRadius,
                           ),
                         ],
                       ),
@@ -510,10 +549,10 @@ class StrictModeMenu extends StatelessWidget {
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return FadeTransition(
           opacity: CurvedAnimation(
@@ -532,25 +571,11 @@ class StrictModeMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
-    return Card(
-      elevation: 0,
-      color: AppColors.cardBackground,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: child,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-      previous.isTimerRunning != current.isTimerRunning ||
+          previous.isTimerRunning != current.isTimerRunning ||
           previous.isPaused != current.isPaused ||
           previous.isStrictModeEnabled != current.isStrictModeEnabled ||
           previous.timerSeconds != current.timerSeconds ||
@@ -560,44 +585,48 @@ class StrictModeMenu extends StatelessWidget {
             (!state.isTimerRunning && !state.isPaused) ||
             (!state.isCountingUp && state.timerSeconds <= 0);
 
-        return GestureDetector(
-          onTap: () {
-            if (isEditable) {
-              _showStrictModeMenu(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
-                  backgroundColor: AppColors.snackbarError,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
-          },
-          child: Tooltip(
-            message: isEditable
-                ? 'Chỉnh Strict Mode'
-                : 'Tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode',
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.warning_rounded,
-                    color: state.isStrictModeEnabled ? AppColors.primary : AppColors.textDisabled,
+        return Tooltip(
+          message: isEditable ? 'Chỉnh Strict Mode' : 'Tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode',
+          child: Opacity(
+            opacity: isEditable ? 1.0 : 0.5,
+            child: Column(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.warning,
+                    color: state.isStrictModeEnabled
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                     size: AppSizes.iconSize,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
-                    style: GoogleFonts.inter(
-                      color: state.isStrictModeEnabled ? AppColors.primary : AppColors.textDisabled,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+                  onPressed: () {
+                    print('Strict Mode button pressed: isEditable=$isEditable');
+                    if (isEditable) {
+                      _showStrictModeMenu(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  },
+                  splashRadius: 24,
+                ),
+                Text(
+                  'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontFamily: GoogleFonts.inter().fontFamily,
+                        color: state.isStrictModeEnabled
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
             ),
           ),
         );

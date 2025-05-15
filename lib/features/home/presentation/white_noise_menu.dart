@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/sizes.dart';
-import '../../../../core/constants/strings.dart';
 
 class WhiteNoiseMenu extends StatelessWidget {
   const WhiteNoiseMenu({super.key});
@@ -24,72 +22,73 @@ class WhiteNoiseMenu extends StatelessWidget {
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, _, __) {
-        return Scaffold(
-          resizeToAvoidBottomInset: true,
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
+          ),
+          elevation: 8,
           backgroundColor: Colors.transparent,
-          body: Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
-            ),
-            elevation: 10,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    AppColors.backgroundGradientStart,
-                    AppColors.backgroundGradientEnd,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  Theme.of(context).colorScheme.secondary.withOpacity(0.8),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                    child: Text(
-                      'Cài đặt White Noise',
-                      style: GoogleFonts.inter(
-                        fontSize: AppSizes.titleFontSize,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
+              borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                  child: Text(
+                    'White Noise Settings',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 350),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: SingleChildScrollView(
-                      child: StatefulBuilder(
-                        builder: (context, setState) {
-                          return Column(
-                            children: [
-                              _buildCard(
+                ),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 350),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SingleChildScrollView(
+                    child: StatefulBuilder(
+                      builder: (context, setState) {
+                        return Column(
+                          children: [
+                            Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppSizes.cardPadding),
                                 child: CheckboxListTile(
                                   title: Text(
                                     'Tắt White Noise',
-                                    style: GoogleFonts.inter(
-                                      fontSize: AppSizes.labelFontSize - 2,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          fontFamily: GoogleFonts.inter().fontFamily,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                   ),
                                   subtitle: Text(
                                     'Tắt âm thanh White Noise',
-                                    style: GoogleFonts.inter(
-                                      fontSize: AppSizes.helperFontSize,
-                                      color: AppColors.textSecondary,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          fontFamily: GoogleFonts.inter().fontFamily,
+                                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                        ),
                                   ),
                                   value: !isWhiteNoiseEnabled,
                                   onChanged: (value) {
@@ -100,33 +99,43 @@ class WhiteNoiseMenu extends StatelessWidget {
                                       }
                                     });
                                   },
-                                  activeColor: AppColors.primary,
-                                  checkColor: Colors.white,
-                                  contentPadding: EdgeInsets.zero,
+                                  activeColor: Theme.of(context).colorScheme.primary,
+                                  checkColor: Theme.of(context).colorScheme.onPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                                 ),
                               ),
-                              if (isWhiteNoiseEnabled) ...[
-                                const SizedBox(height: AppSizes.spacing / 2),
-                                _buildCard(
+                            ),
+                            if (isWhiteNoiseEnabled) ...[
+                              const SizedBox(height: AppSizes.spacing),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSizes.cardPadding),
                                   child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Âm lượng: ${(whiteNoiseVolume * 100).round()}%',
-                                        style: GoogleFonts.inter(
-                                          fontSize: AppSizes.labelFontSize - 2,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                        'Volume: ${(whiteNoiseVolume * 100).round()}%',
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              fontFamily: GoogleFonts.inter().fontFamily,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
-                                      const SizedBox(width: 8),
                                       Expanded(
                                         child: Slider(
                                           value: whiteNoiseVolume,
                                           min: 0.0,
                                           max: 1.0,
                                           divisions: 20,
-                                          activeColor: AppColors.primary,
-                                          inactiveColor: AppColors.textDisabled,
+                                          activeColor: Theme.of(context).colorScheme.primary,
+                                          inactiveColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                                           onChanged: (value) {
                                             setState(() {
                                               whiteNoiseVolume = value;
@@ -137,113 +146,90 @@ class WhiteNoiseMenu extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: AppSizes.spacing / 2),
-                                _buildCard(
-                                  child: Theme(
-                                    data: Theme.of(context).copyWith(
-                                      popupMenuTheme: PopupMenuThemeData(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                              ),
+                              const SizedBox(height: AppSizes.spacing),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadius),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSizes.cardPadding),
+                                  child: DropdownButtonFormField<String>(
+                                    value: selectedWhiteNoise,
+                                    decoration: InputDecoration(
+                                      labelText: 'Chọn âm thanh',
+                                      labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontFamily: GoogleFonts.inter().fontFamily,
+                                          ),
+                                      filled: true,
+                                      fillColor: Theme.of(context).colorScheme.surface,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          width: 2,
                                         ),
                                       ),
                                     ),
-                                    child: DropdownButtonFormField<String>(
-                                      value: selectedWhiteNoise,
-                                      decoration: InputDecoration(
-                                        labelText: 'Chọn âm thanh',
-                                        labelStyle: GoogleFonts.inter(
-                                          fontSize: AppSizes.labelFontSize - 2,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 12,
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                      ),
-                                      items: const [
-                                        DropdownMenuItem(
-                                          value: 'none',
-                                          child: Text('Không có'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'clock_ticking',
-                                          child: Text('Tiếng đồng hồ'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'gentle-rain',
-                                          child: Text('Mưa nhẹ'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'metronome',
-                                          child: Text('Nhịp điệu'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'small-stream',
-                                          child: Text('Suối nhỏ'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'water-stream',
-                                          child: Text('Dòng nước'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'bonfire',
-                                          child: Text('Lửa trại'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'cafe',
-                                          child: Text('Quán cà phê'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'library',
-                                          child: Text('Thư viện'),
-                                        ),
-                                      ],
-                                      onChanged: (value) {
-                                        setState(() {
-                                          selectedWhiteNoise = value ?? 'none';
-                                          isWhiteNoiseEnabled = value != 'none';
-                                        });
-                                      },
-                                      menuMaxHeight: 216, // 4.5 items * ~48 pixels/item
-                                    ),
+                                    items: const [
+                                      DropdownMenuItem(value: 'none', child: Text('Không có')),
+                                      DropdownMenuItem(value: 'clock_ticking', child: Text('Tiếng đồng hồ')),
+                                      DropdownMenuItem(value: 'gentle-rain', child: Text('Mưa nhẹ')),
+                                      DropdownMenuItem(value: 'metronome', child: Text('Nhịp điệu')),
+                                      DropdownMenuItem(value: 'small-stream', child: Text('Suối nhỏ')),
+                                      DropdownMenuItem(value: 'water-stream', child: Text('Dòng nước')),
+                                      DropdownMenuItem(value: 'bonfire', child: Text('Lửa trại')),
+                                      DropdownMenuItem(value: 'cafe', child: Text('Quán cà phê')),
+                                      DropdownMenuItem(value: 'library', child: Text('Thư viện')),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedWhiteNoise = value ?? 'none';
+                                        isWhiteNoiseEnabled = value != 'none';
+                                      });
+                                    },
                                   ),
                                 ),
-                              ],
+                              ),
                             ],
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         CustomButton(
-                          label: AppStrings.cancel,
+                          label: 'Hủy',
                           onPressed: () => Navigator.pop(context),
-                          backgroundColor: AppColors.cancelButton,
-                          textColor: AppColors.textPrimary,
-                          borderRadius: 12,
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          textColor: Theme.of(context).colorScheme.onError,
+                          borderRadius: AppSizes.borderRadius,
                         ),
                         CustomButton(
-                          label: AppStrings.ok,
+                          label: 'OK',
                           onPressed: () {
                             homeCubit.toggleWhiteNoise(isWhiteNoiseEnabled);
                             homeCubit.selectWhiteNoise(selectedWhiteNoise);
                             homeCubit.setWhiteNoiseVolume(whiteNoiseVolume);
                             Navigator.pop(context);
                           },
-                          backgroundColor: AppColors.primary,
-                          textColor: Colors.white,
-                          borderRadius: 12,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          textColor: Theme.of(context).colorScheme.onPrimary,
+                          borderRadius: AppSizes.borderRadius,
                         ),
                       ],
                     ),
@@ -272,50 +258,37 @@ class WhiteNoiseMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
-    return Card(
-      elevation: 0,
-      color: AppColors.cardBackground,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: child,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-      previous.isWhiteNoiseEnabled != current.isWhiteNoiseEnabled ||
+          previous.isWhiteNoiseEnabled != current.isWhiteNoiseEnabled ||
           previous.selectedWhiteNoise != current.selectedWhiteNoise,
       builder: (context, state) {
-        return GestureDetector(
-          onTap: () => _showWhiteNoiseMenu(context),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.music_note_rounded,
-                  color: state.isWhiteNoiseEnabled ? AppColors.primary : AppColors.textDisabled,
-                  size: AppSizes.iconSize,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'White Noise',
-                  style: GoogleFonts.inter(
-                    color: state.isWhiteNoiseEnabled ? AppColors.primary : AppColors.textDisabled,
+        return Column(
+          children: [
+            IconButton(
+              icon: Icon(
+                Icons.music_note,
+                color: state.isWhiteNoiseEnabled
+                    ? Theme.of(context).colorScheme.secondary
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                size: AppSizes.iconSize,
+              ),
+              onPressed: () => _showWhiteNoiseMenu(context),
+            ),
+            Text(
+              'White Noise',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontFamily: GoogleFonts.inter().fontFamily,
+                    color: state.isWhiteNoiseEnabled
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
-                ),
-              ],
             ),
-          ),
+          ],
         );
       },
     );

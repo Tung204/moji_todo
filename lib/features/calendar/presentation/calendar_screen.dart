@@ -61,23 +61,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final tasksForSelectedDay = _selectedDay != null ? _getTasksForDay(_selectedDay!, tasks) : [];
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             automaticallyImplyLeading: false,
-            title: const Text(
+            title: Text(
               'Lịch',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             centerTitle: true,
             actions: [
               IconButton(
-                icon: const Icon(Icons.add, color: Colors.grey),
+                icon: Icon(Icons.add, color: Theme.of(context).iconTheme.color),
                 onPressed: () {
                   showModalBottomSheet(
                     context: context,
@@ -107,25 +103,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _focusedDay = focusedDay;
                   });
                 },
-                calendarStyle: const CalendarStyle(
+                calendarStyle: CalendarStyle(
                   selectedDecoration: BoxDecoration(
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.secondary,
                     shape: BoxShape.circle,
                   ),
                   todayDecoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   outsideDaysVisible: false,
                 ),
-                headerStyle: const HeaderStyle(
+                headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  titleTextStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(fontSize: 12, color: Colors.grey),
-                  weekendStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                daysOfWeekStyle: DaysOfWeekStyle(
+                  weekdayStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  ),
+                  weekendStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                  ),
                 ),
                 calendarFormat: CalendarFormat.month,
                 onPageChanged: (focusedDay) {
@@ -141,8 +146,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         Center(
                           child: Text(
                             '${day.day}',
-                            style: TextStyle(
-                              color: hasTasks ? Colors.black : Colors.grey,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: hasTasks
+                                  ? Theme.of(context).textTheme.bodyMedium?.color
+                                  : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               fontWeight: hasTasks ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
@@ -153,8 +160,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -169,16 +176,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       children: [
                         Center(
                           child: Container(
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD50F0F),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondary,
                               shape: BoxShape.circle,
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
                                 '${day.day}',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSecondary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -191,8 +198,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onSecondary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -207,16 +214,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       children: [
                         Center(
                           child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.blue,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
                                 '${day.day}',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -229,8 +236,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -249,20 +256,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     children: [
                       Text(
                         'Tasks cho ${(_selectedDay != null) ? "${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}" : "ngày được chọn"}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       state.isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : tasksForSelectedDay.isEmpty
-                          ? const Center(
+                          ? Center(
                         child: Text(
                           'Không có task nào cho ngày này.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
                         ),
                       )
                           : Expanded(
@@ -300,7 +303,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                           },
                                           shape: const CircleBorder(),
                                           activeColor: Colors.green,
-                                          checkColor: Colors.white,
+                                          checkColor: Theme.of(context).colorScheme.onSurface,
                                           side: const BorderSide(color: Colors.red),
                                         ),
                                         Expanded(
@@ -309,9 +312,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                             children: [
                                               Text(
                                                 task.title ?? 'Task không có tiêu đề',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                                   decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
                                                 ),
                                               ),
@@ -326,7 +327,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                                       return Chip(
                                                         label: Text(
                                                           '#$tag',
-                                                          style: TextStyle(
+                                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                             fontSize: 10,
                                                             color: colors['text'],
                                                           ),
@@ -342,7 +343,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                           ),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.play_circle_fill, color: Colors.red, size: 24),
+                                          icon: Icon(
+                                            Icons.play_circle_fill,
+                                            color: Theme.of(context).colorScheme.secondary,
+                                            size: 24,
+                                          ),
                                           onPressed: () {
                                             // Logic bắt đầu Pomodoro cho task
                                           },
@@ -363,7 +368,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ],
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: const Color(0xFFFF5733),
+            heroTag: 'calendar_fab',
+            backgroundColor: Theme.of(context).floatingActionButtonTheme.backgroundColor,
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -376,7 +382,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               );
             },
-            child: const Icon(Icons.add, color: Colors.white),
+            child: Icon(
+              Icons.add,
+              color: Theme.of(context).floatingActionButtonTheme.foregroundColor,
+            ),
           ),
         );
       },
