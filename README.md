@@ -21,12 +21,10 @@
 
 ---
 
-## 👥 Nhóm phát triển
+## Nhóm dự án
 
-| Tên | Vai trò | GitHub |
-|-----|---------|--------|
-| Nguyễn Sơn Tùng | Chủ nhiệm dự án | [@Tung204](https://github.com/Tung204) |
-| Võ Văn Tín     | Nhà phát triển   | [@TINVO04](https://github.com/TINVO04) |
+- [Nguyễn Sơn Tùng](https://github.com/Tung204) – Chủ nhiệm dự án  
+- [Võ Văn Tín](https://github.com/TINVO04) – Nhà phát triển
 
 ---
 
@@ -42,6 +40,7 @@
   <em>Phát triển như một dự án nghiên cứu tại Đại học Công nghệ Đồng Nai – kết hợp công nghệ hiện đại và trải nghiệm người dùng.</em>
 </p>
 
+---
 
 ## Trình diễn
 
