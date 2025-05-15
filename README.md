@@ -1,4 +1,4 @@
-[<img src="assets/images/logo_moji.png" align="center" width="850">](https://github.com/Tung204/dntu_focus)
+[<img src="assets/images/logo_moji.png" align="center" width="50">](https://github.com/Tung204/dntu_focus)
 
 <p align="center">
 <a href="https://github.com/Tung204/dntu_focus">
@@ -15,7 +15,7 @@ Nếu bạn yêu thích dự án 📱, hãy ủng hộ bằng cách 👍 | ⭐ |
 
 <p align="center">
   <a href="https://dntu.edu.vn/">
-    <img src="https://via.placeholder.com/450x100.png?text=Logo+DNTU" width="450" alt="Logo DNTU" style="margin: 20px auto;" />
+    <img src="assets/images/logo_moji.png" width="450" alt="Logo DNTU" style="margin: 20px auto;" />
   </a>
 </p>
 
@@ -226,7 +226,6 @@ Chúng tôi hoan nghênh mọi đóng góp để cải thiện DNTU-Focus! Để
 ## Liên hệ
 
 **GitHub**: [github.com/Tung204/dntu_focus](https://github.com/Tung204/dntu_focus)  
-**Tổ chức**: [Đại học Công nghệ Đồng Nai (DNTU)](https://dntu.edu.vn/)  
 **Email**: [nst874@gmail.com](mailto:nst874@gmail.com), [tinvo.bh2018@gmail.com](mailto:tinvo.bh2018@gmail.com)
 
 ---
