@@ -28,18 +28,14 @@ class TaskListScreen extends StatelessWidget {
               backgroundColor: Colors.transparent,
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.grey),
+                icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
                 onPressed: () {
                   Navigator.pop(context);
                 },
               ),
               title: Text(
                 category == 'Today' ? 'Hôm nay' : category,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               centerTitle: true,
             ),
@@ -55,38 +51,45 @@ class TaskListScreen extends StatelessWidget {
         final waitingTasks = tasks.where((task) => task.isCompleted != true).toList();
 
         return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.grey),
+              icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
               onPressed: () {
                 Navigator.pop(context);
               },
             ),
             title: Text(
               category == 'Today' ? 'Hôm nay' : category,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             centerTitle: true,
             actions: [
               IconButton(
-                icon: const Icon(Icons.search, color: Colors.grey),
+                icon: Icon(Icons.search, color: Theme.of(context).iconTheme.color),
                 onPressed: () {
                   showDialog(
                     context: context,
                     builder: (dialogContext) {
                       final TextEditingController controller = TextEditingController();
                       return AlertDialog(
-                        title: const Text('Tìm kiếm task'),
+                        title: Text(
+                          'Tìm kiếm task',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         content: TextField(
                           controller: controller,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             hintText: 'Nhập tên task...',
+                            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                            filled: true,
+                            fillColor: Theme.of(context).colorScheme.surface,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                         actions: [
@@ -94,14 +97,20 @@ class TaskListScreen extends StatelessWidget {
                             onPressed: () {
                               Navigator.pop(dialogContext);
                             },
-                            child: const Text('Hủy'),
+                            child: Text(
+                              'Hủy',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
                           ),
                           TextButton(
                             onPressed: () async {
                               await context.read<TaskCubit>().searchTasks(controller.text);
                               Navigator.pop(dialogContext);
                             },
-                            child: const Text('Tìm kiếm'),
+                            child: Text(
+                              'Tìm kiếm',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
                           ),
                         ],
                       );
@@ -136,27 +145,21 @@ class TaskListScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               context.read<TaskCubit>().calculateTotalTime(tasks).toString(),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Tổng thời gian tập trung',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                             ),
                           ],
                         ),
@@ -167,27 +170,21 @@ class TaskListScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               context.read<TaskCubit>().calculateElapsedTime(tasks).toString(),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Thời gian đã trôi qua',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                             ),
                           ],
                         ),
@@ -203,27 +200,21 @@ class TaskListScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               waitingTasks.length.toString(),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Task đang chờ',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                             ),
                           ],
                         ),
@@ -234,27 +225,21 @@ class TaskListScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardTheme.color,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               completedTasks.length.toString(),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Task đã hoàn thành',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                             ),
                           ],
                         ),
@@ -267,9 +252,9 @@ class TaskListScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardTheme.color,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                   ),
                   child: GestureDetector(
                     onTap: () {
@@ -284,10 +269,10 @@ class TaskListScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Thêm một task.',
-                      style: TextStyle(
-                        color: Colors.blue,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
                         fontSize: 16,
                       ),
                       textAlign: TextAlign.center,
@@ -297,7 +282,12 @@ class TaskListScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Expanded(
                   child: tasks.isEmpty
-                      ? const Center(child: Text('Không có task nào trong danh mục này.'))
+                      ? Center(
+                    child: Text(
+                      'Không có task nào trong danh mục này.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  )
                       : ListView.builder(
                     itemCount: waitingTasks.length + (completedTasks.isNotEmpty ? 1 : 0) + completedTasks.length,
                     itemBuilder: (context, index) {
@@ -339,7 +329,7 @@ class TaskListScreen extends StatelessWidget {
                                         },
                                         shape: const CircleBorder(),
                                         activeColor: Colors.green,
-                                        checkColor: Colors.white,
+                                        checkColor: Theme.of(context).colorScheme.onSurface,
                                         side: const BorderSide(color: Colors.red),
                                       ),
                                     ),
@@ -349,9 +339,7 @@ class TaskListScreen extends StatelessWidget {
                                         children: [
                                           Text(
                                             task.title ?? 'Task không có tiêu đề',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                               decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
                                             ),
                                           ),
@@ -366,7 +354,7 @@ class TaskListScreen extends StatelessWidget {
                                                   return Chip(
                                                     label: Text(
                                                       '#$tag',
-                                                      style: TextStyle(
+                                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                         fontSize: 10,
                                                         color: colors['text'],
                                                       ),
@@ -387,27 +375,27 @@ class TaskListScreen extends StatelessWidget {
                                                 Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    const Icon(Icons.timer, size: 14, color: Colors.grey),
+                                                    Icon(Icons.timer, size: 14, color: Theme.of(context).iconTheme.color),
                                                     const SizedBox(width: 4),
                                                     Text(
                                                       '${task.estimatedPomodoros ?? 0}',
-                                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
                                                     ),
                                                   ],
                                                 ),
-                                                const Icon(Icons.wb_sunny, size: 14, color: Colors.grey),
-                                                const Icon(Icons.nights_stay, size: 14, color: Colors.grey),
-                                                const Icon(Icons.flag, size: 14, color: Colors.grey),
-                                                const Icon(Icons.comment, size: 14, color: Colors.grey),
+                                                Icon(Icons.wb_sunny, size: 14, color: Theme.of(context).iconTheme.color),
+                                                Icon(Icons.nights_stay, size: 14, color: Theme.of(context).iconTheme.color),
+                                                Icon(Icons.flag, size: 14, color: Theme.of(context).iconTheme.color),
+                                                Icon(Icons.comment, size: 14, color: Theme.of(context).iconTheme.color),
                                                 if (task.project != null)
                                                   Row(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [
-                                                      const Icon(Icons.bookmark, size: 14, color: Colors.grey),
+                                                      Icon(Icons.bookmark, size: 14, color: Theme.of(context).iconTheme.color),
                                                       const SizedBox(width: 4),
                                                       Text(
                                                         task.project!,
-                                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
                                                       ),
                                                     ],
                                                   ),
@@ -433,11 +421,11 @@ class TaskListScreen extends StatelessWidget {
                           ),
                         );
                       } else if (index == waitingTasks.length && completedTasks.isNotEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
                           child: Text(
                             'Đã hoàn thành',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
                         );
                       } else {
@@ -479,7 +467,7 @@ class TaskListScreen extends StatelessWidget {
                                         },
                                         shape: const CircleBorder(),
                                         activeColor: Colors.green,
-                                        checkColor: Colors.white,
+                                        checkColor: Theme.of(context).colorScheme.onSurface,
                                         side: const BorderSide(color: Colors.red),
                                       ),
                                     ),
@@ -489,9 +477,7 @@ class TaskListScreen extends StatelessWidget {
                                         children: [
                                           Text(
                                             task.title ?? 'Task không có tiêu đề',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                               decoration: TextDecoration.lineThrough,
                                             ),
                                           ),
@@ -506,7 +492,7 @@ class TaskListScreen extends StatelessWidget {
                                                   return Chip(
                                                     label: Text(
                                                       '#$tag',
-                                                      style: TextStyle(
+                                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                         fontSize: 10,
                                                         color: colors['text'],
                                                       ),
@@ -527,27 +513,27 @@ class TaskListScreen extends StatelessWidget {
                                                 Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    const Icon(Icons.timer, size: 14, color: Colors.grey),
+                                                    Icon(Icons.timer, size: 14, color: Theme.of(context).iconTheme.color),
                                                     const SizedBox(width: 4),
                                                     Text(
                                                       '${task.estimatedPomodoros ?? 0}',
-                                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
                                                     ),
                                                   ],
                                                 ),
-                                                const Icon(Icons.wb_sunny, size: 14, color: Colors.grey),
-                                                const Icon(Icons.nights_stay, size: 14, color: Colors.grey),
-                                                const Icon(Icons.flag, size: 14, color: Colors.grey),
-                                                const Icon(Icons.comment, size: 14, color: Colors.grey),
+                                                Icon(Icons.wb_sunny, size: 14, color: Theme.of(context).iconTheme.color),
+                                                Icon(Icons.nights_stay, size: 14, color: Theme.of(context).iconTheme.color),
+                                                Icon(Icons.flag, size: 14, color: Theme.of(context).iconTheme.color),
+                                                Icon(Icons.comment, size: 14, color: Theme.of(context).iconTheme.color),
                                                 if (task.project != null)
                                                   Row(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [
-                                                      const Icon(Icons.bookmark, size: 14, color: Colors.grey),
+                                                      Icon(Icons.bookmark, size: 14, color: Theme.of(context).iconTheme.color),
                                                       const SizedBox(width: 4),
                                                       Text(
                                                         task.project!,
-                                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
                                                       ),
                                                     ],
                                                   ),
@@ -580,7 +566,8 @@ class TaskListScreen extends StatelessWidget {
             ),
           ),
           floatingActionButton: FloatingActionButton(
-            backgroundColor: const Color(0xFFFF5733),
+            heroTag: 'tasks_fab',
+            backgroundColor: Theme.of(context).floatingActionButtonTheme.backgroundColor,
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -593,7 +580,7 @@ class TaskListScreen extends StatelessWidget {
                 ),
               );
             },
-            child: const Icon(Icons.add, color: Colors.white),
+            child: Icon(Icons.add, color: Theme.of(context).floatingActionButtonTheme.foregroundColor),
           ),
         );
       },

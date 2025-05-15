@@ -19,31 +19,39 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leading: showBackButton
           ? IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.grey),
+        icon: Icon(
+          Icons.arrow_back,
+          color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+        ),
         onPressed: () {
-          Navigator.pop(context); // Quay về màn hình trước đó
+          Navigator.pop(context);
         },
       )
           : null,
       title: ShaderMask(
-        shaderCallback: (bounds) => const LinearGradient(
-          colors: [Color(0xFF8F0404), Color(0xFFFF7379)],
+        shaderCallback: (bounds) => LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.secondary,
+            Theme.of(context).colorScheme.primary,
+          ],
         ).createShader(bounds),
-        child: const Text(
+        child: Text(
           'DNTU Focus',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
         ),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.notifications, color: Colors.grey),
+          icon: Icon(
+            Icons.notifications,
+            color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+          ),
           onPressed: onNotificationPressed ?? () {},
         ),
-        if (!showBackButton) // Chỉ hiển thị icon Settings nếu không có nút back
+        if (!showBackButton)
           _SettingsIconButton(),
       ],
     );
@@ -59,23 +67,25 @@ class _SettingsIconButton extends StatefulWidget {
 }
 
 class _SettingsIconButtonState extends State<_SettingsIconButton> {
-  Color _iconColor = Colors.grey;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(
         Icons.settings,
-        color: _iconColor,
+        color: _isPressed
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).iconTheme.color?.withOpacity(0.6),
       ),
       onPressed: () {
         setState(() {
-          _iconColor = Colors.blue; // Đổi màu khi nhấn
+          _isPressed = true;
         });
         Navigator.pushNamed(context, AppRoutes.settings);
         Future.delayed(const Duration(milliseconds: 300), () {
           setState(() {
-            _iconColor = Colors.grey; // Quay lại màu gốc sau 300ms
+            _isPressed = false;
           });
         });
       },

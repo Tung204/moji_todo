@@ -65,7 +65,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi: $response'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     } else {
@@ -84,7 +84,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       } else if (commandResult['type'] == 'schedule') {
@@ -107,7 +107,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       } else {
@@ -115,7 +115,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -130,6 +130,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: const CustomAppBar(),
       body: Column(
         children: [
@@ -145,12 +146,16 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: isUser ? Colors.blue[100] : Colors.grey[200],
+                      color: isUser
+                          ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                          : Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       message['content']!,
-                      style: TextStyle(color: isUser ? Colors.black : Colors.black87),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
                   ),
                 );
@@ -158,9 +163,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
             ),
           ),
           if (_isProcessing)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           if (_suggestions.isNotEmpty)
             SizedBox(
@@ -173,7 +180,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 5),
                       child: ActionChip(
-                        label: const Text('Làm mới gợi ý'),
+                        label: Text(
+                          'Làm mới gợi ý',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        labelStyle: Theme.of(context).textTheme.bodyMedium,
                         onPressed: () {
                           setState(() {
                             _suggestions = [];
@@ -186,7 +198,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 5),
                     child: ActionChip(
-                      label: Text(_suggestions[index - 1]),
+                      label: Text(
+                        _suggestions[index - 1],
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      labelStyle: Theme.of(context).textTheme.bodyMedium,
                       onPressed: () async {
                         await _handleMessage(_suggestions[index - 1]);
                       },
@@ -204,14 +221,33 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: 'Nhập câu lệnh...',
+                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
+                  icon: Icon(
+                    Icons.send,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   onPressed: () async {
                     if (_controller.text.isNotEmpty) {
                       final message = _controller.text;
@@ -221,7 +257,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
                   },
                 ),
                 IconButton(
-                  icon: Icon(_speechEnabled ? Icons.mic : Icons.mic_off),
+                  icon: Icon(
+                    _speechEnabled ? Icons.mic : Icons.mic_off,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   onPressed: () {
                     if (_speechEnabled) {
                       _speechToText.listen(

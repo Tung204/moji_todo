@@ -6,8 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:moji_todo/routes/app_routes.dart';
+import 'package:provider/provider.dart';
 import 'core/services/backup_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/themes/theme.dart';
+import 'core/themes/theme_provider.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
 import 'features/pomodoro/data/pomodoro_repository.dart';
@@ -20,7 +23,6 @@ import 'features/tasks/data/models/task_model.dart';
 import 'features/tasks/data/task_repository.dart';
 import 'features/tasks/domain/task_cubit.dart';
 
-// InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
 class AppData extends InheritedWidget {
   final Box<Task> taskBox;
   final Box<DateTime> syncInfoBox;
@@ -52,17 +54,15 @@ class AppData extends InheritedWidget {
         tagBox != oldWidget.tagBox;
   }
 }
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Add this line to ensure the method channel is registered
-  const MethodChannel('com.example.moji_todo/notification');
-  
-  await Firebase.initializeApp();
 
+  const MethodChannel('com.example.moji_todo/notification');
+
+  await Firebase.initializeApp();
   await dotenv.load(fileName: ".env");
 
-  // Khởi tạo Hive
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
@@ -79,7 +79,6 @@ void main() async {
   final notificationService = NotificationService();
   await notificationService.init();
 
-  // Kiểm tra và sinh project/tag mặc định nếu Hive trống
   await initializeDefaultData(projectBox, tagBox);
 
   runApp(MyApp(
@@ -91,11 +90,9 @@ void main() async {
   ));
 }
 
-// Hàm khởi tạo dữ liệu mặc định
 Future<void> initializeDefaultData(Box<Project> projectBox, Box<Tag> tagBox) async {
   final repository = ProjectTagRepository(projectBox: projectBox, tagBox: tagBox);
 
-  // Nếu Hive trống, thêm dữ liệu mặc định
   if (projectBox.isEmpty) {
     final defaultProjects = [
       Project(name: 'General', color: Colors.green, isArchived: false),
@@ -208,21 +205,24 @@ class _MyAppState extends State<MyApp> {
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),
           BlocProvider(
-            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
+            create: (context) => HomeCubit(),
           ),
         ],
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Moji ToDo',
-          theme: ThemeData(
-            primaryColor: const Color(0xFF00C4FF),
-            scaffoldBackgroundColor: const Color(0xFFE6F7FA),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFFFF69B4)),
-            ),
+        child: ChangeNotifierProvider(
+          create: (context) => ThemeProvider(),
+          child: Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'Moji ToDo',
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: themeProvider.getThemeMode(),
+                home: const SplashScreen(),
+                onGenerateRoute: AppRoutes.generateRoute,
+              );
+            },
           ),
-          home: const SplashScreen(), // Sử dụng MainScreen làm màn hình chính
-          onGenerateRoute: AppRoutes.generateRoute,
         ),
       ),
     );

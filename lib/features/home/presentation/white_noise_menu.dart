@@ -23,12 +23,10 @@ class WhiteNoiseMenu extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              backgroundColor: Theme.of(context).cardTheme.color,
               title: Text(
                 'White Noise Settings',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -38,7 +36,7 @@ class WhiteNoiseMenu extends StatelessWidget {
                     children: [
                       Text(
                         'Volume: ${(whiteNoiseVolume * 100).round()}%',
-                        style: GoogleFonts.poppins(fontSize: 16),
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       Expanded(
                         child: Slider(
@@ -46,6 +44,8 @@ class WhiteNoiseMenu extends StatelessWidget {
                           min: 0.0,
                           max: 1.0,
                           divisions: 10,
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          inactiveColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                           onChanged: (value) {
                             setState(() {
                               whiteNoiseVolume = value;
@@ -60,7 +60,7 @@ class WhiteNoiseMenu extends StatelessWidget {
                     value: selectedWhiteNoise,
                     hint: Text(
                       'Select Sound',
-                      style: GoogleFonts.poppins(fontSize: 16),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -77,7 +77,7 @@ class WhiteNoiseMenu extends StatelessWidget {
                       ),
                       DropdownMenuItem(
                         value: 'metronome',
-                        child: Text('metronome'),
+                        child: Text('Metronome'),
                       ),
                       DropdownMenuItem(
                         value: 'small-stream',
@@ -85,19 +85,19 @@ class WhiteNoiseMenu extends StatelessWidget {
                       ),
                       DropdownMenuItem(
                         value: 'water-stream',
-                        child: Text('water stream'),
+                        child: Text('Water Stream'),
                       ),
                       DropdownMenuItem(
                         value: 'bonfire',
-                        child: Text('bonfire'),
+                        child: Text('Bonfire'),
                       ),
                       DropdownMenuItem(
                         value: 'cafe',
-                        child: Text('cafe'),
+                        child: Text('Cafe'),
                       ),
                       DropdownMenuItem(
                         value: 'library',
-                        child: Text('library'),
+                        child: Text('Library'),
                       ),
                     ],
                     onChanged: (value) {
@@ -108,6 +108,17 @@ class WhiteNoiseMenu extends StatelessWidget {
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -118,7 +129,7 @@ class WhiteNoiseMenu extends StatelessWidget {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.poppins(fontSize: 16),
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
                 ElevatedButton(
@@ -126,23 +137,21 @@ class WhiteNoiseMenu extends StatelessWidget {
                     homeCubit.toggleWhiteNoise(isWhiteNoiseEnabled);
                     if (selectedWhiteNoise != null) {
                       homeCubit.selectWhiteNoise(selectedWhiteNoise!);
-                    }else {
-                      // Cung cấp giá trị mặc định nếu selectedWhiteNoise là null
+                    } else {
                       homeCubit.selectWhiteNoise('clock_ticking');
                     }
                     Navigator.pop(dialogContext);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: Text(
                     'Save',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      color: Colors.white,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                 ),
@@ -166,15 +175,19 @@ class WhiteNoiseMenu extends StatelessWidget {
             IconButton(
               icon: Icon(
                 Icons.music_note,
-                color: state.isWhiteNoiseEnabled ? Colors.red : Colors.grey,
+                color: state.isWhiteNoiseEnabled
+                    ? Theme.of(context).colorScheme.secondary
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                 size: 28,
               ),
               onPressed: () => _showWhiteNoiseMenu(context),
             ),
             Text(
               'White Noise',
-              style: GoogleFonts.poppins(
-                color: state.isWhiteNoiseEnabled ? Colors.red : Colors.grey,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: state.isWhiteNoiseEnabled
+                    ? Theme.of(context).colorScheme.secondary
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                 fontSize: 12,
               ),
             ),

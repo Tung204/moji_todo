@@ -20,6 +20,7 @@ class TaskBottomSheet {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      backgroundColor: Theme.of(context).cardTheme.color,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setBottomSheetState) {
@@ -36,16 +37,12 @@ class TaskBottomSheet {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Select Task',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
                           IconButton(
-                            icon: const Icon(Icons.add, color: Color(0xFFFF5733)),
+                            icon: Icon(Icons.add, color: Theme.of(context).colorScheme.secondary),
                             onPressed: () {
                               Navigator.pushNamed(context, AppRoutes.tasks);
                             },
@@ -57,21 +54,28 @@ class TaskBottomSheet {
                         controller: searchController,
                         decoration: InputDecoration(
                           hintText: 'Search task...',
-                          hintStyle: const TextStyle(color: Colors.grey),
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Theme.of(context).iconTheme.color,
+                          ),
                           filled: true,
-                          fillColor: Colors.grey[200],
+                          fillColor: Theme.of(context).colorScheme.surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.grey),
+                            borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.grey),
+                            borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.grey),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
                         ),
                         autofocus: true,
@@ -95,19 +99,20 @@ class TaskBottomSheet {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Today Tasks',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge,
                               ),
                               const SizedBox(height: 8),
                               if (filteredTasks.isEmpty)
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16.0),
-                                  child: Center(child: Text('No tasks found.')),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Center(
+                                    child: Text(
+                                      'No tasks found.',
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                  ),
                                 )
                               else
                                 SizedBox(

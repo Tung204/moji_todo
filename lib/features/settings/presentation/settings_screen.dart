@@ -3,12 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../routes/app_routes.dart';
 import '../../../core/widgets/custom_app_bar.dart';
-import '../../../core/navigation/navigation_manager.dart';
 import '../domain/settings_cubit.dart';
-import '../domain/settings_state.dart';
 import '../../../core/services/backup_service.dart';
-import 'package:moji_todo/features/tasks/data/models/task_model.dart';
-import 'package:hive/hive.dart';
 import 'backup_sync_screen.dart';
 import 'package:moji_todo/main.dart';
 
@@ -33,7 +29,7 @@ class SettingsScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => SettingsCubit(),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: const CustomAppBar(showBackButton: true),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -51,9 +47,9 @@ class SettingsScreen extends StatelessWidget {
                       CircleAvatar(
                         radius: 30,
                         backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                         child: photoUrl == null
-                            ? const Icon(Icons.person, size: 30, color: Colors.grey)
+                            ? Icon(Icons.person, size: 30, color: Theme.of(context).colorScheme.onSurface)
                             : null,
                       ),
                       const SizedBox(width: 16),
@@ -62,23 +58,25 @@ class SettingsScreen extends StatelessWidget {
                         children: [
                           Text(
                             displayName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const Text(
+                          Text(
                             'Tap to edit profile',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
+              ),
+              _buildSettingItem(
+                context,
+                icon: Icons.brightness_6,
+                title: 'App Appearance',
+                onTap: () {
+                  Navigator.pushNamed(context, AppRoutes.appAppearance);
+                },
               ),
               _buildSettingItem(
                 context,
@@ -153,19 +151,16 @@ class SettingsScreen extends StatelessWidget {
       BuildContext context, {
         required IconData icon,
         required String title,
-        Color titleColor = Colors.black,
+        // Color titleColor = Colors.black,
         required VoidCallback onTap,
       }) {
     return ListTile(
-      leading: Icon(icon, color: Colors.black54),
+      leading: Icon(icon, color: Theme.of(context).iconTheme.color),
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: 16,
-          color: titleColor,
-        ),
+        style: Theme.of(context).textTheme.bodyMedium,
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.black54),
+      trailing: Icon(Icons.chevron_right, color: Theme.of(context).iconTheme.color),
       onTap: onTap,
     );
   }
