@@ -238,6 +238,14 @@ class TaskManageScreen extends StatelessWidget {
                       borderColor: projectBorderColors[project] ?? Colors.blue,
                       icon: projectIcons[project],
                       iconColor: projectBorderColors[project] ?? Colors.blue,
+                      onTap: () { // THÊM: Xử lý nhấn vào dự án
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TaskListScreen(category: project),
+                          ),
+                        );
+                      },
                     );
                   }).toList(),
                 ),

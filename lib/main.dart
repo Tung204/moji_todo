@@ -52,12 +52,13 @@ class AppData extends InheritedWidget {
         tagBox != oldWidget.tagBox;
   }
 }
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Add this line to ensure the method channel is registered
   const MethodChannel('com.example.moji_todo/notification');
-  
+
   await Firebase.initializeApp();
 
   await dotenv.load(fileName: ".env");
@@ -67,6 +68,9 @@ void main() async {
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
   Hive.registerAdapter(TagAdapter());
+
+  // SỬA: Xóa đoạn code xóa dữ liệu Hive cũ
+  // Không cần deleteBoxFromDisk nữa vì dữ liệu đã khớp schema mới
   final taskBox = await Hive.openBox<Task>('tasks');
   final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
   final projectBox = await Hive.openBox<Project>('projects');
@@ -208,7 +212,7 @@ class _MyAppState extends State<MyApp> {
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),
           BlocProvider(
-            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
+            create: (context) => HomeCubit(),
           ),
         ],
         child: MaterialApp(
@@ -221,7 +225,7 @@ class _MyAppState extends State<MyApp> {
               bodyLarge: TextStyle(color: Color(0xFFFF69B4)),
             ),
           ),
-          home: const SplashScreen(), // Sử dụng MainScreen làm màn hình chính
+          home: const SplashScreen(),
           onGenerateRoute: AppRoutes.generateRoute,
         ),
       ),

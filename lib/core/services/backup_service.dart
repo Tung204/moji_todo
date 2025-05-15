@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
@@ -64,28 +63,30 @@ class BackupService {
             .collection('users')
             .doc(user.uid)
             .collection('projects')
-            .where('name', isEqualTo: project.name)
+            .where('id', isEqualTo: project.id)
             .get();
         if (query.docs.isNotEmpty) {
           await query.docs.first.reference.update({
+            'id': project.id,
             'name': project.name,
             'color': project.color.value,
-            'isArchived': project.isArchived,
+            'isArchived': project.isArchived, // SỬA: Đảm bảo isArchived được đồng bộ
           });
         } else {
           await firestore
               .collection('users')
               .doc(user.uid)
               .collection('projects')
-              .doc(project.name)
+              .doc(project.id)
               .set({
+            'id': project.id,
             'name': project.name,
             'color': project.color.value,
             'isArchived': project.isArchived,
           });
         }
       } catch (e) {
-        print('Lỗi khi đồng bộ project ${project.name}: $e');
+        print('Lỗi khi đồng bộ project ${project.id}: $e');
       }
     }
 
@@ -97,10 +98,11 @@ class BackupService {
             .collection('users')
             .doc(user.uid)
             .collection('tags')
-            .where('name', isEqualTo: tag.name)
+            .where('id', isEqualTo: tag.id)
             .get();
         if (query.docs.isNotEmpty) {
           await query.docs.first.reference.update({
+            'id': tag.id,
             'name': tag.name,
             'backgroundColor': tag.backgroundColor.value,
             'textColor': tag.textColor.value,
@@ -111,8 +113,9 @@ class BackupService {
               .collection('users')
               .doc(user.uid)
               .collection('tags')
-              .doc(tag.name)
+              .doc(tag.id)
               .set({
+            'id': tag.id,
             'name': tag.name,
             'backgroundColor': tag.backgroundColor.value,
             'textColor': tag.textColor.value,
@@ -120,14 +123,14 @@ class BackupService {
           });
         }
       } catch (e) {
-        print('Lỗi khi đồng bộ tag ${tag.name}: $e');
+        print('Lỗi khi đồng bộ tag ${tag.id}: $e');
       }
     }
 
     // Xóa dữ liệu không còn trong Hive trên Firestore
     await _cleanUpFirestore(user.uid, 'tasks', tasks.map((t) => t.id.toString()).toList());
-    await _cleanUpFirestore(user.uid, 'projects', projects.map((p) => p.name).toList());
-    await _cleanUpFirestore(user.uid, 'tags', tags.map((t) => t.name).toList());
+    await _cleanUpFirestore(user.uid, 'projects', projects.map((p) => p.id).toList());
+    await _cleanUpFirestore(user.uid, 'tags', tags.map((t) => t.id).toList());
 
     // Cập nhật thời gian đồng bộ cuối cùng
     await syncInfoBox.put('lastSync', DateTime.now());
@@ -172,6 +175,7 @@ class BackupService {
         .get();
     if (projectSnapshot.docs.isNotEmpty) {
       final projects = projectSnapshot.docs.map((doc) => Project(
+        id: doc.data()['id'],
         name: doc.data()['name'],
         color: Color(doc.data()['color']),
         isArchived: doc.data()['isArchived'] ?? false,
@@ -193,6 +197,7 @@ class BackupService {
         .get();
     if (tagSnapshot.docs.isNotEmpty) {
       final tags = tagSnapshot.docs.map((doc) => Tag(
+        id: doc.data()['id'],
         name: doc.data()['name'],
         backgroundColor: Color(doc.data()['backgroundColor']),
         textColor: Color(doc.data()['textColor']),
@@ -272,11 +277,13 @@ class BackupService {
     final jsonData = {
       'tasks': tasks.map((task) => task.toJson()).toList(),
       'projects': projects.map((project) => {
+        'id': project.id,
         'name': project.name,
         'color': project.color.value,
         'isArchived': project.isArchived,
       }).toList(),
       'tags': tags.map((tag) => {
+        'id': tag.id,
         'name': tag.name,
         'backgroundColor': tag.backgroundColor.value,
         'textColor': tag.textColor.value,

@@ -26,6 +26,7 @@ class ProjectTagRepository {
     final project = projectBox.getAt(index);
     if (project != null) {
       await projectBox.putAt(index, Project(
+        id: project.id,
         name: project.name,
         color: project.color,
         isArchived: true,
@@ -34,21 +35,35 @@ class ProjectTagRepository {
   }
 
   Future<void> restoreProject(int index) async {
-    final project = projectBox.getAt(index);
-    if (project != null) {
-      await projectBox.putAt(index, Project(
-        name: project.name,
-        color: project.color,
-        isArchived: false,
-      ));
+    final archivedProjects = getArchivedProjects();
+    if (index < 0 || index >= archivedProjects.length) return;
+
+    final projectToRestore = archivedProjects[index];
+    final boxIndex = projectBox.values.toList().indexWhere((p) => p.id == projectToRestore.id);
+
+    if (boxIndex != -1) {
+      final project = projectBox.getAt(boxIndex);
+      if (project != null) {
+        await projectBox.putAt(boxIndex, Project(
+          id: project.id,
+          name: project.name,
+          color: project.color,
+          isArchived: false,
+        ));
+      }
     }
   }
 
   Future<void> deleteProject(int index, BuildContext context) async {
-    final project = projectBox.getAt(index);
-    if (project != null) {
-      await context.read<TaskCubit>().updateTasksOnProjectDeletion(project.name);
-      await projectBox.deleteAt(index);
+    final archivedProjects = getArchivedProjects();
+    if (index < 0 || index >= archivedProjects.length) return;
+
+    final projectToDelete = archivedProjects[index];
+    final boxIndex = projectBox.values.toList().indexWhere((p) => p.id == projectToDelete.id);
+
+    if (boxIndex != -1) {
+      await context.read<TaskCubit>().updateTasksOnProjectDeletion(projectToDelete.name);
+      await projectBox.deleteAt(boxIndex);
     }
   }
 
@@ -72,6 +87,7 @@ class ProjectTagRepository {
     final tag = tagBox.getAt(index);
     if (tag != null) {
       await tagBox.putAt(index, Tag(
+        id: tag.id,
         name: tag.name,
         backgroundColor: tag.backgroundColor,
         textColor: tag.textColor,
@@ -81,22 +97,37 @@ class ProjectTagRepository {
   }
 
   Future<void> restoreTag(int index) async {
-    final tag = tagBox.getAt(index);
-    if (tag != null) {
-      await tagBox.putAt(index, Tag(
-        name: tag.name,
-        backgroundColor: tag.backgroundColor,
-        textColor: tag.textColor,
-        isArchived: false,
-      ));
+    final archivedTags = getArchivedTags();
+    if (index < 0 || index >= archivedTags.length) return;
+
+    final tagToRestore = archivedTags[index];
+    // SỬA: Tìm index trong Box dựa trên id
+    final boxIndex = tagBox.values.toList().indexWhere((t) => t.id == tagToRestore.id);
+
+    if (boxIndex != -1) {
+      final tag = tagBox.getAt(boxIndex);
+      if (tag != null) {
+        await tagBox.putAt(boxIndex, Tag(
+          id: tag.id,
+          name: tag.name,
+          backgroundColor: tag.backgroundColor,
+          textColor: tag.textColor,
+          isArchived: false,
+        ));
+      }
     }
   }
 
   Future<void> deleteTag(int index, BuildContext context) async {
-    final tag = tagBox.getAt(index);
-    if (tag != null) {
-      await context.read<TaskCubit>().updateTasksOnTagDeletion(tag.name);
-      await tagBox.deleteAt(index);
+    final archivedTags = getArchivedTags();
+    if (index < 0 || index >= archivedTags.length) return;
+
+    final tagToDelete = archivedTags[index];
+    final boxIndex = tagBox.values.toList().indexWhere((t) => t.id == tagToDelete.id);
+
+    if (boxIndex != -1) {
+      await context.read<TaskCubit>().updateTasksOnTagDeletion(tagToDelete.name);
+      await tagBox.deleteAt(boxIndex);
     }
   }
 

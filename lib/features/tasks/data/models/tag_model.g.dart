@@ -17,24 +17,27 @@ class TagAdapter extends TypeAdapter<Tag> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Tag(
-      name: fields[0] as String,
-      backgroundColor: Color(fields[1] as int), // Truyền backgroundColor từ fields[1]
-      textColor: Color(fields[2] as int), // Truyền textColor từ fields[2]
-      isArchived: fields[3] as bool? ?? false,
+      id: fields[0] as String,
+      name: fields[1] as String,
+      backgroundColor: Color(fields[2] as int), // SỬA: Đảm bảo truyền backgroundColor
+      textColor: Color(fields[3] as int), // SỬA: Đảm bảo truyền textColor
+      isArchived: fields[4] as bool? ?? false,
     );
   }
 
   @override
   void write(BinaryWriter writer, Tag obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
-      ..write(obj.name)
+      ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.backgroundColorValue)
+      ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.textColorValue)
+      ..write(obj.backgroundColorValue)
       ..writeByte(3)
+      ..write(obj.textColorValue)
+      ..writeByte(4)
       ..write(obj.isArchived);
   }
 
