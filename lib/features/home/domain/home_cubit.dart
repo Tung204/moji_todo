@@ -7,6 +7,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../tasks/data/models/task_model.dart';
 import 'home_state.dart';
+import 'package:flutter/foundation.dart';
+
 
 const String prefTimerSeconds = "timerSeconds";
 const String prefIsRunning = "isRunning";
@@ -162,7 +164,6 @@ class HomeCubit extends Cubit<HomeState> {
     });
     _listenToTasks(user.uid);
   }
-
   void _listenToTasks(String uid) {
     _firestore
         .collection('users')

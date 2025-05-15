@@ -35,14 +35,17 @@ class TaskDetailScreen extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.grey),
+            icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
             onPressed: () {
               Navigator.pop(context);
             },
           ),
         ),
-        body: const Center(
-          child: Text('Không tìm thấy task.'),
+        body: Center(
+          child: Text(
+            'Không tìm thấy task.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
       );
     }
@@ -54,14 +57,14 @@ class TaskDetailScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.grey),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
         title: Text(
           task!.title ?? 'Task không có tiêu đề',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         actions: [
           PopupMenuButton<String>(
@@ -74,13 +77,14 @@ class TaskDetailScreen extends StatelessWidget {
                     return StatefulBuilder(
                       builder: (context, setState) {
                         return AlertDialog(
-                          title: Text(isInTrash ? 'Xóa vĩnh viễn' : 'Xóa Task'),
+                          title: Text(isInTrash ? 'Xóa vĩnh viễn' : 'Xóa Task',style: Theme.of(context).textTheme.titleLarge,),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(isInTrash
                                   ? 'Bạn có chắc muốn xóa vĩnh viễn task "${task!.title}" không?'
-                                  : 'Task "${task!.title}" sẽ được chuyển vào Thùng rác. Bạn có muốn tiếp tục?'),
+                                  : 'Task "${task!.title}" sẽ được chuyển vào Thùng rác. Bạn có muốn tiếp tục?',
+                                style: Theme.of(context).textTheme.bodyMedium,),
                               if (isLoading) ...[
                                 const SizedBox(height: 16),
                                 const CircularProgressIndicator(),
@@ -94,7 +98,7 @@ class TaskDetailScreen extends StatelessWidget {
                                   : () {
                                 Navigator.pop(dialogContext);
                               },
-                              child: const Text('Hủy'),
+                              child: Text('Hủy',style: Theme.of(context).textTheme.bodyMedium,),
                             ),
                             TextButton(
                               onPressed: isLoading
@@ -109,8 +113,8 @@ class TaskDetailScreen extends StatelessWidget {
                                     Navigator.pop(dialogContext);
                                     Navigator.pop(context, true);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Task đã được xóa vĩnh viễn!'),
+                                      SnackBar(
+                                        content: Text('Task đã được xóa vĩnh viễn!',style: Theme.of(context).textTheme.bodyMedium,),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -124,8 +128,8 @@ class TaskDetailScreen extends StatelessWidget {
                                     Navigator.pop(dialogContext);
                                     Navigator.pop(context, true);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Task đã được chuyển vào Thùng rác!'),
+                                      SnackBar(
+                                        content: Text('Task đã được chuyển vào Thùng rác!', style: Theme.of(context).textTheme.bodyMedium,),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
@@ -136,7 +140,7 @@ class TaskDetailScreen extends StatelessWidget {
                                   });
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Lỗi: $e'),
+                                      content: Text('Lỗi: $e',style: Theme.of(context).textTheme.bodyMedium,),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -144,7 +148,7 @@ class TaskDetailScreen extends StatelessWidget {
                               },
                               child: Text(
                                 isInTrash ? 'Xóa vĩnh viễn' : 'Xóa',
-                                style: const TextStyle(color: Colors.red),
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.red),
                               ),
                             ),
                             if (isInTrash)

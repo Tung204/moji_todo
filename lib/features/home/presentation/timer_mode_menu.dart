@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/sizes.dart';
-import '../../../../core/constants/strings.dart';
 
 class TimerModeMenu extends StatelessWidget {
   const TimerModeMenu({super.key});
@@ -22,7 +20,7 @@ class TimerModeMenu extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
-          backgroundColor: AppColors.snackbarError,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -52,16 +50,12 @@ class TimerModeMenu extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
               ),
               elevation: 8,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).cardTheme.color,
               contentPadding: const EdgeInsets.all(AppSizes.dialogPadding),
               title: Center(
                 child: Text(
-                  AppStrings.timerModeTitle,
-                  style: GoogleFonts.poppins(
-                    fontSize: AppSizes.titleFontSize,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
+                  'Timer Mode',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
               content: SizedBox(
@@ -71,7 +65,6 @@ class TimerModeMenu extends StatelessWidget {
                     children: [
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -80,15 +73,11 @@ class TimerModeMenu extends StatelessWidget {
                           child: DropdownButtonFormField<String>(
                             value: timerMode,
                             decoration: InputDecoration(
-                              labelText: AppStrings.timerModeLabel,
-                              labelStyle: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                color: AppColors.textPrimary,
-                              ),
-                              helperText: AppStrings.timerModeHelper,
-                              helperStyle: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              labelText: 'Timer Mode',
+                              labelStyle: Theme.of(context).textTheme.bodyMedium,
+                              helperText: 'Chọn chế độ thời gian làm việc và nghỉ.',
+                              helperStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -97,16 +86,16 @@ class TimerModeMenu extends StatelessWidget {
                               floatingLabelBehavior: FloatingLabelBehavior.always,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                borderSide: const BorderSide(color: AppColors.textDisabled),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                borderSide: const BorderSide(color: AppColors.textDisabled),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primary,
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
                                   width: 2,
                                 ),
                               ),
@@ -148,7 +137,6 @@ class TimerModeMenu extends StatelessWidget {
                       if (timerMode == 'Tùy chỉnh') ...[
                         Card(
                           elevation: 2,
-                          color: AppColors.cardBackground,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                           ),
@@ -158,15 +146,11 @@ class TimerModeMenu extends StatelessWidget {
                               controller: workController,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                labelText: AppStrings.workDurationLabel,
-                                labelStyle: GoogleFonts.poppins(
-                                  fontSize: AppSizes.labelFontSize,
-                                  color: AppColors.textPrimary,
-                                ),
-                                helperText: AppStrings.workDurationHelper,
-                                helperStyle: GoogleFonts.poppins(
-                                  fontSize: AppSizes.helperFontSize,
-                                  color: AppColors.textDisabled,
+                                labelText: 'Thời gian làm việc (phút)',
+                                labelStyle: Theme.of(context).textTheme.bodyMedium,
+                                helperText: 'Nhập thời gian làm việc.',
+                                helperStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -175,16 +159,16 @@ class TimerModeMenu extends StatelessWidget {
                                 floatingLabelBehavior: FloatingLabelBehavior.always,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(color: AppColors.textDisabled),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(color: AppColors.textDisabled),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.primary,
                                     width: 2,
                                   ),
                                 ),
@@ -198,7 +182,6 @@ class TimerModeMenu extends StatelessWidget {
                         const SizedBox(height: AppSizes.spacing),
                         Card(
                           elevation: 2,
-                          color: AppColors.cardBackground,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                           ),
@@ -208,15 +191,11 @@ class TimerModeMenu extends StatelessWidget {
                               controller: breakController,
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                labelText: AppStrings.breakDurationLabel,
-                                labelStyle: GoogleFonts.poppins(
-                                  fontSize: AppSizes.labelFontSize,
-                                  color: AppColors.textPrimary,
-                                ),
-                                helperText: AppStrings.breakDurationHelper,
-                                helperStyle: GoogleFonts.poppins(
-                                  fontSize: AppSizes.helperFontSize,
-                                  color: AppColors.textDisabled,
+                                labelText: 'Thời gian nghỉ (phút)',
+                                labelStyle: Theme.of(context).textTheme.bodyMedium,
+                                helperText: 'Nhập thời gian nghỉ.',
+                                helperStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -225,16 +204,16 @@ class TimerModeMenu extends StatelessWidget {
                                 floatingLabelBehavior: FloatingLabelBehavior.always,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(color: AppColors.textDisabled),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(color: AppColors.textDisabled),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.primary,
                                     width: 2,
                                   ),
                                 ),
@@ -249,7 +228,6 @@ class TimerModeMenu extends StatelessWidget {
                       ],
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -259,15 +237,11 @@ class TimerModeMenu extends StatelessWidget {
                             controller: sessionsController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: AppStrings.sessionsLabel,
-                              labelStyle: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                color: AppColors.textPrimary,
-                              ),
-                              helperText: AppStrings.sessionsHelper,
-                              helperStyle: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              labelText: 'Số phiên',
+                              labelStyle: Theme.of(context).textTheme.bodyMedium,
+                              helperText: 'Nhập số phiên Pomodoro.',
+                              helperStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -276,16 +250,16 @@ class TimerModeMenu extends StatelessWidget {
                               floatingLabelBehavior: FloatingLabelBehavior.always,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                borderSide: const BorderSide(color: AppColors.textDisabled),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                borderSide: const BorderSide(color: AppColors.textDisabled),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primary,
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).colorScheme.primary,
                                   width: 2,
                                 ),
                               ),
@@ -299,7 +273,6 @@ class TimerModeMenu extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacing),
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -307,18 +280,13 @@ class TimerModeMenu extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSizes.cardPadding),
                           child: CheckboxListTile(
                             title: Text(
-                              AppStrings.soundLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
+                              'Âm thanh',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
-                              AppStrings.soundHelper,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              'Bật âm thanh thông báo khi kết thúc phiên.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                             ),
                             value: soundEnabled,
@@ -327,8 +295,8 @@ class TimerModeMenu extends StatelessWidget {
                                 soundEnabled = value ?? true;
                               });
                             },
-                            activeColor: AppColors.primary,
-                            checkColor: Colors.white,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            checkColor: Theme.of(context).colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -341,7 +309,6 @@ class TimerModeMenu extends StatelessWidget {
                         const SizedBox(height: AppSizes.spacing),
                         Card(
                           elevation: 2,
-                          color: AppColors.cardBackground,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                           ),
@@ -350,15 +317,11 @@ class TimerModeMenu extends StatelessWidget {
                             child: DropdownButtonFormField<String>(
                               value: notificationSound,
                               decoration: InputDecoration(
-                                labelText: AppStrings.notificationSoundLabel,
-                                labelStyle: GoogleFonts.poppins(
-                                  fontSize: AppSizes.labelFontSize,
-                                  color: AppColors.textPrimary,
-                                ),
-                                helperText: AppStrings.notificationSoundHelper,
-                                helperStyle: GoogleFonts.poppins(
-                                  fontSize: AppSizes.helperFontSize,
-                                  color: AppColors.textDisabled,
+                                labelText: 'Âm thanh thông báo',
+                                labelStyle: Theme.of(context).textTheme.bodyMedium,
+                                helperText: 'Chọn âm thanh thông báo.',
+                                helperStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -367,16 +330,16 @@ class TimerModeMenu extends StatelessWidget {
                                 floatingLabelBehavior: FloatingLabelBehavior.always,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(color: AppColors.textDisabled),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(color: AppColors.textDisabled),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppSizes.borderRadius),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.primary,
                                     width: 2,
                                   ),
                                 ),
@@ -398,7 +361,6 @@ class TimerModeMenu extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacing),
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -406,18 +368,13 @@ class TimerModeMenu extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSizes.cardPadding),
                           child: CheckboxListTile(
                             title: Text(
-                              AppStrings.autoSwitchLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
+                              'Tự động chuyển',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
-                              AppStrings.autoSwitchHelper,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              'Tự động chuyển giữa làm việc và nghỉ.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                             ),
                             value: autoSwitch,
@@ -426,8 +383,8 @@ class TimerModeMenu extends StatelessWidget {
                                 autoSwitch = value ?? false;
                               });
                             },
-                            activeColor: AppColors.primary,
-                            checkColor: Colors.white,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            checkColor: Theme.of(context).colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -445,14 +402,14 @@ class TimerModeMenu extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     CustomButton(
-                      label: AppStrings.cancel,
+                      label: 'Hủy',
                       onPressed: () => Navigator.pop(dialogContext),
-                      backgroundColor: AppColors.cancelButton,
-                      textColor: AppColors.textPrimary,
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      textColor: Theme.of(context).colorScheme.onError,
                       borderRadius: AppSizes.borderRadius,
                     ),
                     CustomButton(
-                      label: AppStrings.ok,
+                      label: 'OK',
                       onPressed: () {
                         context.read<HomeCubit>().updateTimerMode(
                           timerMode: timerMode,
@@ -465,8 +422,8 @@ class TimerModeMenu extends StatelessWidget {
                         );
                         Navigator.pop(dialogContext);
                       },
-                      backgroundColor: AppColors.primary,
-                      textColor: Colors.white,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      textColor: Theme.of(context).colorScheme.onPrimary,
                       borderRadius: AppSizes.borderRadius,
                     ),
                   ],
@@ -501,9 +458,9 @@ class TimerModeMenu extends StatelessWidget {
             child: Column(
               children: [
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.hourglass_empty,
-                    color: AppColors.textDisabled,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                     size: AppSizes.iconSize,
                   ),
                   onPressed: () {
@@ -514,7 +471,7 @@ class TimerModeMenu extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Vui lòng dừng timer hoàn toàn hoặc chờ hết giờ để chỉnh Timer Mode!'),
-                          backgroundColor: AppColors.snackbarError,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                           duration: const Duration(seconds: 3),
                         ),
                       );
@@ -524,8 +481,8 @@ class TimerModeMenu extends StatelessWidget {
                 ),
                 Text(
                   'Timer Mode',
-                  style: GoogleFonts.poppins(
-                    color: AppColors.textDisabled,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                     fontSize: 12,
                   ),
                 ),

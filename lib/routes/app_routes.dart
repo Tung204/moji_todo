@@ -16,6 +16,8 @@ import '../features/settings/presentation/settings_screen.dart';
 import '../main.dart';
 import '../core/navigation/main_screen.dart';
 import '../features/settings/presentation/profile_settings_screen.dart';
+import '../features/settings/presentation/app_appearance_screen.dart';
+
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -75,6 +77,8 @@ class AppRoutes {
         );
       case AppRoutes.profileSettings:
         return MaterialPageRoute(builder: (_) => const ProfileSettingsScreen());
+      case AppRoutes.appAppearance:
+        return MaterialPageRoute(builder: (_) => const AppAppearanceScreen());
       case AppRoutes.pomodoroPreferences:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(

@@ -5,9 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import '../../../../core/widgets/custom_button.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/sizes.dart';
-import '../../../../core/constants/strings.dart';
 
 class StrictModeMenu extends StatelessWidget {
   const StrictModeMenu({super.key});
@@ -27,28 +25,21 @@ class StrictModeMenu extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
             ),
             elevation: 8,
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).cardTheme.color,
             title: Text(
               'Yêu cầu quyền Accessibility',
-              style: GoogleFonts.poppins(
-                fontSize: AppSizes.titleFontSize,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             content: Text(
               'Ứng dụng cần quyền Accessibility để chặn ứng dụng khi Strict Mode được bật. Vui lòng cấp quyền trong cài đặt.',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             actions: [
               CustomButton(
-                label: AppStrings.cancel,
+                label: 'Từ chối',
                 onPressed: () => Navigator.pop(context, false),
-                backgroundColor: AppColors.cancelButton,
-                textColor: AppColors.textPrimary,
+                backgroundColor: Theme.of(context).colorScheme.error,
+                textColor: Theme.of(context).colorScheme.onError,
                 borderRadius: AppSizes.borderRadius,
               ),
               CustomButton(
@@ -57,8 +48,8 @@ class StrictModeMenu extends StatelessWidget {
                   await _permissionChannel.invokeMethod('requestAccessibilityPermission');
                   Navigator.pop(context, true);
                 },
-                backgroundColor: AppColors.primary,
-                textColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                textColor: Theme.of(context).colorScheme.onPrimary,
                 borderRadius: AppSizes.borderRadius,
               ),
             ],
@@ -78,7 +69,7 @@ class StrictModeMenu extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi khi kiểm tra quyền Accessibility: $e'),
-          backgroundColor: AppColors.snackbarError,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -98,7 +89,7 @@ class StrictModeMenu extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
-          backgroundColor: AppColors.snackbarError,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -129,15 +120,11 @@ class StrictModeMenu extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
               ),
               elevation: 8,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).cardTheme.color,
               contentPadding: const EdgeInsets.all(AppSizes.dialogPadding),
               title: Text(
-                AppStrings.strictModeTitle,
-                style: GoogleFonts.poppins(
-                  fontSize: AppSizes.titleFontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                'Strict Mode',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               content: SizedBox(
                 height: 350,
@@ -146,7 +133,6 @@ class StrictModeMenu extends StatelessWidget {
                     children: [
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -154,18 +140,13 @@ class StrictModeMenu extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSizes.cardPadding),
                           child: CheckboxListTile(
                             title: Text(
-                              AppStrings.strictModeOffLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
+                              'Tắt Strict Mode',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
-                              AppStrings.strictModeOffHelper,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              'Không áp dụng các hạn chế khi sử dụng timer.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                             ),
                             value: !isAppBlockingEnabled && !isFlipPhoneEnabled && !isExitBlockingEnabled,
@@ -179,8 +160,8 @@ class StrictModeMenu extends StatelessWidget {
                                 }
                               });
                             },
-                            activeColor: AppColors.primary,
-                            checkColor: Colors.white,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            checkColor: Theme.of(context).colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -192,7 +173,6 @@ class StrictModeMenu extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacing),
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -200,18 +180,13 @@ class StrictModeMenu extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSizes.cardPadding),
                           child: CheckboxListTile(
                             title: Text(
-                              AppStrings.appBlockingLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
+                              'Chặn ứng dụng',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
-                              AppStrings.appBlockingHelper,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              'Chặn các ứng dụng được chọn khi timer đang chạy.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                             ),
                             value: isAppBlockingEnabled,
@@ -229,8 +204,8 @@ class StrictModeMenu extends StatelessWidget {
                                 }
                               });
                             },
-                            activeColor: AppColors.primary,
-                            checkColor: Colors.white,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            checkColor: Theme.of(context).colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -254,14 +229,10 @@ class StrictModeMenu extends StatelessWidget {
                                           borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
                                         ),
                                         elevation: 8,
-                                        backgroundColor: Colors.white,
+                                        backgroundColor: Theme.of(context).cardTheme.color,
                                         title: Text(
-                                          AppStrings.selectAppsTitle,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: AppSizes.titleFontSize,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textPrimary,
-                                          ),
+                                          'Chọn ứng dụng',
+                                          style: Theme.of(context).textTheme.titleLarge,
                                         ),
                                         content: SizedBox(
                                           height: 200,
@@ -271,10 +242,8 @@ class StrictModeMenu extends StatelessWidget {
                                                 return CheckboxListTile(
                                                   title: Text(
                                                     app['name']!,
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: AppSizes.labelFontSize,
+                                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                                       fontWeight: FontWeight.w500,
-                                                      color: AppColors.textSecondary,
                                                     ),
                                                   ),
                                                   value: blockedApps.contains(app['package']),
@@ -287,8 +256,8 @@ class StrictModeMenu extends StatelessWidget {
                                                       }
                                                     });
                                                   },
-                                                  activeColor: AppColors.primary,
-                                                  checkColor: Colors.white,
+                                                  activeColor: Theme.of(context).colorScheme.primary,
+                                                  checkColor: Theme.of(context).colorScheme.onPrimary,
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.circular(4),
                                                   ),
@@ -301,14 +270,14 @@ class StrictModeMenu extends StatelessWidget {
                                         ),
                                         actions: [
                                           CustomButton(
-                                            label: AppStrings.cancel,
+                                            label: 'Hủy',
                                             onPressed: () => Navigator.pop(appDialogContext),
-                                            backgroundColor: AppColors.cancelButton,
-                                            textColor: AppColors.textPrimary,
+                                            backgroundColor: Theme.of(context).colorScheme.error,
+                                            textColor: Theme.of(context).colorScheme.onError,
                                             borderRadius: AppSizes.borderRadius,
                                           ),
                                           CustomButton(
-                                            label: AppStrings.ok,
+                                            label: 'OK',
                                             onPressed: () {
                                               setState(() {
                                                 context.read<HomeCubit>().updateBlockedApps(blockedApps);
@@ -316,8 +285,8 @@ class StrictModeMenu extends StatelessWidget {
                                               });
                                               Navigator.pop(appDialogContext);
                                             },
-                                            backgroundColor: AppColors.primary,
-                                            textColor: Colors.white,
+                                            backgroundColor: Theme.of(context).colorScheme.primary,
+                                            textColor: Theme.of(context).colorScheme.onPrimary,
                                             borderRadius: AppSizes.borderRadius,
                                           ),
                                         ],
@@ -328,17 +297,16 @@ class StrictModeMenu extends StatelessWidget {
                               );
                             },
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.primary),
+                              side: BorderSide(color: Theme.of(context).colorScheme.primary),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             ),
                             child: Text(
-                              AppStrings.selectApps,
-                              style: GoogleFonts.poppins(
-                                color: AppColors.primary,
-                                fontSize: AppSizes.helperFontSize,
+                              'Chọn ứng dụng',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -347,7 +315,6 @@ class StrictModeMenu extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacing),
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -355,18 +322,13 @@ class StrictModeMenu extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSizes.cardPadding),
                           child: CheckboxListTile(
                             title: Text(
-                              AppStrings.flipPhoneLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
+                              'Chế độ lật điện thoại',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
-                              AppStrings.flipPhoneHelper,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              'Yêu cầu lật điện thoại để tiếp tục timer.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                             ),
                             value: isFlipPhoneEnabled,
@@ -375,8 +337,8 @@ class StrictModeMenu extends StatelessWidget {
                                 isFlipPhoneEnabled = value ?? false;
                               });
                             },
-                            activeColor: AppColors.primary,
-                            checkColor: Colors.white,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            checkColor: Theme.of(context).colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -388,7 +350,6 @@ class StrictModeMenu extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacing),
                       Card(
                         elevation: 2,
-                        color: AppColors.cardBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppSizes.borderRadius),
                         ),
@@ -396,18 +357,13 @@ class StrictModeMenu extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSizes.cardPadding),
                           child: CheckboxListTile(
                             title: Text(
-                              AppStrings.exitBlockingLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
+                              'Chặn thoát ứng dụng',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
-                              AppStrings.exitBlockingHelper,
-                              style: GoogleFonts.poppins(
-                                fontSize: AppSizes.helperFontSize,
-                                color: AppColors.textDisabled,
+                              'Ngăn thoát ứng dụng khi timer đang chạy.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                               ),
                             ),
                             value: isExitBlockingEnabled,
@@ -416,8 +372,8 @@ class StrictModeMenu extends StatelessWidget {
                                 isExitBlockingEnabled = value ?? false;
                               });
                             },
-                            activeColor: AppColors.primary,
-                            checkColor: Colors.white,
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            checkColor: Theme.of(context).colorScheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -432,14 +388,14 @@ class StrictModeMenu extends StatelessWidget {
               ),
               actions: [
                 CustomButton(
-                  label: AppStrings.cancel,
+                  label: 'Hủy',
                   onPressed: () => Navigator.pop(dialogContext),
-                  backgroundColor: AppColors.cancelButton,
-                  textColor: AppColors.textPrimary,
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  textColor: Theme.of(context).colorScheme.onError,
                   borderRadius: AppSizes.borderRadius,
                 ),
                 CustomButton(
-                  label: AppStrings.ok,
+                  label: 'OK',
                   onPressed: () {
                     context.read<HomeCubit>().updateStrictMode(
                       isAppBlockingEnabled: isAppBlockingEnabled,
@@ -448,8 +404,8 @@ class StrictModeMenu extends StatelessWidget {
                     );
                     Navigator.pop(dialogContext);
                   },
-                  backgroundColor: AppColors.primary,
-                  textColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  textColor: Theme.of(context).colorScheme.onPrimary,
                   borderRadius: AppSizes.borderRadius,
                 ),
               ],
@@ -486,7 +442,9 @@ class StrictModeMenu extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.warning,
-                    color: state.isStrictModeEnabled ? AppColors.primary : AppColors.textDisabled,
+                    color: state.isStrictModeEnabled
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                     size: AppSizes.iconSize,
                   ),
                   onPressed: () {
@@ -497,7 +455,7 @@ class StrictModeMenu extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Vui lòng tạm dừng timer, dừng hoàn toàn, hoặc chờ hết giờ để chỉnh Strict Mode!'),
-                          backgroundColor: AppColors.snackbarError,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                           duration: const Duration(seconds: 3),
                         ),
                       );
@@ -507,8 +465,10 @@ class StrictModeMenu extends StatelessWidget {
                 ),
                 Text(
                   'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
-                  style: GoogleFonts.poppins(
-                    color: state.isStrictModeEnabled ? AppColors.primary : AppColors.textDisabled,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: state.isStrictModeEnabled
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
                     fontSize: 12,
                   ),
                 ),
