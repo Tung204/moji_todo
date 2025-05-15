@@ -1,4 +1,4 @@
-[<p align="center">
+<p align="center">
   <a href="https://github.com/Tung204/dntu_focus">
     <img src="assets/images/logo_moji.png" width="100">
   </a>
