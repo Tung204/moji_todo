@@ -119,14 +119,14 @@ Sắp xếp công việc với dự án và thẻ, đồng bộ qua Firestore.
 ## Thành phần
 
 ### Giao diện
-- **CustomAppBar** [🔗](https://github.com/Tung204/dntu_focus/blob/main/lib/core/widgets/custom_app_bar.dart) [⭐]: Thanh ứng dụng responsive với tiêu đề gradient và cài đặt.
-- **CustomButton** [🔗](https://github.com/Tung204/dntu_focus/blob/main/lib/core/widgets/custom_button.dart) [⭐]: Nút động với hiệu ứng gradient tùy chọn.
-- **CustomBottomNavBar** [🔗](https://github.com/Tung204/dntu_focus/blob/main/lib/core/widgets/custom_bottom_nav_bar.dart) [⭐]: Thanh điều hướng động cho chuyển đổi màn hình mượt mà.
+- **CustomAppBar** [🔗](https://github.com/Tung204/dntu_focus/tree/main/lib/core/widgets/custom_app_bar.dart) [⭐]: Thanh ứng dụng responsive với tiêu đề gradient và cài đặt.
+- **CustomButton** [🔗](https://github.com/Tung204/dntu_focus/tree/main/lib/core/widgets/custom_button.dart) [⭐]: Nút động với hiệu ứng gradient tùy chọn.
+- **CustomBottomNavBar** [🔗](https://github.com/Tung204/dntu_focus/tree/main/lib/core/widgets/custom_bottom_nav_bar.dart) [⭐]: Thanh điều hướng động cho chuyển đổi màn hình mượt mà.
 
 ### Widget
-- **PomodoroTimer** [🔗](https://github.com/Tung204/dntu_focus/blob/main/lib/features/home/presentation/widgets/pomodoro_timer.dart) [⭐]: Bộ đếm chính với Chế độ nghiêm ngặt và Chuyển tự động.
-- **WhiteNoiseMenu** [🔗](https://github.com/Tung204/dntu_focus/blob/main/lib/features/home/presentation/white_noise_menu.dart) [⭐]: Bộ chọn âm thanh môi trường để tập trung.
-- **TaskCard** [🔗](https://github.com/Tung204/dntu_focus/blob/main/lib/features/home/presentation/widgets/task_card.dart) [⭐]: Hiển thị công việc với hỗ trợ dự án/thẻ.
+- **PomodoroTimer** [🔗](https://github.com/Tung204/dntu_focus/tree/main/lib/features/home/presentation/widgets/pomodoro_timer.dart) [⭐]: Bộ đếm chính với Chế độ nghiêm ngặt và Chuyển tự động.
+- **WhiteNoiseMenu** [🔗](https://github.com/Tung204/dntu_focus/tree/main/lib/features/home/presentation/white_noise_menu.dart) [⭐]: Bộ chọn âm thanh môi trường để tập trung.
+- **TaskCard** [🔗](https://github.com/Tung204/dntu_focus/tree/main/lib/features/home/presentation/widgets/task_card.dart) [⭐]: Hiển thị công việc với hỗ trợ dự án/thẻ.
 
 ## Cài đặt
 
