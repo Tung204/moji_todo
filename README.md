@@ -14,12 +14,6 @@
 Nếu bạn yêu thích dự án 📱, hãy ủng hộ bằng cách 👍 | ⭐ | 👏 trên [GitHub](https://github.com/Tung204/dntu_focus)!
 
 <p align="center">
-  <a href="https://dntu.edu.vn/">
-    <img src="assets/images/logo_moji.png" width="50" alt="Logo DNTU" style="margin: 20px auto;" />
-  </a>
-</p>
-
-<p align="center">
   Được phát triển như một dự án nghiên cứu tại Đại học Công nghệ Đồng Nai, DNTU-Focus kết hợp các công nghệ hiện đại để cung cấp công cụ học tập thông minh cho sinh viên.
 </p>
 
