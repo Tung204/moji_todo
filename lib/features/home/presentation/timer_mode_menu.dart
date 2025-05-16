@@ -397,6 +397,7 @@ class TimerModeMenu extends StatelessWidget {
                                     onChanged: (value) {
                                       setState(() {
                                         notificationSound = value ?? 'bell';
+                                        print('Selected notification sound: $notificationSound');
                                       });
                                     },
                                   ),
@@ -466,6 +467,7 @@ class TimerModeMenu extends StatelessWidget {
                             if (sessionsController.text.isEmpty || totalSessions < 1 || totalSessions > 10) {
                               totalSessions = 4;
                             }
+                            print('Saving timer mode: timerMode=$timerMode, notificationSound=$notificationSound');
                             context.read<HomeCubit>().updateTimerMode(
                               timerMode: timerMode,
                               workDuration: workDuration,

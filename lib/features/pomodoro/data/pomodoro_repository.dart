@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:moji_todo/core/services/notification_service.dart';
+import 'package:moji_todo/core/services/unified_notification_service.dart';
 
 class PomodoroRepository {
-  final NotificationService notificationService;
+  final UnifiedNotificationService notificationService;
   Timer? _timer;
 
   PomodoroRepository({required this.notificationService});

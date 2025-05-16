@@ -18,6 +18,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import android.Manifest
 import androidx.core.app.ActivityCompat
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
 
 class MainActivity : FlutterActivity() {
     private val PERMISSION_CHANNEL = "com.example.moji_todo/permissions"
@@ -28,13 +31,35 @@ class MainActivity : FlutterActivity() {
     private var eventChannel: EventChannel? = null
     private val REQUEST_NOTIFICATION_PERMISSION = 1001
     private val REQUEST_IGNORE_BATTERY_OPTIMIZATIONS = 1002
+    private var hasProcessedEndSession = false
+
+    private val endSessionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val isWorkSession = intent.getBooleanExtra("isWorkSession", true)
+            if (!hasProcessedEndSession) {
+                Log.d("MainActivity", "Received SHOW_END_SESSION broadcast: isWorkSession=$isWorkSession")
+                methodChannel?.invokeMethod("showEndSessionNotification", mapOf("isWorkSession" to isWorkSession))
+                hasProcessedEndSession = true
+            } else {
+                Log.d("MainActivity", "SHOW_END_SESSION already processed, ignoring")
+            }
+        }
+    }
 
     companion object {
         var timerEvents: EventChannel.EventSink? = null
+        const val TIMER_NOTIFICATION_ID = 100
+    }
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        registerReceiver(endSessionReceiver, IntentFilter("com.example.moji_todo.SHOW_END_SESSION"))
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        checkAndRequestNotificationPermission()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PERMISSION_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -113,6 +138,18 @@ class MainActivity : FlutterActivity() {
 
                         Log.d("MainActivity", "startTimerService: action=$action, timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
 
+                        // Kiểm tra trạng thái TimerService
+                        val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+                        val isServiceRunning = prefs.getBoolean("isServiceRunning", false)
+                        if (isServiceRunning && action == "START") {
+                            Log.d("MainActivity", "TimerService already running, ignoring START")
+                            result.success(null)
+                            return@setMethodCallHandler
+                        }
+
+                        // Hủy thông báo cũ
+                        NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+
                         val intent = Intent(this, TimerService::class.java).apply {
                             this.action = action
                             putExtra("timerSeconds", timerSeconds)
@@ -127,15 +164,15 @@ class MainActivity : FlutterActivity() {
                             startService(intent)
                         }
 
-                        val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
                         prefs.edit().apply {
                             putInt("timerSeconds", timerSeconds)
                             putBoolean("isRunning", isRunning)
                             putBoolean("isPaused", isPaused)
                             putBoolean("isCountingUp", isCountingUp)
+                            putBoolean("isServiceRunning", true)
                             apply()
                         }
-                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
+                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp, isServiceRunning=true")
 
                         result.success(null)
                     } catch (e: Exception) {
@@ -149,7 +186,8 @@ class MainActivity : FlutterActivity() {
                         "timerSeconds" to prefs.getInt("timerSeconds", 25 * 60),
                         "isRunning" to prefs.getBoolean("isRunning", false),
                         "isPaused" to prefs.getBoolean("isPaused", false),
-                        "isCountingUp" to prefs.getBoolean("isCountingUp", false)
+                        "isCountingUp" to prefs.getBoolean("isCountingUp", false),
+                        "isWorkSession" to prefs.getBoolean("isWorkSession", true)
                     )
                     Log.d("MainActivity", "getTimerState: $state")
                     result.success(state)
@@ -236,9 +274,13 @@ class MainActivity : FlutterActivity() {
                             putBoolean("isRunning", false)
                             putBoolean("isPaused", false)
                             putBoolean("isCountingUp", isCountingUp)
+                            putBoolean("isServiceRunning", false)
                             apply()
                         }
-                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
+                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp, isServiceRunning=false")
+
+                        NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+                        Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID")
 
                         result.success(null)
                     } catch (e: Exception) {
@@ -257,6 +299,21 @@ class MainActivity : FlutterActivity() {
                     } else {
                         result.success(true)
                     }
+                }
+                "cancelNotification" -> {
+                    try {
+                        val args = call.arguments as? Map<*, *>
+                        val id = args?.get("id") as? Int ?: TIMER_NOTIFICATION_ID
+                        NotificationManagerCompat.from(this).cancel(id)
+                        Log.d("MainActivity", "Cancelled notification with ID $id from Flutter")
+                        result.success(null)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error cancelling notification: ${e.message}")
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                "setFromNotification" -> {
+                    result.success(null)
                 }
                 else -> {
                     result.notImplemented()
@@ -280,6 +337,23 @@ class MainActivity : FlutterActivity() {
         handleNotificationIntent(intent)
     }
 
+    private fun checkAndRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            Log.d("MainActivity", "Initial checkNotificationPermission: $hasPermission")
+            if (!hasPermission) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATION_PERMISSION
+                )
+            }
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) {
@@ -297,6 +371,7 @@ class MainActivity : FlutterActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
             val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            Log.d("MainActivity", "Notification permission result: granted=$granted")
             methodChannel?.invokeMethod("notificationPermissionResult", granted)
         }
     }
@@ -306,11 +381,39 @@ class MainActivity : FlutterActivity() {
         handleNotificationIntent(intent)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(endSessionReceiver)
+        NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+        Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID on destroy")
+        hasProcessedEndSession = false
+    }
+
     private fun handleNotificationIntent(intent: Intent?) {
-        Log.d("MainActivity", "Handling intent with action: ${intent?.action}")
+        Log.d("MainActivity", "Handling intent with action: ${intent?.action}, extras: ${intent?.extras}")
         val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
-        when (intent?.action) {
-            TimerService.ACTION_PAUSE -> {
+        val fromNotification = intent?.getBooleanExtra("fromNotification", false) == true
+        when {
+            intent?.action == TimerService.ACTION_OPEN_APP || fromNotification -> {
+                Log.d("MainActivity", "Opening app from notification")
+                NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+                Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID")
+                val breakDuration = 5 * 60
+                prefs.edit().apply {
+                    putInt("timerSeconds", breakDuration)
+                    putBoolean("isRunning", false)
+                    putBoolean("isPaused", false)
+                    putBoolean("isCountingUp", false)
+                    putBoolean("isWorkSession", false)
+                    putBoolean("isServiceRunning", false)
+                    apply()
+                }
+                Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$breakDuration, isRunning=false, isPaused=false, isCountingUp=false, isWorkSession=false")
+                methodChannel?.invokeMethod("startBreak", null)
+                methodChannel?.invokeMethod("setFromNotification", null)
+                hasProcessedEndSession = false
+            }
+            intent?.action == TimerService.ACTION_PAUSE -> {
                 Log.d("MainActivity", "Pausing timer from notification")
                 val timerSeconds = intent.getIntExtra("timerSeconds", prefs.getInt("timerSeconds", 25 * 60))
                 val isCountingUp = prefs.getBoolean("isCountingUp", false)
@@ -324,7 +427,7 @@ class MainActivity : FlutterActivity() {
                 }
                 Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
             }
-            TimerService.ACTION_RESUME -> {
+            intent?.action == TimerService.ACTION_RESUME -> {
                 Log.d("MainActivity", "Resuming timer from notification")
                 val timerSeconds = prefs.getInt("timerSeconds", 25 * 60)
                 val isCountingUp = prefs.getBoolean("isCountingUp", false)
@@ -338,22 +441,27 @@ class MainActivity : FlutterActivity() {
                 }
                 Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
             }
-            TimerService.ACTION_STOP -> {
+            intent?.action == TimerService.ACTION_STOP -> {
                 Log.d("MainActivity", "Stopping timer from notification")
                 methodChannel?.invokeMethod("stop", null)
-                NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+                NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+                Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID")
                 val isCountingUp = prefs.getBoolean("isCountingUp", false)
                 prefs.edit().apply {
                     putInt("timerSeconds", if (isCountingUp) 0 else 25 * 60)
                     putBoolean("isRunning", false)
                     putBoolean("isPaused", false)
                     putBoolean("isCountingUp", isCountingUp)
+                    putBoolean("isServiceRunning", false)
                     apply()
                 }
                 Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
+                hasProcessedEndSession = false
             }
-            "com.example.moji_todo.NOTIFICATION_ACTION" -> {
-                when (intent.getStringExtra("action")) {
+            intent?.action == "com.example.moji_todo.NOTIFICATION_ACTION" -> {
+                val action = intent.getStringExtra("action")
+                Log.d("MainActivity", "Handling NOTIFICATION_ACTION with action: $action")
+                when (action) {
                     "pause" -> {
                         Log.d("MainActivity", "Pausing timer from notification action")
                         val timerSeconds = intent.getIntExtra("timerSeconds", prefs.getInt("timerSeconds", 25 * 60))
@@ -368,42 +476,42 @@ class MainActivity : FlutterActivity() {
                         }
                         Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=false, isPaused=true, isCountingUp=$isCountingUp")
                     }
-                    "resume" -> {
-                        Log.d("MainActivity", "Resuming timer from notification action")
-                        val timerSeconds = prefs.getInt("timerSeconds", 25 * 60)
-                        val isCountingUp = prefs.getBoolean("isCountingUp", false)
-                        methodChannel?.invokeMethod("resume", null)
-                        prefs.edit().apply {
-                            putInt("timerSeconds", timerSeconds)
-                            putBoolean("isRunning", true)
-                            putBoolean("isPaused", false)
-                            putBoolean("isCountingUp", isCountingUp)
-                            apply()
-                        }
-                        Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=$timerSeconds, isRunning=true, isPaused=false, isCountingUp=$isCountingUp")
-                    }
                     "stop" -> {
                         Log.d("MainActivity", "Stopping timer from notification action")
                         methodChannel?.invokeMethod("stop", null)
-                        NotificationManagerCompat.from(this).cancel(TimerService.NOTIFICATION_ID)
+                        NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+                        Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID")
                         val isCountingUp = prefs.getBoolean("isCountingUp", false)
                         prefs.edit().apply {
                             putInt("timerSeconds", if (isCountingUp) 0 else 25 * 60)
                             putBoolean("isRunning", false)
                             putBoolean("isPaused", false)
                             putBoolean("isCountingUp", isCountingUp)
+                            putBoolean("isServiceRunning", false)
                             apply()
                         }
                         Log.d("MainActivity", "Saved SharedPreferences: timerSeconds=${if (isCountingUp) 0 else 1500}, isRunning=false, isPaused=false, isCountingUp=$isCountingUp")
+                        hasProcessedEndSession = false
                     }
                 }
             }
             else -> {
                 val payload = intent?.extras?.getString("flutter_notification_payload")
                 if (payload != null) {
+                    Log.d("MainActivity", "Handling notification payload: $payload")
                     when (payload) {
-                        "START_BREAK" -> methodChannel?.invokeMethod("startBreak", null)
-                        "START_WORK" -> methodChannel?.invokeMethod("startWork", null)
+                        "START_BREAK" -> {
+                            methodChannel?.invokeMethod("startBreak", null)
+                            NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+                            Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID")
+                            hasProcessedEndSession = false
+                        }
+                        "START_WORK" -> {
+                            methodChannel?.invokeMethod("startWork", null)
+                            NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
+                            Log.d("MainActivity", "Cancelled notification with ID $TIMER_NOTIFICATION_ID")
+                            hasProcessedEndSession = false
+                        }
                     }
                 }
             }

@@ -8,7 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:moji_todo/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'core/services/backup_service.dart';
-import 'core/services/notification_service.dart';
+import 'core/services/unified_notification_service.dart';
 import 'core/themes/theme.dart';
 import 'core/themes/theme_provider.dart';
 import 'features/home/domain/home_cubit.dart';
@@ -27,7 +27,7 @@ import 'features/tasks/domain/task_cubit.dart';
 class AppData extends InheritedWidget {
   final Box<Task> taskBox;
   final Box<DateTime> syncInfoBox;
-  final NotificationService notificationService;
+  final UnifiedNotificationService notificationService;
   final Box<Project> projectBox;
   final Box<Tag> tagBox;
 
@@ -79,7 +79,7 @@ void main() async {
     throw Exception('Không thể mở syncInfoBox. Kiểm tra quyền lưu trữ hoặc trạng thái Hive.');
   }
 
-  final notificationService = NotificationService();
+  final notificationService = UnifiedNotificationService();
   await notificationService.init();
 
   // Kiểm tra và sinh project/tag mặc định nếu Hive trống
@@ -137,7 +137,7 @@ Future<void> initializeDefaultData(Box<Project> projectBox, Box<Tag> tagBox) asy
 class MyApp extends StatefulWidget {
   final Box<Task> taskBox;
   final Box<DateTime> syncInfoBox;
-  final NotificationService notificationService;
+  final UnifiedNotificationService notificationService;
   final Box<Project> projectBox;
   final Box<Tag> tagBox;
 
@@ -211,7 +211,7 @@ class _MyAppState extends State<MyApp> {
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),
           BlocProvider(
-            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
+            create: (context) => HomeCubit(),
           ),
         ],
         child: ChangeNotifierProvider(

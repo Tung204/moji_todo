@@ -4,11 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../tasks/data/models/project_model.dart';
+import '../../tasks/data/models/tag_model.dart';
 import '../../tasks/data/models/task_model.dart';
 import 'home_state.dart';
+import '../../../core/services/backup_service.dart';
+import '../../../core/services/unified_notification_service.dart';
 import 'package:flutter/foundation.dart';
-
 
 const String prefTimerSeconds = "timerSeconds";
 const String prefIsRunning = "isRunning";
@@ -17,6 +21,7 @@ const String prefWhiteNoiseEnabled = "whiteNoiseEnabled";
 const String prefSelectedWhiteNoise = "selectedWhiteNoise";
 const String prefWhiteNoiseVolume = "whiteNoiseVolume";
 const String prefIsCountingUp = "isCountingUp";
+const String prefIsWorkSession = "isWorkSession";
 
 class TimerActions {
   static const String start = 'START';
@@ -38,24 +43,39 @@ class HomeCubit extends Cubit<HomeState> {
   static const EventChannel _eventChannel = EventChannel('com.example.moji_todo/timer_events');
   StreamSubscription? _timerSubscription;
   bool _lastAppBlockingState = false;
+  late BackupService _backupService;
+  bool _hasPlayedSoundOnEnd = false;
+  final UnifiedNotificationService _notificationService = UnifiedNotificationService();
+  bool _hasShownEndNotification = false;
 
   Future<void> _initialize() async {
     final user = _auth.currentUser;
     if (user == null) return;
+
+    await _notificationService.init();
 
     final prefs = await SharedPreferences.getInstance();
     final isWhiteNoiseEnabled = prefs.getBool(prefWhiteNoiseEnabled) ?? false;
     final selectedWhiteNoise = prefs.getString(prefSelectedWhiteNoise) ?? 'none';
     final whiteNoiseVolume = prefs.getDouble(prefWhiteNoiseVolume) ?? 1.0;
     final isCountingUp = prefs.getBool(prefIsCountingUp) ?? false;
+    final isWorkSession = prefs.getBool(prefIsWorkSession) ?? true;
     emit(state.copyWith(
       isWhiteNoiseEnabled: isWhiteNoiseEnabled,
       selectedWhiteNoise: selectedWhiteNoise,
       whiteNoiseVolume: whiteNoiseVolume,
       isCountingUp: isCountingUp,
+      isWorkSession: isWorkSession,
     ));
 
-    _timerSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
+    _backupService = BackupService(
+      Hive.box<Task>('tasks'),
+      Hive.box<DateTime>('sync_info'),
+      Hive.box<Project>('projects'),
+      Hive.box<Tag>('tags'),
+    );
+
+    _timerSubscription = _eventChannel.receiveBroadcastStream().listen((event) async {
       final args = event as Map;
       final timerSeconds = args['timerSeconds'] as int;
       final isRunning = args['isRunning'] as bool;
@@ -69,9 +89,22 @@ class HomeCubit extends Cubit<HomeState> {
         isCountingUp: isCountingUp,
       ));
 
-      if (!isCountingUp && timerSeconds <= 0 && isRunning && !isPaused) {
+      if (!isCountingUp && timerSeconds <= 0 && !_hasPlayedSoundOnEnd) {
+        print('Timer ended: workSession=${state.isWorkSession}, soundEnabled=${state.soundEnabled}, notificationSound=${state.notificationSound}');
         if (state.soundEnabled) {
-          _playSound();
+          await _playSound();
+          _hasPlayedSoundOnEnd = true;
+          try {
+            await _backupService.savePomodoroSession(
+              taskId: state.selectedTask ?? 'none',
+              startTime: DateTime.now().subtract(Duration(seconds: state.isWorkSession ? state.workDuration * 60 : state.breakDuration * 60)),
+              endTime: DateTime.now(),
+              isWorkSession: state.isWorkSession,
+              soundUsed: state.notificationSound,
+            );
+          } catch (e) {
+            print('Lỗi khi lưu phiên Pomodoro: $e');
+          }
         }
         if (state.autoSwitch) {
           if (state.isWorkSession) {
@@ -81,7 +114,9 @@ class HomeCubit extends Cubit<HomeState> {
               isTimerRunning: true,
               isPaused: false,
             ));
-            _startTimer(state.breakDuration * 60);
+            await _startTimer(state.breakDuration * 60);
+            _hasPlayedSoundOnEnd = false;
+            _hasShownEndNotification = false;
           } else {
             if (state.currentSession < state.totalSessions) {
               emit(state.copyWith(
@@ -91,7 +126,9 @@ class HomeCubit extends Cubit<HomeState> {
                 isPaused: false,
                 currentSession: state.currentSession + 1,
               ));
-              _startTimer(state.workDuration * 60);
+              await _startTimer(state.workDuration * 60);
+              _hasPlayedSoundOnEnd = false;
+              _hasShownEndNotification = false;
             } else {
               emit(state.copyWith(
                 timerSeconds: state.workDuration * 60,
@@ -101,8 +138,10 @@ class HomeCubit extends Cubit<HomeState> {
                 isWorkSession: true,
               ));
               if (state.selectedTask != null) {
-                _updateTaskPomodoroState(state.selectedTask, false, 0);
+                await _updateTaskPomodoroState(state.selectedTask, false, 0);
               }
+              _hasPlayedSoundOnEnd = false;
+              _hasShownEndNotification = false;
             }
           }
         } else {
@@ -113,9 +152,15 @@ class HomeCubit extends Cubit<HomeState> {
             isWorkSession: !state.isWorkSession,
           ));
           if (state.selectedTask != null) {
-            _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
+            await _updateTaskPomodoroState(state.selectedTask, false, state.timerSeconds);
           }
+          _hasPlayedSoundOnEnd = false;
+          _hasShownEndNotification = false;
         }
+        await _updateSharedPreferences(state.timerSeconds, state.isTimerRunning, state.isPaused);
+      } else if (timerSeconds > 0) {
+        _hasPlayedSoundOnEnd = false;
+        _hasShownEndNotification = false;
       }
       print('Received timer update: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp');
     }, onError: (e) {
@@ -128,13 +173,12 @@ class HomeCubit extends Cubit<HomeState> {
           emit(state.copyWith(
             timerSeconds: state.breakDuration * 60,
             isWorkSession: false,
-            isTimerRunning: state.autoSwitch,
-            isPaused: !state.autoSwitch,
+            isTimerRunning: false,
+            isPaused: false,
             isCountingUp: false,
           ));
-          if (state.autoSwitch) {
-            _startTimer(state.breakDuration * 60);
-          }
+          await _notificationService.cancelNotification();
+          await _updateSharedPreferences(state.breakDuration * 60, false, false);
           return null;
         case 'startWork':
           emit(state.copyWith(
@@ -145,9 +189,11 @@ class HomeCubit extends Cubit<HomeState> {
             currentSession: state.currentSession + 1,
             isCountingUp: false,
           ));
+          await _notificationService.cancelNotification();
           if (state.autoSwitch) {
-            _startTimer(state.workDuration * 60);
+            await _startTimer(state.workDuration * 60);
           }
+          await _updateSharedPreferences(state.timerSeconds, state.isTimerRunning, state.isPaused);
           return null;
         case 'pause':
           pauseTimer();
@@ -158,20 +204,34 @@ class HomeCubit extends Cubit<HomeState> {
         case 'stop':
           stopTimer();
           return null;
+        case 'showEndSessionNotification':
+          final isWorkSession = call.arguments['isWorkSession'] as bool;
+          if (!_hasShownEndNotification) {
+            await _notificationService.cancelNotification();
+            await _notificationService.showEndSessionNotification(isWorkSession: isWorkSession);
+            _hasShownEndNotification = true;
+            print('Showed end session notification: isWorkSession=$isWorkSession');
+          } else {
+            print('End session notification already shown, ignoring');
+          }
+          return null;
+        case 'setFromNotification':
+          return null;
         default:
           return null;
       }
     });
-    _listenToTasks(user.uid);
+    await _listenToTasks(user.uid);
   }
-  void _listenToTasks(String uid) {
+
+  Future<void> _listenToTasks(String uid) async {
     _firestore
         .collection('users')
         .doc(uid)
         .collection('tasks')
         .where('isPomodoroActive', isEqualTo: true)
         .snapshots()
-        .listen((snapshot) {
+        .listen((snapshot) async {
       if (snapshot.docs.isNotEmpty) {
         if (state.selectedTask == null) {
           final taskDoc = snapshot.docs.first;
@@ -186,6 +246,7 @@ class HomeCubit extends Cubit<HomeState> {
             isWorkSession: true,
             isCountingUp: false,
           ));
+          await _notificationService.cancelNotification();
           _startTimer(task.remainingPomodoroSeconds ?? (state.workDuration * 60));
         }
       }
@@ -232,6 +293,8 @@ class HomeCubit extends Cubit<HomeState> {
     _resetPreviousPomodoro();
     _updateSharedPreferences(timerSeconds, true, false);
     _startTimer(timerSeconds);
+    _hasPlayedSoundOnEnd = false;
+    _hasShownEndNotification = false;
     if (state.selectedTask != null) {
       _updateTaskPomodoroState(state.selectedTask, true, timerSeconds);
     }
@@ -312,11 +375,14 @@ class HomeCubit extends Cubit<HomeState> {
 
     try {
       _notificationChannel.invokeMethod(TimerActions.stop);
+      _notificationService.cancelNotification();
     } catch (e) {
       print('Error sending STOP intent: $e');
     }
     _updateSharedPreferences(state.isCountingUp ? 0 : state.workDuration * 60, false, false);
     _audioPlayer.stop();
+    _hasPlayedSoundOnEnd = false;
+    _hasShownEndNotification = false;
   }
 
   void resetTask() async {
@@ -397,7 +463,6 @@ class HomeCubit extends Cubit<HomeState> {
     int newBreakDuration = breakDuration;
     bool newAutoSwitch = autoSwitch;
 
-    // Validate inputs
     if (newWorkDuration < 1 || newWorkDuration > 480) {
       newWorkDuration = 25;
     }
@@ -528,14 +593,11 @@ class HomeCubit extends Cubit<HomeState> {
       'isCountingUp': state.isCountingUp,
     };
     print('Sending START intent: $intent');
-    for (int i = 0; i < 3; i++) {
-      try {
-        await _notificationChannel.invokeMethod('startTimerService', intent);
-        break;
-      } catch (e) {
-        print('Retry ${i+1}/3: Error starting timer: $e');
-        await Future.delayed(Duration(milliseconds: 500));
-      }
+    try {
+      await _notificationService.cancelNotification();
+      await _notificationChannel.invokeMethod('startTimerService', intent);
+    } catch (e) {
+      print('Error starting timer: $e');
     }
   }
 
@@ -580,10 +642,19 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> _playSound() async {
-    if (!state.soundEnabled) return;
+    if (!state.soundEnabled) {
+      print('Sound is disabled, skipping sound playback');
+      return;
+    }
 
-    String soundFile = 'assets/sounds/${state.notificationSound}.mp3';
-    await _audioPlayer.play(AssetSource(soundFile.substring('assets/'.length)));
+    final soundFile = 'sounds/${state.notificationSound}.mp3';
+    print('Attempting to play sound: $soundFile');
+    try {
+      await _audioPlayer.play(AssetSource(soundFile));
+      print('Successfully played sound: $soundFile');
+    } catch (e) {
+      print('Error playing sound: $e');
+    }
   }
 
   Future<void> _updateSharedPreferences(int timerSeconds, bool isRunning, bool isPaused) async {
@@ -592,7 +663,8 @@ class HomeCubit extends Cubit<HomeState> {
     await prefs.setBool(prefIsRunning, isRunning);
     await prefs.setBool(prefIsPaused, isPaused);
     await prefs.setBool(prefIsCountingUp, state.isCountingUp);
-    print('Updated SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=${state.isCountingUp}');
+    await prefs.setBool(prefIsWorkSession, state.isWorkSession);
+    print('Updated SharedPreferences: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=${state.isCountingUp}, isWorkSession=${state.isWorkSession}');
   }
 
   @override
