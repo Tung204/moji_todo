@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/services/notification_service.dart';
+import '../../../core/services/unified_notification_service.dart';
 
 class PermissionHandler {
   final BuildContext context;
   final MethodChannel notificationChannel;
-  final NotificationService notificationService;
+  final UnifiedNotificationService notificationService;
   final Function({
   bool? hasNotificationPermission,
   bool? hasRequestedBackgroundPermission,
@@ -71,7 +71,6 @@ class PermissionHandler {
 
   Future<void> checkBackgroundPermission() async {
     final prefs = await SharedPreferences.getInstance();
-    // Kiểm tra xem người dùng đã từ chối quyền chưa
     final hasDeclinedPermission = prefs.getBool('hasDeclinedBackgroundPermission') ?? false;
     if (hasDeclinedPermission) {
       print('User has declined background permission, skipping check');
@@ -103,7 +102,6 @@ class PermissionHandler {
               TextButton(
                 onPressed: () async {
                   Navigator.pop(context, false);
-                  // Lưu trạng thái từ chối
                   await prefs.setBool('hasDeclinedBackgroundPermission', true);
                 },
                 child: const Text('Bỏ qua'),

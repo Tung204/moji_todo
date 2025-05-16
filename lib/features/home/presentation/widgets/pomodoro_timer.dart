@@ -5,6 +5,7 @@ import '../../domain/home_state.dart';
 import '../home_screen_state_manager.dart';
 import '../../../../core/widgets/custom_button.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 class PomodoroTimer extends StatefulWidget {
   final HomeScreenStateManager? stateManager;
@@ -20,6 +21,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
   late Animation<double> _progressAnimation;
   double _currentProgress = 0.0;
   static const MethodChannel _notificationChannel = MethodChannel('com.example.moji_todo/notification');
+  Timer? _debounceTimer;
+  bool _isActionLocked = false;
 
   @override
   void initState() {
@@ -39,7 +42,23 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
   @override
   void dispose() {
     _progressController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _debouncedAction(String action) {
+    if (_isActionLocked) {
+      print('Action locked, ignoring: $action');
+      return;
+    }
+
+    _isActionLocked = true;
+    widget.stateManager?.handleTimerAction(action);
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 1000), () {
+      _isActionLocked = false;
+    });
   }
 
   @override
@@ -139,11 +158,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                 label: state.isCountingUp
                     ? 'Start Counting Up'
                     : (state.isWorkSession ? 'Start to Focus' : 'Start Break'),
-                onPressed: () {
-                  if (!state.isTimerRunning) {
-                    widget.stateManager?.handleTimerAction('start');
-                  }
-                },
+                onPressed: () => _debouncedAction('start'),
                 backgroundColor: Theme.of(context).colorScheme.secondary,
                 textColor: Theme.of(context).colorScheme.onSecondary,
                 borderRadius: 20,
@@ -151,11 +166,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
             if (state.isTimerRunning && !state.isPaused)
               CustomButton(
                 label: 'Pause',
-                onPressed: () {
-                  if (state.isTimerRunning && !state.isPaused) {
-                    widget.stateManager?.handleTimerAction('pause');
-                  }
-                },
+                onPressed: () => _debouncedAction('pause'),
                 backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 textColor: Theme.of(context).colorScheme.onSurface,
                 borderRadius: 20,
@@ -166,11 +177,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                 children: [
                   CustomButton(
                     label: 'Stop',
-                    onPressed: () {
-                      if (state.isPaused) {
-                        widget.stateManager?.handleTimerAction('stop');
-                      }
-                    },
+                    onPressed: () => _debouncedAction('stop'),
                     backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     textColor: Theme.of(context).colorScheme.onSurface,
                     borderRadius: 20,
@@ -178,11 +185,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                   const SizedBox(width: 16),
                   CustomButton(
                     label: 'Continue',
-                    onPressed: () {
-                      if (state.isPaused) {
-                        widget.stateManager?.handleTimerAction('continue');
-                      }
-                    },
+                    onPressed: () => _debouncedAction('continue'),
                     backgroundColor: Theme.of(context).colorScheme.secondary,
                     textColor: Theme.of(context).colorScheme.onSecondary,
                     borderRadius: 20,

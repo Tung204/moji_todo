@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import '../../../core/services/gemini_service.dart';
+import '../../../core/services/unified_notification_service.dart';
 import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/data/models/task_model.dart';
-import '../../../core/services/notification_service.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 
 class AIChatScreen extends StatefulWidget {
@@ -96,7 +95,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
         final reminderTime = DateTime.parse(commandResult['due_date'])
             .subtract(Duration(minutes: commandResult['reminder_before']));
-        final notificationService = NotificationService();
+        final notificationService = UnifiedNotificationService();
         await notificationService.scheduleNotification(
           title: 'Nhắc nhở: ${task.title}',
           body: 'Sắp đến giờ ${task.title} vào lúc ${commandResult['due_date']}',

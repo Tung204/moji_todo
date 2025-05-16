@@ -1,22 +1,18 @@
 package com.example.moji_todo
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import androidx.core.app.NotificationCompat
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 interface TimerStrategy {
     fun tick(currentSeconds: Int): Int
@@ -52,11 +48,11 @@ data class TimerState(
 
 class TimerService : Service() {
     companion object {
-        const val CHANNEL_ID = "timer_channel_id"
-        const val NOTIFICATION_ID = 1
         const val ACTION_PAUSE = "com.example.moji_todo.PAUSE"
         const val ACTION_RESUME = "com.example.moji_todo.RESUME"
         const val ACTION_STOP = "com.example.moji_todo.STOP"
+        const val ACTION_OPEN_APP = "com.example.moji_todo.OPEN_APP"
+        const val TIMER_NOTIFICATION_ID = 100
     }
 
     private var timerSeconds: Int = 0
@@ -64,6 +60,9 @@ class TimerService : Service() {
     private var isPaused: Boolean = false
     private var isCountingUp: Boolean = false
     private var isServiceRunning: Boolean = false
+    private var hasEnded: Boolean = false
+    private var isWorkSession: Boolean = true
+    private var hasSentEndNotification: Boolean = false
     private lateinit var timerStrategy: TimerStrategy
     private val handler = Handler(Looper.getMainLooper())
     private var timerRunnable: Runnable? = null
@@ -72,7 +71,6 @@ class TimerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
         Log.d("TimerService", "Service created")
         coroutineScope.launch {
             timerStateFlow.collect { state ->
@@ -84,6 +82,7 @@ class TimerService : Service() {
                         "isCountingUp" to state.isCountingUp
                     )
                 )
+                updateNotification(state.timerSeconds, state.isRunning, state.isPaused)
                 Log.d("TimerService", "StateFlow emitted: $state")
             }
         }
@@ -93,13 +92,20 @@ class TimerService : Service() {
         Log.d("TimerService", "Received intent: ${intent?.action}")
         when (intent?.action) {
             "START" -> {
+                if (isServiceRunning) {
+                    Log.d("TimerService", "Service already running, ignoring START")
+                    return START_NOT_STICKY
+                }
                 stopTimer()
                 val newSeconds = intent.getIntExtra("timerSeconds", 0)
                 if (newSeconds >= 0) timerSeconds = newSeconds
                 isRunning = intent.getBooleanExtra("isRunning", false)
                 isPaused = intent.getBooleanExtra("isPaused", false)
                 isCountingUp = intent.getBooleanExtra("isCountingUp", false)
+                isWorkSession = true
                 timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
+                hasEnded = false
+                hasSentEndNotification = false
                 Log.d("TimerService", "START: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
 
                 if (isRunning && !isPaused) {
@@ -109,16 +115,8 @@ class TimerService : Service() {
                 }
 
                 if (!isServiceRunning) {
-                    try {
-                        val notification = createNotification()
-                        startForeground(NOTIFICATION_ID, notification)
-                        isServiceRunning = true
-                    } catch (e: Exception) {
-                        Log.e("TimerService", "Failed to start foreground service: ${e.message}")
-                        stopSelf()
-                    }
-                } else {
-                    updateNotification()
+                    startForegroundService()
+                    isServiceRunning = true
                 }
                 updateTimerState()
             }
@@ -128,15 +126,18 @@ class TimerService : Service() {
                 isRunning = intent.getBooleanExtra("isRunning", false)
                 isPaused = intent.getBooleanExtra("isPaused", false)
                 isCountingUp = intent.getBooleanExtra("isCountingUp", false)
+                val prefs = getSharedPreferences("FlutterSharedPref", MODE_PRIVATE)
+                isWorkSession = prefs.getBoolean("isWorkSession", true)
                 timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
-                Log.d("TimerService", "UPDATE: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
+                hasEnded = false
+                hasSentEndNotification = false
+                Log.d("TimerService", "UPDATE: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp, isWorkSession=$isWorkSession")
 
                 if (isRunning && !isPaused) {
                     startTimer()
                 } else {
                     stopTimer()
                 }
-                updateNotification()
                 updateTimerState()
             }
             ACTION_PAUSE -> {
@@ -144,7 +145,6 @@ class TimerService : Service() {
                 if (isRunning && !isPaused) {
                     isPaused = true
                     stopTimer()
-                    updateNotification()
                     updateTimerState()
                 }
             }
@@ -154,7 +154,6 @@ class TimerService : Service() {
                     isPaused = false
                     isRunning = true
                     startTimer()
-                    updateNotification()
                     updateTimerState()
                 }
             }
@@ -164,14 +163,75 @@ class TimerService : Service() {
                 isPaused = false
                 timerSeconds = if (isCountingUp) 0 else 25 * 60
                 timerStrategy = if (isCountingUp) CountUpStrategy() else CountDownStrategy()
+                hasEnded = false
+                hasSentEndNotification = false
                 stopTimer()
-                stopForeground(true)
                 isServiceRunning = false
                 updateTimerState()
+                NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
                 stopSelf()
+            }
+            ACTION_OPEN_APP -> {
+                Log.d("TimerService", "OPEN_APP action received")
             }
         }
         return START_NOT_STICKY
+    }
+
+    private fun startForegroundService() {
+        try {
+            val notification = NotificationCompat.Builder(this, "timer_channel_id")
+                .setContentTitle("Pomodoro Timer")
+                .setContentText("Starting...")
+                .setSmallIcon(android.R.drawable.ic_notification_overlay)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setOngoing(true)
+                .build()
+            startForeground(TIMER_NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            Log.e("TimerService", "Failed to start foreground service: ${e.message}")
+            stopSelf()
+        }
+    }
+
+    private fun updateNotification(seconds: Int, isRunning: Boolean, isPaused: Boolean) {
+        try {
+            val minutes = (seconds / 60).toString().padStart(2, '0')
+            val secondsStr = (seconds % 60).toString().padStart(2, '0')
+            val notification = NotificationCompat.Builder(this, "timer_channel_id")
+                .setContentTitle("Pomodoro Timer")
+                .setContentText("Time: $minutes:$secondsStr (${isRunning ? isPaused ? "Paused" : "Running" : "Stopped"})")
+                .setSmallIcon(android.R.drawable.ic_notification_overlay)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setOngoing(isRunning && !isPaused)
+                .addAction(
+                    if (isRunning && !isPaused) R.drawable.ic_pause else R.drawable.ic_play,
+                    if (isRunning && !isPaused) "Pause" else "Resume",
+                    Intent(this, TimerService::class.java).apply {
+                        action = if (isRunning && !isPaused) ACTION_PAUSE else ACTION_RESUME
+                    }.let { intent ->
+                        android.app.PendingIntent.getService(
+                            this, 0, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                    }
+                )
+                .addAction(
+                    R.drawable.ic_stop,
+                    "Stop",
+                    Intent(this, TimerService::class.java).apply {
+                        action = ACTION_STOP
+                    }.let { intent ->
+                        android.app.PendingIntent.getService(
+                            this, 1, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                        )
+                    }
+                )
+                .build()
+            NotificationManagerCompat.from(this).notify(TIMER_NOTIFICATION_ID, notification)
+            Log.d("TimerService", "Timer notification updated")
+        } catch (e: Exception) {
+            Log.e("TimerService", "Failed to update notification: ${e.message}")
+        }
     }
 
     private fun startTimer() {
@@ -180,14 +240,15 @@ class TimerService : Service() {
             override fun run() {
                 if (isRunning && !isPaused) {
                     timerSeconds = timerStrategy.tick(timerSeconds)
-                    if (!isCountingUp && timerSeconds == 0) {
+                    if (!isCountingUp && timerSeconds == 0 && !hasEnded && !hasSentEndNotification) {
+                        hasEnded = true
                         isRunning = false
                         stopTimer()
+                        showEndSessionNotification()
+                        updateTimerState()
                         Log.d("TimerService", "Timer stopped due to completion")
-                    }
-                    updateNotification()
-                    updateTimerState()
-                    if (isRunning) {
+                    } else if (!hasEnded) {
+                        updateTimerState()
                         handler.postDelayed(this, 1000)
                     }
                 }
@@ -214,73 +275,33 @@ class TimerService : Service() {
             putBoolean("isRunning", isRunning)
             putBoolean("isPaused", isPaused)
             putBoolean("isCountingUp", isCountingUp)
+            putBoolean("isWorkSession", isWorkSession)
+            putBoolean("isServiceRunning", isServiceRunning)
             apply()
         }
-        Log.d("TimerService", "Updated state: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp")
+        Log.d("TimerService", "Updated state: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp, isWorkSession=$isWorkSession")
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Timer Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply { setSound(null, null) }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-        }
-    }
-
-    private fun createNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setContentTitle("Pomodoro Timer")
-        .setContentText(timerStrategy.getDisplayText(timerSeconds, isRunning, isPaused))
-        .setSmallIcon(android.R.drawable.ic_notification_overlay)
-        .setOngoing(isRunning && !isPaused)
-        .setContentIntent(createContentIntent())
-        .setOnlyAlertOnce(true)
-        .setSound(null)
-        .apply {
-            if (isRunning && !isPaused) {
-                addAction(createAction("Pause", ACTION_PAUSE))
-                addAction(createAction("Stop", ACTION_STOP))
-            } else if (isRunning && isPaused) {
-                addAction(createAction("Resume", ACTION_RESUME))
-                addAction(createAction("Stop", ACTION_STOP))
+    private fun showEndSessionNotification() {
+        if (!hasSentEndNotification) {
+            val intent = Intent("com.example.moji_todo.SHOW_END_SESSION").apply {
+                putExtra("isWorkSession", isWorkSession)
             }
+            sendBroadcast(intent)
+            hasSentEndNotification = true
+            Log.d("TimerService", "Sent SHOW_END_SESSION broadcast: isWorkSession=$isWorkSession")
+        } else {
+            Log.d("TimerService", "End session notification already sent, ignoring")
         }
-        .build()
-
-    private fun updateNotification() {
-        if (!isServiceRunning) return
-        val notification = createNotification()
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.notify(NOTIFICATION_ID, notification)
-    }
-
-    private fun createContentIntent(): PendingIntent {
-        val intent = Intent(this, MainActivity::class.java)
-        return PendingIntent.getActivity(
-            this, 0, intent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            else PendingIntent.FLAG_UPDATE_CURRENT
-        )
-    }
-
-    private fun createAction(title: String, action: String): NotificationCompat.Action {
-        val intent = Intent(this, TimerService::class.java).apply { this.action = action }
-        val pendingIntent = PendingIntent.getService(
-            this, action.hashCode(), intent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            else PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        return NotificationCompat.Action.Builder(0, title, pendingIntent).build()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         stopTimer()
         isServiceRunning = false
+        hasSentEndNotification = false
         coroutineScope.cancel()
+        NotificationManagerCompat.from(this).cancel(TIMER_NOTIFICATION_ID)
         Log.d("TimerService", "Service destroyed")
     }
 

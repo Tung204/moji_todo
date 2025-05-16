@@ -70,7 +70,7 @@ class BackupService {
             'id': project.id,
             'name': project.name,
             'color': project.color.value,
-            'isArchived': project.isArchived, // SỬA: Đảm bảo isArchived được đồng bộ
+            'isArchived': project.isArchived,
           });
         } else {
           await firestore
@@ -134,6 +134,36 @@ class BackupService {
 
     // Cập nhật thời gian đồng bộ cuối cùng
     await syncInfoBox.put('lastSync', DateTime.now());
+  }
+
+  Future<void> savePomodoroSession({
+    required String taskId,
+    required DateTime startTime,
+    required DateTime endTime,
+    required bool isWorkSession,
+    required String soundUsed,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      print('Người dùng chưa đăng nhập, không thể lưu phiên Pomodoro.');
+      return;
+    }
+    try {
+      await firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('pomodoro_sessions')
+          .add({
+        'taskId': taskId,
+        'startTime': Timestamp.fromDate(startTime),
+        'endTime': Timestamp.fromDate(endTime),
+        'isWorkSession': isWorkSession,
+        'soundUsed': soundUsed,
+      });
+      print('Lưu phiên Pomodoro thành công: taskId=$taskId, startTime=$startTime');
+    } catch (e) {
+      print('Lỗi khi lưu phiên Pomodoro: $e');
+    }
   }
 
   Future<void> restoreFromFirestore() async {
@@ -248,6 +278,16 @@ class BackupService {
         .collection('tags')
         .get();
     for (var doc in tagSnapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    // Xóa pomodoro_sessions
+    final sessionSnapshot = await firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('pomodoro_sessions')
+        .get();
+    for (var doc in sessionSnapshot.docs) {
       await doc.reference.delete();
     }
   }

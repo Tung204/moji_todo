@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moji_todo/features/home/domain/home_cubit.dart';
 import 'package:moji_todo/features/home/presentation/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/services/notification_service.dart';
+import '../../../core/services/unified_notification_service.dart';
 import '../../tasks/data/models/task_model.dart';
 import 'timer_state_handler.dart';
 
@@ -16,6 +16,8 @@ class HomeScreenStateManager {
   final MethodChannel _serviceChannel = const MethodChannel('com.example.moji_todo/app_block_service');
   late final TimerStateHandler _timerStateHandler;
   late final PermissionHandler permissionHandler;
+  bool _fromNotification = false;
+  bool _isActionPending = false;
 
   HomeScreenStateManager({
     required this.context,
@@ -30,7 +32,7 @@ class HomeScreenStateManager {
     permissionHandler = PermissionHandler(
       context: context,
       notificationChannel: _channel,
-      notificationService: NotificationService(),
+      notificationService: UnifiedNotificationService(),
       onPermissionStateChanged: _updatePermissionState,
     );
   }
@@ -72,9 +74,26 @@ class HomeScreenStateManager {
         await prefs.setBool('isRunning', homeCubit.state.isTimerRunning);
         await prefs.setBool('isPaused', homeCubit.state.isPaused);
         await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+        await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
       }
+      _fromNotification = false;
     } else if (state == AppLifecycleState.resumed) {
-      await _restoreTimerState();
+      if (_fromNotification) {
+        final prefs = await sharedPreferences;
+        int timerSeconds = prefs.getInt('timerSeconds') ?? 25 * 60;
+        bool isRunning = prefs.getBool('isRunning') ?? false;
+        bool isPaused = prefs.getBool('isPaused') ?? false;
+        bool isCountingUp = prefs.getBool('isCountingUp') ?? false;
+        homeCubit.restoreTimerState(
+          timerSeconds: timerSeconds,
+          isRunning: isRunning,
+          isPaused: isPaused,
+          isCountingUp: isCountingUp,
+        );
+        print('Restored state from notification: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp');
+      } else {
+        await _restoreTimerState();
+      }
       if (homeCubit.state.isStrictModeEnabled && homeCubit.state.isTimerRunning && homeCubit.state.isFlipPhoneEnabled) {
         try {
           await _channel.invokeMethod('startTimerService', {
@@ -88,14 +107,25 @@ class HomeScreenStateManager {
           print('Error updating timer service: $e');
         }
       }
+      _fromNotification = false;
     }
   }
 
+  Future<void> setFromNotification() async {
+    _fromNotification = true;
+    print('Set _fromNotification to true');
+  }
+
   Future<void> handleTimerAction(String action, {Task? task, int? estimatedPomodoros}) async {
+    if (_isActionPending) {
+      print('Action pending, ignoring: $action');
+      return;
+    }
+
+    _isActionPending = true;
     final homeCubit = context.read<HomeCubit>();
     final prefs = await sharedPreferences;
 
-    // Kiểm tra trạng thái trước khi thực hiện hành động
     bool canProceed = true;
     switch (action) {
       case 'start':
@@ -124,7 +154,10 @@ class HomeScreenStateManager {
         break;
     }
 
-    if (!canProceed) return;
+    if (!canProceed) {
+      _isActionPending = false;
+      return;
+    }
 
     switch (action) {
       case 'start':
@@ -145,10 +178,11 @@ class HomeScreenStateManager {
           await prefs.setBool('isRunning', true);
           await prefs.setBool('isPaused', false);
           await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
           await _restoreTimerState();
         } catch (e) {
           print('Error starting timer: $e');
-          homeCubit.stopTimer(); // Rollback nếu lỗi
+          homeCubit.stopTimer();
         }
         break;
       case 'pause':
@@ -159,6 +193,7 @@ class HomeScreenStateManager {
           await prefs.setBool('isRunning', false);
           await prefs.setBool('isPaused', true);
           await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
           await _restoreTimerState();
         } catch (e) {
           print('Error pausing timer: $e');
@@ -179,6 +214,7 @@ class HomeScreenStateManager {
           await prefs.setBool('isRunning', true);
           await prefs.setBool('isPaused', false);
           await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
           await _restoreTimerState();
         } catch (e) {
           print('Error resuming timer: $e');
@@ -192,17 +228,23 @@ class HomeScreenStateManager {
           await prefs.setBool('isRunning', false);
           await prefs.setBool('isPaused', false);
           await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
+          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
           await _restoreTimerState();
-          // Đảm bảo service được dừng hoàn toàn
-          await Future.delayed(Duration(milliseconds: 500)); // Chờ service dừng
+          await Future.delayed(Duration(milliseconds: 500));
         } catch (e) {
           print('Error stopping timer: $e');
         }
         break;
     }
+
+    // Mở khóa hành động sau 1 giây
+    await Future.delayed(Duration(milliseconds: 1000));
+    _isActionPending = false;
   }
 
-  void dispose() {}
+  void dispose() {
+    _isActionPending = false;
+  }
 
   void _updatePermissionState({
     bool? hasNotificationPermission,
