@@ -71,7 +71,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             scrolledUnderElevation: 0.0,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Đồng bộ với Scaffold
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 0,
             automaticallyImplyLeading: false,
             title: Text(
@@ -129,8 +129,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-                  leftChevronIcon: Icon(Icons.chevron_left, color: Theme.of(context).iconTheme.color, size: 20),
-                  rightChevronIcon: Icon(Icons.chevron_right, color: Theme.of(context).iconTheme.color, size: 20),
                 ),
                 daysOfWeekStyle: DaysOfWeekStyle(
                   weekdayStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(

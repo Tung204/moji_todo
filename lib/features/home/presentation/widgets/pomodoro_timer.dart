@@ -121,7 +121,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                     Text(
                       state.isCountingUp
                           ? 'Counting Up'
-                          : (state.currentSession ==0
+                          : (state.currentSession == 0
                           ? 'No sessions'
                           : '${state.currentSession} of ${state.totalSessions} sessions'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -156,12 +156,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                     widget.stateManager?.handleTimerAction('pause');
                   }
                 },
-                backgroundColor: Theme.of(context).brightness == Brightness.light
-                    ? Colors.grey // #FF9E9E9E (light mode, khớp code cũ)
-                    : Colors.grey[700], // #616161 (dark mode)
-                textColor: Theme.of(context).brightness == Brightness.light
-                    ? Colors.white // Trắng trong light mode
-                    : Colors.black, // Đen trong dark mode
+                backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                textColor: Theme.of(context).colorScheme.onSurface,
                 borderRadius: 20,
               ),
             if (state.isPaused)
@@ -175,12 +171,8 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                         widget.stateManager?.handleTimerAction('stop');
                       }
                     },
-                    backgroundColor: Theme.of(context).brightness == Brightness.light
-                        ? Colors.grey // #FF9E9E9E (light mode, khớp code cũ)
-                        : Colors.grey[700], // #616161 (dark mode)
-                    textColor: Theme.of(context).brightness == Brightness.light
-                        ? Colors.white // Trắng trong light mode
-                        : Colors.black, // Đen trong dark mode
+                    backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    textColor: Theme.of(context).colorScheme.onSurface,
                     borderRadius: 20,
                   ),
                   const SizedBox(width: 16),

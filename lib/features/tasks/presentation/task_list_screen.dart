@@ -320,6 +320,8 @@ class TaskListScreen extends StatelessWidget {
                             onPlayPressed: () {
                               // Logic bắt đầu Pomodoro cho task
                             },
+                            showDetails: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                           ),
                         );
                       } else if (index == waitingTasks.length && completedTasks.isNotEmpty) {
@@ -357,6 +359,8 @@ class TaskListScreen extends StatelessWidget {
                             onPlayPressed: () {
                               // Logic bắt đầu Pomodoro cho task
                             },
+                            showDetails: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                           ),
                         );
                       }

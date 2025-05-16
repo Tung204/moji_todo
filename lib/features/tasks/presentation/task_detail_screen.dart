@@ -135,7 +135,8 @@ class TaskDetailScreen extends StatelessWidget {
                                           'Task đã được xóa vĩnh viễn!',
                                           style: Theme.of(scaffoldContext).textTheme.bodyMedium,
                                         ),
-                                        backgroundColor: Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
+                                        backgroundColor:
+                                        Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
                                         duration: const Duration(seconds: 2),
                                       ),
                                     );
@@ -154,7 +155,8 @@ class TaskDetailScreen extends StatelessWidget {
                                           'Task đã được chuyển vào Thùng rác!',
                                           style: Theme.of(scaffoldContext).textTheme.bodyMedium,
                                         ),
-                                        backgroundColor: Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
+                                        backgroundColor:
+                                        Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
                                         duration: const Duration(seconds: 2),
                                       ),
                                     );
@@ -200,7 +202,8 @@ class TaskDetailScreen extends StatelessWidget {
                                           'Task đã được khôi phục!',
                                           style: Theme.of(scaffoldContext).textTheme.bodyMedium,
                                         ),
-                                        backgroundColor: Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
+                                        backgroundColor:
+                                        Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
                                         duration: const Duration(seconds: 2),
                                       ),
                                     );
@@ -330,7 +333,7 @@ class TaskDetailScreen extends StatelessWidget {
                 return Text(
                   '#$tag',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     color: colors['text'],
                   ),
                 );

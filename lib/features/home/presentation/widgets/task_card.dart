@@ -38,7 +38,7 @@ class TaskCard extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Theme.of(context).iconTheme.color!.withOpacity(0.6)),
+              border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
             ),
             child: Checkbox(
               value: task.isCompleted ?? false,
@@ -50,7 +50,7 @@ class TaskCard extends StatelessWidget {
               shape: const CircleBorder(),
               activeColor: Colors.green,
               checkColor: Theme.of(context).colorScheme.onSurface,
-              side: BorderSide(color: Theme.of(context).iconTheme.color!.withOpacity(0.6)),
+              side: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
             ),
           ),
           const SizedBox(width: 12),
@@ -93,14 +93,14 @@ class TaskCard extends StatelessWidget {
                               Icon(
                                 Icons.timer,
                                 size: 16,
-                                color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${task.completedPomodoros ?? 0}/${task.estimatedPomodoros}',
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   fontSize: 12,
-                                  color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                             ],
@@ -112,7 +112,7 @@ class TaskCard extends StatelessWidget {
                           child: Icon(
                             Icons.wb_sunny,
                             size: 16,
-                            color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                       if (task.priority != null && task.priority!.isNotEmpty)
@@ -121,7 +121,7 @@ class TaskCard extends StatelessWidget {
                           child: Icon(
                             Icons.flag,
                             size: 16,
-                            color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                       if (task.project != null && task.project!.isNotEmpty)
@@ -133,14 +133,14 @@ class TaskCard extends StatelessWidget {
                               Icon(
                                 Icons.bookmark,
                                 size: 16,
-                                color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 task.project!,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   fontSize: 12,
-                                  color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                             ],

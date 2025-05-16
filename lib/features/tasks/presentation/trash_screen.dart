@@ -60,9 +60,9 @@ class _TrashScreenState extends State<TrashScreen> {
               '${state.selectedTasks.length} đã chọn',
               style: Theme.of(context).textTheme.titleLarge,
             )
-                : const Text(
+                : Text(
               'Thùng rác',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             centerTitle: true,
             actions: state.isSelectionMode
@@ -141,11 +141,11 @@ class _TrashScreenState extends State<TrashScreen> {
                       fillColor: Theme.of(context).colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -213,7 +213,8 @@ class _TrashScreenState extends State<TrashScreen> {
                               },
                               itemBuilder: (context) => [
                                 const PopupMenuItem(value: 'Restore', child: Text('Khôi phục')),
-                                const PopupMenuItem(value: 'Delete Permanently', child: Text('Xóa vĩnh viễn')),
+                                const PopupMenuItem(
+                                    value: 'Delete Permanently', child: Text('Xóa vĩnh viễn')),
                               ],
                             )
                                 : null,
