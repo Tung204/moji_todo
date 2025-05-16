@@ -23,6 +23,13 @@ class TaskCard extends StatelessWidget {
         color: Theme.of(context).cardTheme.color,
         border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2)),
         borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -65,50 +72,80 @@ class TaskCard extends StatelessWidget {
                       spacing: 8,
                       children: task.tags!.map((tag) {
                         final colors = TagColors.getTagColors(tag);
-                        return Chip(
-                          label: Text(
-                            '#$tag',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontSize: 12,
-                              color: colors['text'],
-                            ),
+                        return Text(
+                          '#$tag',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 12,
+                            color: colors['text'],
                           ),
-                          backgroundColor: colors['background'],
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          labelPadding: EdgeInsets.zero,
                         );
                       }).toList(),
                     ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.timer,
-                        size: 16,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${task.completedPomodoros ?? 0}/${task.estimatedPomodoros ?? 0}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 12,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      if (task.estimatedPomodoros != null && task.estimatedPomodoros! > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${task.completedPomodoros ?? 0}/${task.estimatedPomodoros}',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.bookmark,
-                        size: 16,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        task.project ?? 'Pomodoro App',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 12,
-                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      if (task.dueDate != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Icon(
+                            Icons.wb_sunny,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
                         ),
-                      ),
+                      if (task.priority != null && task.priority!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Icon(
+                            Icons.flag,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      if (task.project != null && task.project!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.bookmark,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                task.project!,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ],

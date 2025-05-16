@@ -4,7 +4,6 @@ import 'package:moji_todo/features/home/presentation/strict_mode_menu.dart';
 import 'package:moji_todo/features/home/presentation/timer_mode_menu.dart';
 import 'package:moji_todo/features/home/presentation/white_noise_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../domain/home_cubit.dart';
 import '../domain/home_state.dart';
 import 'home_screen_state_manager.dart';
@@ -12,7 +11,6 @@ import 'task_bottom_sheet.dart';
 import 'widgets/pomodoro_timer.dart';
 import '../../../core/widgets/custom_app_bar.dart';
 import '../../tasks/domain/task_cubit.dart';
-import '../../tasks/data/models/task_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

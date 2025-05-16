@@ -207,8 +207,8 @@ class _DueDatePickerState extends State<DueDatePicker> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontSize: 12,
               fontWeight: FontWeight.normal,
             ),

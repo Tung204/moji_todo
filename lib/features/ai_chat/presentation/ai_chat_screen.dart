@@ -1,8 +1,7 @@
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/services/gemini_service.dart';
 import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/data/models/task_model.dart';

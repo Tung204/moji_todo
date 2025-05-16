@@ -34,33 +34,31 @@ class CustomButton extends StatelessWidget {
         ),
         shadowColor: Colors.black.withOpacity(0.1),
         elevation: 8,
-        // Apply gradient if useGradient is true
-        surfaceTintColor: Colors.transparent, // Prevent tint over gradient
-        // Gradient is applied via decoration in child
+        surfaceTintColor: Colors.transparent,
       ),
       child: Container(
         decoration: useGradient
             ? BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    backgroundColor ?? defaultBackgroundColor,
-                    (backgroundColor ?? defaultBackgroundColor).withOpacity(0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(borderRadius),
-              )
+          gradient: LinearGradient(
+            colors: [
+              backgroundColor ?? defaultBackgroundColor,
+              (backgroundColor ?? defaultBackgroundColor).withOpacity(0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(borderRadius),
+        )
             : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0), // Padding handled by ElevatedButton
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: textColor ?? defaultTextColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: textColor ?? defaultTextColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

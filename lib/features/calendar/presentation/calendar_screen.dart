@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../tasks/data/models/project_tag_repository.dart';
 import '../../tasks/data/models/task_model.dart';
 import '../../tasks/domain/task_cubit.dart';
 import '../../tasks/presentation/add_task/add_task_bottom_sheet.dart';
 import '../../tasks/presentation/task_detail_screen.dart';
-import '../../tasks/presentation/utils/tag_colors.dart';
-import '../../tasks/data/models/project_tag_repository.dart';
+import '../../tasks/presentation/widgets/task_item_card.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -25,11 +26,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _selectedDay = _focusedDay;
     context.read<TaskCubit>().loadTasks();
+    // Cố định màu status bar
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark, // Light theme
+      statusBarBrightness: Brightness.light, // Dark theme
+    ));
   }
 
   List<Task> _getTasksForDay(DateTime day, List<Task> tasks) {
     return tasks.where((task) {
-      if (task.dueDate == null) return false;
+      if (task.dueDate == null || task.category == 'Trash') return false;
       final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
       final selectedDate = DateTime(day.year, day.month, day.day);
       final isSameDay = taskDate.isAtSameMomentAs(selectedDate);
@@ -40,7 +47,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   bool _hasTasksOnDay(DateTime day, List<Task> tasks) {
     return tasks.any((task) {
-      if (task.dueDate == null) return false;
+      if (task.dueDate == null || task.category == 'Trash') return false;
       final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
       final selectedDate = DateTime(day.year, day.month, day.day);
       return taskDate.isAtSameMomentAs(selectedDate);
@@ -63,7 +70,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.transparent,
+            scrolledUnderElevation: 0.0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 0,
             automaticallyImplyLeading: false,
             title: Text(
@@ -275,87 +283,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             final task = tasksForSelectedDay[index];
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => TaskDetailScreen(task: task),
-                                      ),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Checkbox(
-                                          value: task.isCompleted ?? false,
-                                          onChanged: (value) {
-                                            if (value != null) {
-                                              context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
-                                            }
-                                          },
-                                          shape: const CircleBorder(),
-                                          activeColor: Colors.green,
-                                          checkColor: Theme.of(context).colorScheme.onSurface,
-                                          side: const BorderSide(color: Colors.red),
-                                        ),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                task.title ?? 'Task không có tiêu đề',
-                                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                                  decoration: task.isCompleted == true ? TextDecoration.lineThrough : null,
-                                                ),
-                                              ),
-                                              if (task.tags != null && task.tags!.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 4.0),
-                                                  child: Wrap(
-                                                    spacing: 4,
-                                                    runSpacing: 4,
-                                                    children: task.tags!.map<Widget>((tag) {
-                                                      final colors = TagColors.getTagColors(tag);
-                                                      return Chip(
-                                                        label: Text(
-                                                          '#$tag',
-                                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                                            fontSize: 10,
-                                                            color: colors['text'],
-                                                          ),
-                                                        ),
-                                                        backgroundColor: colors['background'],
-                                                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                        labelPadding: EdgeInsets.zero,
-                                                      );
-                                                    }).toList().cast<Widget>(),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.play_circle_fill,
-                                            color: Theme.of(context).colorScheme.secondary,
-                                            size: 24,
-                                          ),
-                                          onPressed: () {
-                                            // Logic bắt đầu Pomodoro cho task
-                                          },
-                                        ),
-                                      ],
+                              child: TaskItemCard(
+                                task: task,
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TaskDetailScreen(task: task),
                                     ),
-                                  ),
-                                ),
+                                  );
+                                  if (result == true) {
+                                    context.read<TaskCubit>().loadTasks();
+                                  }
+                                },
+                                onCheckboxChanged: (value) {
+                                  if (value != null) {
+                                    context.read<TaskCubit>().updateTask(task.copyWith(isCompleted: value));
+                                  }
+                                },
+                                onPlayPressed: () {
+                                  // Logic bắt đầu Pomodoro cho task
+                                },
+                                showDetails: true,
+                                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                               ),
                             );
                           },

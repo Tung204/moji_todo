@@ -23,6 +23,7 @@ import 'features/tasks/data/models/task_model.dart';
 import 'features/tasks/data/task_repository.dart';
 import 'features/tasks/domain/task_cubit.dart';
 
+// InheritedWidget để truyền taskBox, syncInfoBox, projectBox và tagBox
 class AppData extends InheritedWidget {
   final Box<Task> taskBox;
   final Box<DateTime> syncInfoBox;
@@ -58,17 +59,17 @@ class AppData extends InheritedWidget {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Add this line to ensure the method channel is registered
   const MethodChannel('com.example.moji_todo/notification');
 
   await Firebase.initializeApp();
+
   await dotenv.load(fileName: ".env");
 
+  // Khởi tạo Hive
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(ProjectAdapter());
   Hive.registerAdapter(TagAdapter());
-
   final taskBox = await Hive.openBox<Task>('tasks');
   final syncInfoBox = await Hive.openBox<DateTime>('sync_info');
   final projectBox = await Hive.openBox<Project>('projects');
@@ -81,6 +82,7 @@ void main() async {
   final notificationService = NotificationService();
   await notificationService.init();
 
+  // Kiểm tra và sinh project/tag mặc định nếu Hive trống
   await initializeDefaultData(projectBox, tagBox);
 
   runApp(MyApp(
@@ -92,9 +94,11 @@ void main() async {
   ));
 }
 
+// Hàm khởi tạo dữ liệu mặc định
 Future<void> initializeDefaultData(Box<Project> projectBox, Box<Tag> tagBox) async {
   final repository = ProjectTagRepository(projectBox: projectBox, tagBox: tagBox);
 
+  // Nếu Hive trống, thêm dữ liệu mặc định
   if (projectBox.isEmpty) {
     final defaultProjects = [
       Project(name: 'General', color: Colors.green, isArchived: false),
@@ -207,7 +211,7 @@ class _MyAppState extends State<MyApp> {
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),
           BlocProvider(
-            create: (context) => HomeCubit(),
+            create: (context) => HomeCubit(), // Cung cấp HomeCubit ở cấp cao
           ),
         ],
         child: ChangeNotifierProvider(

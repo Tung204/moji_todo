@@ -4,6 +4,7 @@ import '../../domain/home_cubit.dart';
 import '../../domain/home_state.dart';
 import '../home_screen_state_manager.dart';
 import '../../../../core/widgets/custom_button.dart';
+import 'package:flutter/services.dart';
 
 class PomodoroTimer extends StatefulWidget {
   final HomeScreenStateManager? stateManager;
@@ -18,6 +19,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
   double _currentProgress = 0.0;
+  static const MethodChannel _notificationChannel = MethodChannel('com.example.moji_todo/notification');
 
   @override
   void initState() {
@@ -54,6 +56,10 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
           previous.totalSessions != current.totalSessions ||
           previous.isCountingUp != current.isCountingUp,
       builder: (context, state) {
+        final homeCubit = context.read<HomeCubit>();
+
+        final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
+        final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
         final totalDuration = (state.isWorkSession ? state.workDuration : state.breakDuration) * 60;
         final targetProgress = state.isCountingUp ? 0.0 : (totalDuration > 0 ? state.timerSeconds / totalDuration : 0.0);
 
@@ -72,9 +78,6 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
           _currentProgress = targetProgress;
           _progressController.forward(from: 0.0);
         }
-
-        final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
-        final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
 
         return Column(
           children: [
