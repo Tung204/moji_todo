@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive/hive.dart';
-import '../../data/models/project_model.dart';
 import '../../data/models/project_tag_repository.dart';
-import '../../data/models/tag_model.dart';
 import '../../data/models/task_model.dart';
 import '../../domain/task_cubit.dart';
 import 'due_date_picker.dart';

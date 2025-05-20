@@ -13,8 +13,6 @@ import 'core/themes/theme.dart';
 import 'core/themes/theme_provider.dart';
 import 'features/home/domain/home_cubit.dart';
 import 'core/navigation/main_screen.dart';
-import 'features/pomodoro/data/pomodoro_repository.dart';
-import 'features/pomodoro/domain/pomodoro_cubit.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'features/tasks/data/models/project_model.dart';
 import 'features/tasks/data/models/project_tag_repository.dart';
@@ -202,11 +200,6 @@ class _MyAppState extends State<MyApp> {
       tagBox: widget.tagBox,
       child: MultiBlocProvider(
         providers: [
-          BlocProvider(
-            create: (context) => PomodoroCubit(
-              PomodoroRepository(notificationService: widget.notificationService),
-            ),
-          ),
           BlocProvider(
             create: (context) => TaskCubit(TaskRepository(taskBox: widget.taskBox)),
           ),

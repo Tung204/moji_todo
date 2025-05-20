@@ -17,10 +17,19 @@ class TimerStateHandler {
     try {
       // Ưu tiên trạng thái từ TimerService
       final timerState = await notificationChannel.invokeMethod('getTimerState');
+      print('Raw timerState from TimerService: $timerState');
       int timerSeconds = timerState?['timerSeconds'] ?? 25 * 60;
       bool isRunning = timerState?['isRunning'] ?? false;
       bool isPaused = timerState?['isPaused'] ?? false;
       bool isCountingUp = timerState?['isCountingUp'] ?? false;
+
+      // Validate trạng thái
+      if (isRunning && isPaused) {
+        print('Warning: Invalid state - timer isRunning=true and isPaused=true');
+      }
+      if (!isRunning && isPaused) {
+        print('Warning: Invalid state - timer isRunning=false but isPaused=true');
+      }
 
       homeCubit.restoreTimerState(
         timerSeconds: timerSeconds,

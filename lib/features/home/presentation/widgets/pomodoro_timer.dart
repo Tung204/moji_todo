@@ -18,9 +18,8 @@ class PomodoroTimer extends StatefulWidget {
 
 class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateMixin {
   late AnimationController _progressController;
-  late Animation<double> _progressAnimation;
+  late Animation<double> _progressAnimation; // Vẫn giữ late
   double _currentProgress = 0.0;
-  static const MethodChannel _notificationChannel = MethodChannel('com.example.moji_todo/notification');
   Timer? _debounceTimer;
   bool _isActionLocked = false;
 
@@ -31,12 +30,22 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+    // Khởi tạo _progressAnimation ngay lập tức với giá trị 0.0
+    // Đây là thay đổi quan trọng để khắc phục LateInitializationError.
     _progressAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _progressController,
         curve: Curves.easeInOut,
       ),
     );
+
+    // Vẫn giữ lại postFrameCallback để cập nhật animation dựa trên trạng thái ban đầu của Cubit
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Đảm bảo Cubit đã có trạng thái để truyền vào _updateProgressAnimation
+      if (mounted) { // Kiểm tra widget còn mounted trước khi truy cập context
+        _updateProgressAnimation(context.read<HomeCubit>().state);
+      }
+    });
   }
 
   @override
@@ -46,24 +55,82 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
     super.dispose();
   }
 
-  void _debouncedAction(String action) {
+  void _updateProgressAnimation(HomeState state) {
+    final totalDuration = (state.isWorkSession ? state.workDuration : state.breakDuration) * 60;
+    // Đảm bảo targetProgress không NaN hoặc vô cực nếu totalDuration là 0
+    final targetProgress = state.isCountingUp ? 0.0 : (totalDuration > 0 ? state.timerSeconds / totalDuration : 0.0);
+
+    // Log để kiểm tra giá trị targetProgress
+    print('Updating progress animation: targetProgress=$targetProgress, currentProgress=$_currentProgress, isPaused=${state.isPaused}, isCountingUp=${state.isCountingUp}');
+
+
+    // Chỉ cập nhật animation nếu không phải chế độ đếm lên, tiến độ thay đổi và không bị tạm dừng
+    // Nếu targetProgress rất nhỏ (gần 0), có thể reset animation để tránh các lỗi nhỏ
+    if (!state.isCountingUp && (targetProgress - _currentProgress).abs() > 0.001 && !state.isPaused) {
+      _progressAnimation = Tween<double>(
+        begin: _currentProgress,
+        end: targetProgress,
+      ).animate(
+        CurvedAnimation(
+          parent: _progressController,
+          curve: Curves.easeInOut,
+        ),
+      );
+      _currentProgress = targetProgress;
+      _progressController.forward(from: 0.0);
+    } else if (state.isPaused && _progressController.isAnimating) {
+      _progressController.stop();
+    } else if (!state.isTimerRunning && !state.isPaused && _progressController.isAnimating) {
+      _progressController.stop();
+    } else if (!state.isTimerRunning && !state.isPaused && targetProgress == 0.0 && _currentProgress != 0.0) {
+      // Khi timer dừng hoàn toàn và về 0, reset animation về 0
+      _currentProgress = 0.0;
+      _progressAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
+        CurvedAnimation(
+          parent: _progressController,
+          curve: Curves.easeInOut,
+        ),
+      );
+      _progressController.value = 0.0; // Đặt giá trị controller về 0
+      _progressController.stop();
+    }
+  }
+
+
+  void _debouncedAction(String action, {int? estimatedPomodoros}) {
     if (_isActionLocked) {
       print('Action locked, ignoring: $action');
       return;
     }
 
     _isActionLocked = true;
-    widget.stateManager?.handleTimerAction(action);
+    print('Handling action: $action');
+    widget.stateManager?.handleTimerAction(
+      action,
+      estimatedPomodoros: estimatedPomodoros,
+    );
 
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 1000), () {
       _isActionLocked = false;
+      print('Action lock released');
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<HomeCubit, HomeState>(
+    return BlocConsumer<HomeCubit, HomeState>(
+      listenWhen: (previous, current) =>
+      previous.timerSeconds != current.timerSeconds ||
+          previous.isTimerRunning != current.isTimerRunning ||
+          previous.isPaused != current.isPaused ||
+          previous.isWorkSession != current.isWorkSession ||
+          previous.workDuration != current.workDuration ||
+          previous.breakDuration != current.breakDuration ||
+          previous.isCountingUp != current.isCountingUp,
+      listener: (context, state) {
+        _updateProgressAnimation(state);
+      },
       buildWhen: (previous, current) =>
       previous.timerSeconds != current.timerSeconds ||
           previous.isTimerRunning != current.isTimerRunning ||
@@ -75,27 +142,26 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
           previous.totalSessions != current.totalSessions ||
           previous.isCountingUp != current.isCountingUp,
       builder: (context, state) {
-        final homeCubit = context.read<HomeCubit>();
-
         final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
         final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
-        final totalDuration = (state.isWorkSession ? state.workDuration : state.breakDuration) * 60;
-        final targetProgress = state.isCountingUp ? 0.0 : (totalDuration > 0 ? state.timerSeconds / totalDuration : 0.0);
 
-        print('PomodoroTimer rebuild: timerSeconds=${state.timerSeconds}, isCountingUp=${state.isCountingUp}, targetProgress=$targetProgress');
+        print('PomodoroTimer rebuild: timerSeconds=${state.timerSeconds}, isRunning=${state.isTimerRunning}, isPaused=${state.isPaused}, isCountingUp=${state.isCountingUp}, isWorkSession=${state.isWorkSession}, currentSession=${state.currentSession}, totalSessions=${state.totalSessions}');
 
-        if (!state.isCountingUp && _currentProgress != targetProgress) {
-          _progressAnimation = Tween<double>(
-            begin: _currentProgress,
-            end: targetProgress,
-          ).animate(
-            CurvedAnimation(
-              parent: _progressController,
-              curve: Curves.easeInOut,
-            ),
-          );
-          _currentProgress = targetProgress;
-          _progressController.forward(from: 0.0);
+        String sessionStatusText;
+        if (state.isCountingUp) {
+          sessionStatusText = 'Counting Up';
+        } else if (state.isTimerRunning || state.isPaused) {
+          sessionStatusText = '${state.currentSession} of ${state.totalSessions} sessions';
+        } else {
+          if (state.selectedTask != null) {
+            if (state.isWorkSession) {
+              sessionStatusText = 'Ready for Work (Session ${state.currentSession + 1})';
+            } else {
+              sessionStatusText = 'Ready for Break';
+            }
+          } else {
+            sessionStatusText = 'No session selected';
+          }
         }
 
         return Column(
@@ -116,15 +182,22 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                 SizedBox(
                   width: 300,
                   height: 300,
-                  child: CircularProgressIndicator(
-                    value: state.isCountingUp ? null : _progressAnimation.value,
-                    strokeWidth: 20,
-                    backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      state.isTimerRunning
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.secondary,
-                    ),
+                  child: AnimatedBuilder(
+                    animation: _progressAnimation,
+                    builder: (context, child) {
+                      return CircularProgressIndicator(
+                        value: state.isCountingUp ? null : _progressAnimation.value,
+                        strokeWidth: 20,
+                        backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          state.isPaused
+                              ? Theme.of(context).colorScheme.secondary
+                              : state.isTimerRunning
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.secondary,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Column(
@@ -138,11 +211,7 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                       ),
                     ),
                     Text(
-                      state.isCountingUp
-                          ? 'Counting Up'
-                          : (state.currentSession == 0
-                          ? 'No sessions'
-                          : '${state.currentSession} of ${state.totalSessions} sessions'),
+                      sessionStatusText,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 16,
                         color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
