@@ -17,11 +17,11 @@ class TagAdapter extends TypeAdapter<Tag> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Tag(
-      id: fields[0] as String,
+      id: fields[0] as String?,
       name: fields[1] as String,
-      backgroundColor: Color(fields[2] as int), // SỬA: Đảm bảo truyền backgroundColor
-      textColor: Color(fields[3] as int), // SỬA: Đảm bảo truyền textColor
-      isArchived: fields[4] as bool? ?? false,
+      textColor: Color(fields[3] as int),
+      isArchived: fields[4] as bool,
+      userId: fields[5] as String?,
     );
   }
 
@@ -33,12 +33,12 @@ class TagAdapter extends TypeAdapter<Tag> {
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.name)
-      ..writeByte(2)
-      ..write(obj.backgroundColorValue)
       ..writeByte(3)
       ..write(obj.textColorValue)
       ..writeByte(4)
-      ..write(obj.isArchived);
+      ..write(obj.isArchived)
+      ..writeByte(5)
+      ..write(obj.userId);
   }
 
   @override
@@ -47,7 +47,7 @@ class TagAdapter extends TypeAdapter<Tag> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is TagAdapter &&
-              runtimeType == other.runtimeType &&
-              typeId == other.typeId;
+      other is TagAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }

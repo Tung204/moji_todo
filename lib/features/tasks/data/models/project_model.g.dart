@@ -17,17 +17,21 @@ class ProjectAdapter extends TypeAdapter<Project> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Project(
-      id: fields[0] as String,
+      id: fields[0] as String?,
       name: fields[1] as String,
-      color: Color(fields[2] as int), // SỬA: Đảm bảo truyền color vào constructor
-      isArchived: fields[3] as bool? ?? false,
+      color: Color(fields[2] as int),
+      isArchived: fields[3] as bool,
+      iconCodePoint: fields[4] as int?,
+      iconFontFamily: fields[5] as String?,
+      iconFontPackage: fields[6] as String?,
+      userId: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Project obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -35,7 +39,15 @@ class ProjectAdapter extends TypeAdapter<Project> {
       ..writeByte(2)
       ..write(obj.colorValue)
       ..writeByte(3)
-      ..write(obj.isArchived);
+      ..write(obj.isArchived)
+      ..writeByte(4)
+      ..write(obj.iconCodePoint)
+      ..writeByte(5)
+      ..write(obj.iconFontFamily)
+      ..writeByte(6)
+      ..write(obj.iconFontPackage)
+      ..writeByte(7)
+      ..write(obj.userId);
   }
 
   @override
@@ -44,7 +56,7 @@ class ProjectAdapter extends TypeAdapter<Project> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is ProjectAdapter &&
-              runtimeType == other.runtimeType &&
-              typeId == other.typeId;
+      other is ProjectAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }

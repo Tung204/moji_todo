@@ -5,13 +5,15 @@ import 'package:moji_todo/features/tasks/presentation/add_project_and_tags/add_p
 import '../../data/models/project_tag_repository.dart';
 
 class ProjectPicker extends StatefulWidget {
-  final String? initialProject;
+  // MODIFIED: Đổi tên và kiểu dữ liệu
+  final String? initialProjectId;
   final ProjectTagRepository repository;
+  // MODIFIED: Kiểu dữ liệu của callback
   final ValueChanged<String?> onProjectSelected;
 
   const ProjectPicker({
     super.key,
-    this.initialProject,
+    this.initialProjectId, // MODIFIED
     required this.repository,
     required this.onProjectSelected,
   });
@@ -21,19 +23,22 @@ class ProjectPicker extends StatefulWidget {
 }
 
 class _ProjectPickerState extends State<ProjectPicker> {
-  late String? selectedProject;
+  // MODIFIED: Đổi tên biến state
+  late String? selectedProjectId;
 
   @override
   void initState() {
     super.initState();
-    selectedProject = widget.initialProject;
+    // MODIFIED: Khởi tạo bằng initialProjectId
+    selectedProjectId = widget.initialProjectId;
   }
 
-  void _updateProject(String? project) {
+  // MODIFIED: Hàm này giờ làm việc với projectId
+  void _updateProject(String? projectId) {
     setState(() {
-      selectedProject = project;
+      selectedProjectId = projectId;
     });
-    widget.onProjectSelected(project);
+    widget.onProjectSelected(projectId);
   }
 
   @override
@@ -61,7 +66,7 @@ class _ProjectPickerState extends State<ProjectPicker> {
                         builder: (context) => AddProjectScreen(
                           repository: widget.repository,
                           onProjectAdded: () {
-                            // Không cần setState vì ValueListenableBuilder sẽ tự rebuild
+                            // ValueListenableBuilder sẽ tự rebuild
                           },
                         ),
                       ),
@@ -76,26 +81,28 @@ class _ProjectPickerState extends State<ProjectPicker> {
               builder: (context, Box<Project> box, _) {
                 final availableProjects = box.values
                     .where((project) => !project.isArchived)
-                    .toList(); // SỬA: Lấy danh sách Project thay vì chỉ tên
+                    .toList();
                 return SizedBox(
-                  height: 252, // Giới hạn 4.5 dòng (56dp * 4.5)
+                  height: 252,
                   child: ListView.builder(
                     shrinkWrap: true,
                     physics: const ClampingScrollPhysics(),
                     itemCount: availableProjects.length,
                     itemBuilder: (context, index) {
                       final project = availableProjects[index];
-                      final isSelected = selectedProject == project.name;
+                      // MODIFIED: So sánh bằng project.id
+                      final isSelected = selectedProjectId == project.id;
                       return ListTile(
                         leading: Icon(
                           Icons.work,
-                          color: project.color, // SỬA: Lấy màu từ Project.color
+                          color: project.color,
                           size: 24,
                         ),
                         title: Text(project.name),
                         trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
                         onTap: () {
-                          _updateProject(project.name);
+                          // MODIFIED: Truyền project.id vào _updateProject
+                          _updateProject(project.id);
                         },
                       );
                     },
@@ -131,6 +138,7 @@ class _ProjectPickerState extends State<ProjectPicker> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: ElevatedButton(
                       onPressed: () {
+                        // Callback đã được gọi mỗi khi chọn, nên chỉ cần pop
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(

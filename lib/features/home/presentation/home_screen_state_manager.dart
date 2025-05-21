@@ -16,8 +16,7 @@ class HomeScreenStateManager {
   final MethodChannel _serviceChannel = const MethodChannel('com.example.moji_todo/app_block_service');
   late final TimerStateHandler _timerStateHandler;
   late final PermissionHandler permissionHandler;
-  bool _fromNotification = false;
-  bool _isActionPending = false;
+  bool _isActionPending = false; // Giữ lại để tránh spam action
 
   HomeScreenStateManager({
     required this.context,
@@ -32,12 +31,14 @@ class HomeScreenStateManager {
     permissionHandler = PermissionHandler(
       context: context,
       notificationChannel: _channel,
-      notificationService: UnifiedNotificationService(),
+      notificationService: UnifiedNotificationService(), // UnifiedNotificationService() cần được khởi tạo hoặc truyền vào
       onPermissionStateChanged: _updatePermissionState,
     );
   }
 
   Future<void> init() async {
+    // Luôn khôi phục trạng thái timer từ service khi khởi động app
+    // TimerStateHandler sẽ gọi native service để lấy trạng thái và cập nhật HomeCubit
     await _restoreTimerState();
     await _checkStrictMode();
   }
@@ -48,72 +49,43 @@ class HomeScreenStateManager {
   }
 
   Future<void> _restoreTimerState() async {
-    await _timerStateHandler.restoreTimerState();
+    try {
+      // _timerStateHandler sẽ gọi service để lấy trạng thái mới nhất và cập nhật Cubit
+      await _timerStateHandler.restoreTimerState();
+      print('Restored timer state via TimerStateHandler');
+    } catch (e) {
+      print('Error restoring timer state: $e');
+    }
   }
 
   Future<void> _checkStrictMode() async {
-    final prefs = await sharedPreferences;
-    final isStrictModeEnabled = prefs.getBool('isStrictModeEnabled') ?? false;
-    if (isStrictModeEnabled) {
-      context.read<HomeCubit>().updateStrictMode(isAppBlockingEnabled: true);
-      final isBlockAppsEnabled = prefs.getBool('isBlockAppsEnabled') ?? false;
-      final blockedApps = prefs.getStringList('blockedApps') ?? [];
-      if (isBlockAppsEnabled) {
-        await _serviceChannel.invokeMethod('setBlockedApps', {'apps': blockedApps});
-        await _serviceChannel.invokeMethod('setAppBlockingEnabled', {'enabled': true});
+    try {
+      final prefs = await sharedPreferences;
+      final isStrictModeEnabled = prefs.getBool('isStrictModeEnabled') ?? false;
+      if (isStrictModeEnabled) {
+        context.read<HomeCubit>().updateStrictMode(isAppBlockingEnabled: true);
+        final isBlockAppsEnabled = prefs.getBool('isBlockAppsEnabled') ?? false;
+        final blockedApps = prefs.getStringList('blockedApps') ?? [];
+        if (isBlockAppsEnabled) {
+          await _serviceChannel.invokeMethod('setBlockedApps', {'apps': blockedApps});
+          await _serviceChannel.invokeMethod('setAppBlockingEnabled', {'enabled': true});
+          print('Strict mode enabled: blockedApps=$blockedApps, appBlockingEnabled=true');
+        }
       }
+    } catch (e) {
+      print('Error checking strict mode: $e');
     }
   }
 
   Future<void> handleAppLifecycleState(AppLifecycleState state) async {
-    final homeCubit = context.read<HomeCubit>();
     if (state == AppLifecycleState.paused) {
-      if (homeCubit.state.isTimerRunning && !homeCubit.state.isPaused) {
-        final prefs = await sharedPreferences;
-        await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
-        await prefs.setBool('isRunning', homeCubit.state.isTimerRunning);
-        await prefs.setBool('isPaused', homeCubit.state.isPaused);
-        await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
-        await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
-      }
-      _fromNotification = false;
+      print('App lifecycle: paused (TimerService manages state persistence).');
     } else if (state == AppLifecycleState.resumed) {
-      if (_fromNotification) {
-        final prefs = await sharedPreferences;
-        int timerSeconds = prefs.getInt('timerSeconds') ?? 25 * 60;
-        bool isRunning = prefs.getBool('isRunning') ?? false;
-        bool isPaused = prefs.getBool('isPaused') ?? false;
-        bool isCountingUp = prefs.getBool('isCountingUp') ?? false;
-        homeCubit.restoreTimerState(
-          timerSeconds: timerSeconds,
-          isRunning: isRunning,
-          isPaused: isPaused,
-          isCountingUp: isCountingUp,
-        );
-        print('Restored state from notification: timerSeconds=$timerSeconds, isRunning=$isRunning, isPaused=$isPaused, isCountingUp=$isCountingUp');
-      } else {
-        await _restoreTimerState();
-      }
-      if (homeCubit.state.isStrictModeEnabled && homeCubit.state.isTimerRunning && homeCubit.state.isFlipPhoneEnabled) {
-        try {
-          await _channel.invokeMethod('startTimerService', {
-            'action': 'UPDATE',
-            'timerSeconds': homeCubit.state.timerSeconds,
-            'isRunning': homeCubit.state.isTimerRunning,
-            'isPaused': homeCubit.state.isPaused,
-            'isCountingUp': homeCubit.state.isCountingUp,
-          });
-        } catch (e) {
-          print('Error updating timer service: $e');
-        }
-      }
-      _fromNotification = false;
+      print('App lifecycle: resumed. Requesting fresh timer state from TimerService.');
+      // Khi app resume, luôn yêu cầu trạng thái mới nhất từ TimerService.
+      // TimerService sẽ emit qua EventChannel, và HomeCubit sẽ lắng nghe và cập nhật UI.
+      await _restoreTimerState();
     }
-  }
-
-  Future<void> setFromNotification() async {
-    _fromNotification = true;
-    print('Set _fromNotification to true');
   }
 
   Future<void> handleTimerAction(String action, {Task? task, int? estimatedPomodoros}) async {
@@ -124,122 +96,86 @@ class HomeScreenStateManager {
 
     _isActionPending = true;
     final homeCubit = context.read<HomeCubit>();
-    final prefs = await sharedPreferences;
+    print('Handling timer action from UI: $action');
 
+    // Logic kiểm tra canProceed (có thể được đơn giản hóa hoặc chuyển hoàn toàn vào Cubit nếu Cubit đã xử lý tốt)
     bool canProceed = true;
     switch (action) {
       case 'start':
         if (homeCubit.state.isTimerRunning) {
-          print('Timer already running, ignoring start action');
           canProceed = false;
         }
         break;
       case 'pause':
         if (!homeCubit.state.isTimerRunning || homeCubit.state.isPaused) {
-          print('Timer not running or already paused, ignoring pause action');
           canProceed = false;
         }
         break;
       case 'continue':
         if (homeCubit.state.isTimerRunning || !homeCubit.state.isPaused) {
-          print('Timer not paused or already running, ignoring continue action');
           canProceed = false;
         }
         break;
       case 'stop':
         if (!homeCubit.state.isTimerRunning && !homeCubit.state.isPaused) {
-          print('Timer not running or paused, ignoring stop action');
           canProceed = false;
         }
         break;
     }
 
     if (!canProceed) {
+      print('Action $action cannot proceed based on current state.');
       _isActionPending = false;
       return;
     }
 
+    // Gửi lệnh trực tiếp đến HomeCubit.
+    // HomeCubit sẽ gửi lệnh đến Native Service (qua _notificationChannel),
+    // và Native Service sẽ phát trạng thái về qua EventChannel.
     switch (action) {
       case 'start':
         try {
-          await checkAndRequestPermissionsForTimer();
+          await checkAndRequestPermissionsForTimer(); // Vẫn cần kiểm tra quyền trước khi start
           if (task != null && estimatedPomodoros != null) {
             homeCubit.selectTask(task.title, estimatedPomodoros);
           }
-          homeCubit.startTimer();
-          await _channel.invokeMethod('startTimerService', {
-            'action': 'START',
-            'timerSeconds': homeCubit.state.timerSeconds,
-            'isRunning': true,
-            'isPaused': false,
-            'isCountingUp': homeCubit.state.isCountingUp,
-          });
-          await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
-          await prefs.setBool('isRunning', true);
-          await prefs.setBool('isPaused', false);
-          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
-          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
-          await _restoreTimerState();
+          homeCubit.startTimer(); // HomeCubit sẽ tự gọi native service
+          print('Initiated start timer action in HomeCubit.');
         } catch (e) {
-          print('Error starting timer: $e');
-          homeCubit.stopTimer();
+          print('Error initiating start timer: $e');
         }
         break;
       case 'pause':
         try {
-          homeCubit.pauseTimer();
-          await _channel.invokeMethod('com.example.moji_todo.PAUSE');
-          await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
-          await prefs.setBool('isRunning', false);
-          await prefs.setBool('isPaused', true);
-          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
-          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
-          await _restoreTimerState();
+          homeCubit.pauseTimer(); // HomeCubit sẽ tự gọi native service
+          print('Initiated pause timer action in HomeCubit.');
         } catch (e) {
-          print('Error pausing timer: $e');
+          print('Error initiating pause timer: $e');
         }
         break;
       case 'continue':
         try {
-          await checkAndRequestPermissionsForTimer();
-          homeCubit.continueTimer();
-          await _channel.invokeMethod('startTimerService', {
-            'action': 'com.example.moji_todo.RESUME',
-            'timerSeconds': homeCubit.state.timerSeconds,
-            'isRunning': true,
-            'isPaused': false,
-            'isCountingUp': homeCubit.state.isCountingUp,
-          });
-          await prefs.setInt('timerSeconds', homeCubit.state.timerSeconds);
-          await prefs.setBool('isRunning', true);
-          await prefs.setBool('isPaused', false);
-          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
-          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
-          await _restoreTimerState();
+          await checkAndRequestPermissionsForTimer(); // Vẫn cần kiểm tra quyền trước khi continue
+          homeCubit.continueTimer(); // HomeCubit sẽ tự gọi native service
+          print('Initiated continue timer action in HomeCubit.');
         } catch (e) {
-          print('Error resuming timer: $e');
+          print('Error initiating continue timer: $e');
         }
         break;
       case 'stop':
         try {
-          homeCubit.stopTimer();
-          await _channel.invokeMethod('com.example.moji_todo.STOP');
-          await prefs.setInt('timerSeconds', homeCubit.state.isCountingUp ? 0 : homeCubit.state.workDuration * 60);
-          await prefs.setBool('isRunning', false);
-          await prefs.setBool('isPaused', false);
-          await prefs.setBool('isCountingUp', homeCubit.state.isCountingUp);
-          await prefs.setBool('isWorkSession', homeCubit.state.isWorkSession);
-          await _restoreTimerState();
-          await Future.delayed(Duration(milliseconds: 500));
+          homeCubit.stopTimer(); // HomeCubit sẽ tự gọi native service
+          print('Initiated stop timer action in HomeCubit.');
         } catch (e) {
-          print('Error stopping timer: $e');
+          print('Error initiating stop timer: $e');
         }
         break;
     }
 
-    // Mở khóa hành động sau 1 giây
-    await Future.delayed(Duration(milliseconds: 1000));
+    // Mở khóa hành động sau một khoảng trễ nhỏ để tránh spam
+    await Future.delayed(const Duration(milliseconds: 500));
     _isActionPending = false;
+    print('Action lock released for $action');
   }
 
   void dispose() {
@@ -251,8 +187,11 @@ class HomeScreenStateManager {
     bool? hasRequestedBackgroundPermission,
     bool? isIgnoringBatteryOptimizations,
   }) {
-    // Update permission state
+    // Cập nhật trạng thái quyền ở đây nếu cần phản ứng trong UI
+    // Ví dụ: hiển thị cảnh báo cho người dùng
   }
 
+  // Getter này có thể được loại bỏ hoặc thay đổi tùy thuộc vào cách bạn quản lý quyền
+  // Hiện tại giữ lại để tránh lỗi nếu có nơi nào đó vẫn sử dụng nó.
   bool get hasNotificationPermission => true;
 }

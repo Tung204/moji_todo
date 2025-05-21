@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:uuid/uuid.dart'; // THÊM: Để tạo ID unique
+import 'package:uuid/uuid.dart';
 
 part 'tag_model.g.dart';
 
 @HiveType(typeId: 2)
-class Tag {
+class Tag extends HiveObject {
   @HiveField(0)
-  final String id; // THÊM: ID unique cho Tag
+  final String id;
 
   @HiveField(1)
   final String name;
-
-  @HiveField(2)
-  final int backgroundColorValue;
 
   @HiveField(3)
   final int textColorValue;
@@ -21,16 +18,35 @@ class Tag {
   @HiveField(4)
   final bool isArchived;
 
+  @HiveField(5)
+  final String? userId;
+
   Tag({
-    String? id, // THÊM: Cho phép truyền ID, nếu null thì tự tạo
+    String? id,
     required this.name,
-    required Color backgroundColor,
+    // Bỏ tham số backgroundColor
     required Color textColor,
     this.isArchived = false,
-  })  : id = id ?? const Uuid().v4(), // THÊM: Tạo ID nếu không được cung cấp
-        backgroundColorValue = backgroundColor.value,
+    this.userId,
+  })  : id = id ?? const Uuid().v4(),
+
         textColorValue = textColor.value;
 
-  Color get backgroundColor => Color(backgroundColorValue);
   Color get textColor => Color(textColorValue);
+
+  Tag copyWith({
+    String? id,
+    String? name,
+    Color? textColor,
+    bool? isArchived,
+    String? userId,
+  }) {
+    return Tag(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      textColor: textColor ?? this.textColor,
+      isArchived: isArchived ?? this.isArchived,
+      userId: userId ?? this.userId,
+    );
+  }
 }

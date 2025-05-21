@@ -22,7 +22,7 @@ class StrictModeMenu extends StatelessWidget {
         bool? granted = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Dialog(
+          builder: (dialogContext) => Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSizes.dialogRadius),
             ),
@@ -31,7 +31,7 @@ class StrictModeMenu extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: Theme.of(context).brightness == Brightness.dark
+                  colors: Theme.of(dialogContext).brightness == Brightness.dark
                       ? [const Color(0xFF2A2A2A), const Color(0xFF3A3A3A)]
                       : [AppColors.backgroundGradientStart, AppColors.backgroundGradientEnd],
                   begin: Alignment.topLeft,
@@ -53,6 +53,7 @@ class StrictModeMenu extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                     child: Text(
                       'Yêu cầu quyền Accessibility',
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         fontSize: AppSizes.titleFontSize,
                         fontWeight: FontWeight.w700,
@@ -66,8 +67,9 @@ class StrictModeMenu extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'Ứng dụng cần quyền Accessibility để chặn ứng dụng khi Strict Mode được bật. Vui lòng cấp quyền trong cài đặt.',
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                        fontSize: 16,
+                        fontSize: 14,
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
                             : AppColors.textSecondary,
@@ -76,25 +78,40 @@ class StrictModeMenu extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    child: Wrap(
+                      alignment: WrapAlignment.end, // Canh các nút về phía cuối (phải)
                       children: [
-                        CustomButton(
-                          label: AppStrings.cancel,
-                          onPressed: () => Navigator.pop(context, false),
-                          backgroundColor: AppColors.cancelButton,
-                          textColor: AppColors.textPrimary,
-                          borderRadius: 12,
+                        TextButton( // Dùng TextButton cho "Hủy" để ít chiếm không gian hơn
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(dialogContext).brightness == Brightness.dark
+                                ? Colors.grey[400]
+                                : AppColors.textSecondary,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          child: Text(AppStrings.cancel, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                         ),
-                        CustomButton(
-                          label: 'Cấp quyền',
+                        // Nút Cấp quyền
+                        ElevatedButton( // Giữ ElevatedButton cho hành động chính
                           onPressed: () async {
                             await _permissionChannel.invokeMethod('requestAccessibilityPermission');
-                            Navigator.pop(context, true);
+                            Navigator.pop(dialogContext, true);
                           },
-                          backgroundColor: Theme.of(context).colorScheme.secondary,
-                          textColor: Theme.of(context).colorScheme.onSecondary,
-                          borderRadius: 12,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(dialogContext).colorScheme.secondary,
+                            foregroundColor: Theme.of(dialogContext).colorScheme.onSecondary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), // Giảm padding của nút
+                          ),
+                          child: Text(
+                            'Cấp quyền',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15, // Có thể giảm nhẹ fontSize ở đây nếu cần
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -637,7 +654,7 @@ class StrictModeMenu extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Strict Mode ${state.isStrictModeEnabled ? 'On' : 'Off'}',
+                    'Strict Mode',
                     style: GoogleFonts.inter(
                       color: state.isStrictModeEnabled
                           ? Theme.of(context).colorScheme.secondary

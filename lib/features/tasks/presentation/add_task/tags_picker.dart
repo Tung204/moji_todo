@@ -5,13 +5,15 @@ import 'package:moji_todo/features/tasks/presentation/add_project_and_tags/add_t
 import '../../data/models/project_tag_repository.dart';
 
 class TagsPicker extends StatefulWidget {
-  final List<String> initialTags;
+  // MODIFIED: Đổi tên và kiểu dữ liệu
+  final List<String> initialTagIds;
   final ProjectTagRepository repository;
+  // MODIFIED: Kiểu dữ liệu của callback
   final ValueChanged<List<String>> onTagsSelected;
 
   const TagsPicker({
     super.key,
-    required this.initialTags,
+    required this.initialTagIds, // MODIFIED
     required this.repository,
     required this.onTagsSelected,
   });
@@ -21,23 +23,26 @@ class TagsPicker extends StatefulWidget {
 }
 
 class _TagsPickerState extends State<TagsPicker> {
-  late List<String> selectedTags;
+  // MODIFIED: Đổi tên biến state
+  late List<String> selectedTagIds;
 
   @override
   void initState() {
     super.initState();
-    selectedTags = List.from(widget.initialTags);
+    // MODIFIED: Khởi tạo bằng initialTagIds
+    selectedTagIds = List.from(widget.initialTagIds);
   }
 
-  void _updateTags(String tag) {
+  // MODIFIED: Hàm này giờ làm việc với tagId
+  void _updateTags(String tagId) {
     setState(() {
-      if (selectedTags.contains(tag)) {
-        selectedTags.remove(tag);
+      if (selectedTagIds.contains(tagId)) {
+        selectedTagIds.remove(tagId);
       } else {
-        selectedTags.add(tag);
+        selectedTagIds.add(tagId);
       }
     });
-    widget.onTagsSelected(selectedTags);
+    widget.onTagsSelected(selectedTagIds);
   }
 
   @override
@@ -65,7 +70,7 @@ class _TagsPickerState extends State<TagsPicker> {
                         builder: (context) => AddTagScreen(
                           repository: widget.repository,
                           onTagAdded: () {
-                            // Không cần setState vì ValueListenableBuilder sẽ tự rebuild
+                            // ValueListenableBuilder sẽ tự rebuild
                           },
                         ),
                       ),
@@ -80,26 +85,28 @@ class _TagsPickerState extends State<TagsPicker> {
               builder: (context, Box<Tag> box, _) {
                 final availableTags = box.values
                     .where((tag) => !tag.isArchived)
-                    .toList(); // SỬA: Lấy danh sách Tag thay vì chỉ tên
+                    .toList();
                 return SizedBox(
-                  height: 252, // Giới hạn 4.5 dòng (56dp * 4.5)
+                  height: 252,
                   child: ListView.builder(
                     shrinkWrap: true,
                     physics: const ClampingScrollPhysics(),
                     itemCount: availableTags.length,
                     itemBuilder: (context, index) {
                       final tag = availableTags[index];
-                      final isSelected = selectedTags.contains(tag.name);
+                      // MODIFIED: So sánh bằng tag.id
+                      final isSelected = selectedTagIds.contains(tag.id);
                       return ListTile(
                         leading: Icon(
                           Icons.local_offer,
-                          color: tag.textColor, // SỬA: Lấy màu từ Tag.textColor
+                          color: tag.textColor,
                           size: 24,
                         ),
                         title: Text(tag.name),
                         trailing: isSelected ? const Icon(Icons.check, color: Colors.red) : null,
                         onTap: () {
-                          _updateTags(tag.name);
+                          // MODIFIED: Truyền tag.id vào _updateTags
+                          _updateTags(tag.id);
                         },
                       );
                     },
@@ -135,6 +142,7 @@ class _TagsPickerState extends State<TagsPicker> {
                     padding: const EdgeInsets.only(left: 8.0),
                     child: ElevatedButton(
                       onPressed: () {
+                        // Callback đã được gọi mỗi khi chọn, nên chỉ cần pop
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(

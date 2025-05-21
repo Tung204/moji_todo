@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive/hive.dart';
-import '../../data/models/project_model.dart';
 import '../../data/models/project_tag_repository.dart';
-import '../../data/models/tag_model.dart';
-import '../../data/models/task_model.dart';
+import '../../data/models/task_model.dart'; // Đảm bảo TaskModel đã được cập nhật
 import '../../domain/task_cubit.dart';
 import 'due_date_picker.dart';
 import 'priority_picker.dart';
-import 'tags_picker.dart';
-import 'project_picker.dart';
+import 'tags_picker.dart';    // Cần cập nhật file này
+import 'project_picker.dart'; // Cần cập nhật file này
 
 class AddTaskBottomSheet extends StatefulWidget {
-  final ProjectTagRepository repository;
+  final ProjectTagRepository repository; // repository này có thể dùng để ProjectPicker và TagsPicker lấy danh sách project/tag
 
   const AddTaskBottomSheet({super.key, required this.repository});
 
@@ -25,9 +22,10 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
   int _estimatedPomodoros = 1;
   DateTime? _dueDate;
   String? _priority;
-  List<String> _tags = [];
-  String? _project;
-  String? _titleError; // THÊM: Biến lưu thông báo lỗi cho TextField
+  // MODIFIED: Thay đổi để lưu trữ IDs
+  List<String> _tagIds = [];
+  String? _projectId;
+  String? _titleError;
 
   @override
   Widget build(BuildContext context) {
@@ -47,11 +45,10 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
               decoration: InputDecoration(
                 hintText: 'Add a Task...',
                 border: InputBorder.none,
-                errorText: _titleError, // THÊM: Hiển thị lỗi ngay dưới TextField
-                errorStyle: const TextStyle(color: Colors.red), // Tùy chỉnh kiểu lỗi
+                errorText: _titleError,
+                errorStyle: const TextStyle(color: Colors.red),
               ),
               onChanged: (value) {
-                // THÊM: Xóa lỗi khi người dùng bắt đầu nhập
                 if (_titleError != null && value.isNotEmpty) {
                   setState(() {
                     _titleError = null;
@@ -141,18 +138,20 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                     IconButton(
                       icon: Icon(
                         Icons.local_offer,
-                        color: _tags.isNotEmpty ? Colors.blue : Colors.grey,
+                        // MODIFIED: Điều kiện màu dựa trên _tagIds
+                        color: _tagIds.isNotEmpty ? Colors.blue : Colors.grey,
                       ),
                       onPressed: () {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
+                          // MODIFIED: Truyền initialTagIds và nhận lại selectedTagIds
                           builder: (context) => TagsPicker(
-                            initialTags: _tags,
-                            repository: widget.repository,
-                            onTagsSelected: (tags) {
+                            initialTagIds: _tagIds, // Truyền ID
+                            repository: widget.repository, // Repository để lấy danh sách tags với ID
+                            onTagsSelected: (selectedTagIds) { // Nhận lại danh sách ID
                               setState(() {
-                                _tags = tags;
+                                _tagIds = selectedTagIds;
                               });
                             },
                           ),
@@ -162,18 +161,20 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                     IconButton(
                       icon: Icon(
                         Icons.work,
-                        color: _project != null ? Colors.red : Colors.grey,
+                        // MODIFIED: Điều kiện màu dựa trên _projectId
+                        color: _projectId != null ? Colors.red : Colors.grey,
                       ),
                       onPressed: () {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
+                          // MODIFIED: Truyền initialProjectId và nhận lại selectedProjectId
                           builder: (context) => ProjectPicker(
-                            initialProject: _project,
-                            repository: widget.repository,
-                            onProjectSelected: (project) {
+                            initialProjectId: _projectId, // Truyền ID
+                            repository: widget.repository, // Repository để lấy danh sách projects với ID
+                            onProjectSelected: (selectedProjectId) { // Nhận lại ID
                               setState(() {
-                                _project = project;
+                                _projectId = selectedProjectId;
                               });
                             },
                           ),
@@ -186,21 +187,24 @@ class _AddTaskBottomSheetState extends State<AddTaskBottomSheet> {
                   onPressed: () {
                     if (_titleController.text.isEmpty) {
                       setState(() {
-                        _titleError = 'Vui lòng nhập tên task!'; // THÊM: Đặt lỗi cho TextField
+                        _titleError = 'Vui lòng nhập tên task!';
                       });
                       return;
                     }
-                    // SỬA: Gán dueDate mặc định là hôm nay nếu không chọn
                     final dueDate = _dueDate ?? DateTime.now();
                     final task = Task(
-                      id: DateTime.now().millisecondsSinceEpoch,
+                      // id sẽ được gán trong TaskRepository hoặc TaskCubit
                       title: _titleController.text,
                       estimatedPomodoros: _estimatedPomodoros,
                       completedPomodoros: 0,
                       dueDate: dueDate,
-                      priority: _priority, // Có thể null
-                      tags: _tags, // Có thể rỗng
-                      project: _project, // Có thể null
+                      priority: _priority,
+                      // MODIFIED: Sử dụng IDs
+                      tagIds: _tagIds.isNotEmpty ? _tagIds : null, // Gửi null nếu rỗng, hoặc [] tùy theo model
+                      projectId: _projectId,
+                      isCompleted: false,
+                      createdAt: DateTime.now(),
+                      // completionDate sẽ là null cho task mới
                     );
                     context.read<TaskCubit>().addTask(task);
                     Navigator.pop(context);
