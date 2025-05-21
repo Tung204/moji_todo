@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/home_cubit.dart';
 import '../../domain/home_state.dart';
 import '../home_screen_state_manager.dart';
-import '../../../../core/widgets/custom_button.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/widgets/custom_button.dart'; // Đảm bảo đường dẫn đúng
 import 'dart:async';
 
 class PomodoroTimer extends StatefulWidget {
@@ -18,7 +17,7 @@ class PomodoroTimer extends StatefulWidget {
 
 class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateMixin {
   late AnimationController _progressController;
-  late Animation<double> _progressAnimation; // Vẫn giữ late
+  late Animation<double> _progressAnimation;
   double _currentProgress = 0.0;
   Timer? _debounceTimer;
   bool _isActionLocked = false;
@@ -30,20 +29,12 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    // Khởi tạo _progressAnimation ngay lập tức với giá trị 0.0
-    // Đây là thay đổi quan trọng để khắc phục LateInitializationError.
     _progressAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _progressController,
-        curve: Curves.easeInOut,
-      ),
-    );
+        CurvedAnimation(parent: _progressController, curve: Curves.easeInOut));
 
-    // Vẫn giữ lại postFrameCallback để cập nhật animation dựa trên trạng thái ban đầu của Cubit
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Đảm bảo Cubit đã có trạng thái để truyền vào _updateProgressAnimation
-      if (mounted) { // Kiểm tra widget còn mounted trước khi truy cập context
-        _updateProgressAnimation(context.read<HomeCubit>().state);
+      if (mounted) {
+        _updateProgressAnimation(context.read<HomeCubit>().state, isInitialSetup: true);
       }
     });
   }
@@ -55,70 +46,75 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
     super.dispose();
   }
 
-  void _updateProgressAnimation(HomeState state) {
+  void _updateProgressAnimation(HomeState state, {bool isInitialSetup = false}) {
     final totalDuration = (state.isWorkSession ? state.workDuration : state.breakDuration) * 60;
-    // Đảm bảo targetProgress không NaN hoặc vô cực nếu totalDuration là 0
-    final targetProgress = state.isCountingUp ? 0.0 : (totalDuration > 0 ? state.timerSeconds / totalDuration : 0.0);
+    double targetProgress = 0.0;
 
-    // Log để kiểm tra giá trị targetProgress
-    print('Updating progress animation: targetProgress=$targetProgress, currentProgress=$_currentProgress, isPaused=${state.isPaused}, isCountingUp=${state.isCountingUp}');
+    if (!state.isCountingUp && totalDuration > 0) {
+      targetProgress = state.timerSeconds / totalDuration;
+    } else if (state.isCountingUp) {
+      targetProgress = 0.0;
+    }
+    targetProgress = targetProgress.clamp(0.0, 1.0);
 
-
-    // Chỉ cập nhật animation nếu không phải chế độ đếm lên, tiến độ thay đổi và không bị tạm dừng
-    // Nếu targetProgress rất nhỏ (gần 0), có thể reset animation để tránh các lỗi nhỏ
-    if (!state.isCountingUp && (targetProgress - _currentProgress).abs() > 0.001 && !state.isPaused) {
-      _progressAnimation = Tween<double>(
-        begin: _currentProgress,
-        end: targetProgress,
-      ).animate(
-        CurvedAnimation(
-          parent: _progressController,
-          curve: Curves.easeInOut,
-        ),
-      );
+    if (isInitialSetup || (targetProgress - _currentProgress).abs() > 0.001 || state.isTimerRunning != _progressController.isAnimating) {
+      if (!state.isCountingUp && state.isTimerRunning && !state.isPaused) {
+        _progressAnimation = Tween<double>(
+          begin: _currentProgress,
+          end: targetProgress,
+        ).animate(CurvedAnimation(parent: _progressController, curve: Curves.linear));
+        _progressController.duration = Duration(seconds: state.timerSeconds);
+        if (_progressController.isAnimating) _progressController.stop();
+        _progressController.value = 1.0 - targetProgress;
+        _progressController.reverse(from: 1.0 - targetProgress);
+      } else if (state.isPaused || !state.isTimerRunning) {
+        _progressController.stop();
+      }
       _currentProgress = targetProgress;
-      _progressController.forward(from: 0.0);
-    } else if (state.isPaused && _progressController.isAnimating) {
-      _progressController.stop();
-    } else if (!state.isTimerRunning && !state.isPaused && _progressController.isAnimating) {
-      _progressController.stop();
-    } else if (!state.isTimerRunning && !state.isPaused && targetProgress == 0.0 && _currentProgress != 0.0) {
-      // Khi timer dừng hoàn toàn và về 0, reset animation về 0
-      _currentProgress = 0.0;
-      _progressAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
-        CurvedAnimation(
-          parent: _progressController,
-          curve: Curves.easeInOut,
-        ),
-      );
-      _progressController.value = 0.0; // Đặt giá trị controller về 0
-      _progressController.stop();
+    }
+    if (!_progressController.isAnimating) {
+      _progressController.value = state.isCountingUp ? 0.0 : (1.0 - targetProgress);
     }
   }
 
-
   void _debouncedAction(String action, {int? estimatedPomodoros}) {
-    if (_isActionLocked) {
-      print('Action locked, ignoring: $action');
-      return;
-    }
-
+    if (_isActionLocked) return;
     _isActionLocked = true;
-    print('Handling action: $action');
-    widget.stateManager?.handleTimerAction(
-      action,
-      estimatedPomodoros: estimatedPomodoros,
-    );
-
+    widget.stateManager?.handleTimerAction(action, estimatedPomodoros: estimatedPomodoros);
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 1000), () {
-      _isActionLocked = false;
-      print('Action lock released');
-    });
+    _debounceTimer = Timer(const Duration(milliseconds: 700), () => _isActionLocked = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 1. Đường kính vòng tròn Pomodoro
+    double calculatedTimerDiameter;
+    if (screenWidth <= 360) { // Màn hình B (348) hoặc nhỏ hơn
+      calculatedTimerDiameter = screenWidth * 0.7; // bạn đã chọn 0.7
+    } else if (screenWidth <= 480) { // Màn hình A (412) hoặc trong khoảng này
+      calculatedTimerDiameter = screenWidth * 0.8; // bạn đã chọn 0.8
+    } else { // Màn hình lớn hơn
+      calculatedTimerDiameter = screenWidth * 0.9; // bạn đã chọn 0.9
+    }
+    final double timerDiameter = calculatedTimerDiameter.clamp(190.0, 350.0); // bạn đã chọn min 190, max 350
+
+    // 2. Độ dày của vòng tròn
+    final double strokeWidth = timerDiameter * 0.065; // bạn đã chọn 0.065
+
+    // 3. Kích thước chữ hiển thị thời gian
+    final double timeFontSize = timerDiameter * 0.17; // bạn đã chọn 0.17
+
+    // 4. Kích thước chữ hiển thị trạng thái
+    final double statusHeaderFontSize = timerDiameter * 0.06; // bạn đã chọn 0.06 cho "Phiên làm việc/nghỉ"
+    final double sessionStatusFontSize = timerDiameter * 0.05; // bạn đã chọn 0.065 cho "x/y phiên"
+
+    // 5. Khoảng cách (SizedBox)
+    final double spacingAfterStatusHeader = timerDiameter * 0.06; // bạn đã chọn 0.06
+    final double spacingAfterTimer = timerDiameter * 0.15; // bạn đã chọn 0.15
+
+
     return BlocConsumer<HomeCubit, HomeState>(
       listenWhen: (previous, current) =>
       previous.timerSeconds != current.timerSeconds ||
@@ -144,54 +140,54 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
       builder: (context, state) {
         final minutes = (state.timerSeconds ~/ 60).toString().padLeft(2, '0');
         final seconds = (state.timerSeconds % 60).toString().padLeft(2, '0');
-
-        print('PomodoroTimer rebuild: timerSeconds=${state.timerSeconds}, isRunning=${state.isTimerRunning}, isPaused=${state.isPaused}, isCountingUp=${state.isCountingUp}, isWorkSession=${state.isWorkSession}, currentSession=${state.currentSession}, totalSessions=${state.totalSessions}');
-
         String sessionStatusText;
         if (state.isCountingUp) {
-          sessionStatusText = 'Counting Up';
+          sessionStatusText = 'Đang đếm lên';
         } else if (state.isTimerRunning || state.isPaused) {
-          sessionStatusText = '${state.currentSession} of ${state.totalSessions} sessions';
+          sessionStatusText = '${state.currentSession} / ${state.totalSessions} phiên';
         } else {
           if (state.selectedTask != null) {
             if (state.isWorkSession) {
-              sessionStatusText = 'Ready for Work (Session ${state.currentSession + 1})';
+              sessionStatusText = 'Sẵn sàng làm việc (Phiên ${state.currentSession + 1})';
             } else {
-              sessionStatusText = 'Ready for Break';
+              sessionStatusText = 'Sẵn sàng nghỉ ngơi';
             }
           } else {
-            sessionStatusText = 'No session selected';
+            sessionStatusText = 'Chưa chọn task';
           }
         }
 
         return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               state.isCountingUp
                   ? 'Đếm lên'
                   : (state.isWorkSession ? 'Phiên làm việc' : 'Phiên nghỉ'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 16,
+                // SỬA Ở ĐÂY: fontSize nên dùng statusHeaderFontSize hay sessionStatusFontSize?
+                // Hiện tại bạn đang dùng sessionStatusFontSize * 1.15, có thể nên thống nhất
+                fontSize: statusHeaderFontSize, // Hoặc sessionStatusFontSize * 1.1 (tùy ý bạn)
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: spacingAfterStatusHeader),
             Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 300,
-                  height: 300,
+                  width: timerDiameter,
+                  height: timerDiameter,
                   child: AnimatedBuilder(
-                    animation: _progressAnimation,
+                    animation: _progressController,
                     builder: (context, child) {
                       return CircularProgressIndicator(
-                        value: state.isCountingUp ? null : _progressAnimation.value,
-                        strokeWidth: 20,
-                        backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                        value: state.isCountingUp ? null : _currentProgress,
+                        strokeWidth: strokeWidth,
+                        backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.15),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           state.isPaused
-                              ? Theme.of(context).colorScheme.secondary
+                              ? Theme.of(context).colorScheme.secondary.withOpacity(0.7)
                               : state.isTimerRunning
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.secondary,
@@ -205,28 +201,29 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                   children: [
                     Text(
                       '$minutes:$seconds',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 48,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontSize: timeFontSize,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       sessionStatusText,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        fontSize: sessionStatusFontSize, // SỬA Ở ĐÂY: Dùng sessionStatusFontSize
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 56),
+            SizedBox(height: spacingAfterTimer),
+            // ... (Các nút giữ nguyên) ...
             if (!state.isTimerRunning && !state.isPaused)
               CustomButton(
                 label: state.isCountingUp
-                    ? 'Start Counting Up'
-                    : (state.isWorkSession ? 'Start to Focus' : 'Start Break'),
+                    ? 'Bắt đầu đếm'
+                    : (state.isWorkSession ? 'Bắt đầu tập trung' : 'Bắt đầu nghỉ'),
                 onPressed: () => _debouncedAction('start'),
                 backgroundColor: Theme.of(context).colorScheme.secondary,
                 textColor: Theme.of(context).colorScheme.onSecondary,
@@ -234,9 +231,9 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
               ),
             if (state.isTimerRunning && !state.isPaused)
               CustomButton(
-                label: 'Pause',
+                label: 'Tạm dừng',
                 onPressed: () => _debouncedAction('pause'),
-                backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                 textColor: Theme.of(context).colorScheme.onSurface,
                 borderRadius: 20,
               ),
@@ -245,15 +242,15 @@ class _PomodoroTimerState extends State<PomodoroTimer> with TickerProviderStateM
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CustomButton(
-                    label: 'Stop',
+                    label: 'Dừng hẳn',
                     onPressed: () => _debouncedAction('stop'),
-                    backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                    textColor: Theme.of(context).colorScheme.onSurface,
+                    backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.8),
+                    textColor: Theme.of(context).colorScheme.onError,
                     borderRadius: 20,
                   ),
                   const SizedBox(width: 16),
                   CustomButton(
-                    label: 'Continue',
+                    label: 'Tiếp tục',
                     onPressed: () => _debouncedAction('continue'),
                     backgroundColor: Theme.of(context).colorScheme.secondary,
                     textColor: Theme.of(context).colorScheme.onSecondary,

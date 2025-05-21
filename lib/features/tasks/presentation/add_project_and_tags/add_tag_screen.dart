@@ -1,19 +1,14 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/themes/theme.dart';
 import '../../data/models/project_tag_repository.dart';
-import '../../data/models/tag_model.dart';
+import '../../data/models/tag_model.dart'; // Model đã được cập nhật
 
-// Hằng số cho màu sắc và kích thước
+// Hằng số (giữ nguyên)
 const double kDefaultPadding = 16.0;
 const double kCircleAvatarRadius = 20.0;
 const double kButtonHeight = 48.0;
-const Color kBackgroundColor = Colors.white;
-const Color kTextFieldFillColor = Color(0xFFE0E0E0);
-const Color kBorderColor = Color(0xFFB0BEC5);
-const Color kHintTextColor = Colors.grey;
-const Color kTitleColor = Colors.black;
-const Color kButtonColor = Colors.blue;
-const Color kSuccessColor = Colors.green;
-const Color kErrorColor = Colors.red;
+// ... (các hằng số màu khác nếu bạn vẫn dùng trực tiếp)
 
 class AddTagScreen extends StatefulWidget {
   final ProjectTagRepository repository;
@@ -27,17 +22,14 @@ class AddTagScreen extends StatefulWidget {
 
 class _AddTagScreenState extends State<AddTagScreen> {
   final TextEditingController _nameController = TextEditingController();
-  Color? _selectedColor;
+  Color? _selectedTextColor; // Chỉ còn chọn màu chữ
 
-  final List<Map<String, Color>> colors = [
-    {'background': Colors.blue, 'text': Colors.blue},
-    {'background': Colors.pink, 'text': Colors.pink},
-    {'background': Colors.green, 'text': Colors.green},
-    {'background': Colors.orange, 'text': Colors.orange},
-    {'background': Colors.purple, 'text': Colors.purple},
-    {'background': Colors.yellow, 'text': Colors.yellow},
-    {'background': Colors.cyan, 'text': Colors.cyan},
-    {'background': Colors.red, 'text': Colors.red},
+  // Danh sách màu để người dùng chọn cho textColor
+  final List<Color> textColorOptions = [
+    Colors.blue.shade700, Colors.pink.shade700, Colors.green.shade700, Colors.orange.shade700,
+    Colors.purple.shade700, Colors.yellow.shade900, Colors.cyan.shade700, Colors.red.shade700,
+    Colors.teal.shade700, Colors.lime.shade900, Colors.brown.shade700, Colors.grey.shade800,
+    Colors.black, // Thêm các màu cơ bản nếu muốn
   ];
 
   @override
@@ -46,31 +38,87 @@ class _AddTagScreenState extends State<AddTagScreen> {
     super.dispose();
   }
 
+  Future<void> _addTag() async {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Vui lòng nhập tên tag!'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+    if (_selectedTextColor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Vui lòng chọn màu chữ cho tag!'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bạn cần đăng nhập để thêm tag!'), backgroundColor: Theme.of(context).colorScheme.error),
+      );
+      return;
+    }
+    final String userId = currentUser.uid;
+
+    try {
+      await widget.repository.addTag(
+        Tag(
+          name: _nameController.text.trim(),
+          textColor: _selectedTextColor!,
+          userId: userId,
+        ),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Tag added successfully!'),
+          backgroundColor: Theme.of(context).extension<SuccessColor>()?.success ?? Colors.green,
+        ),
+      );
+      widget.onTagAdded?.call();
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add tag: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // ... (lấy các màu từ theme như trước) ...
+    final Color currentElevatedButtonColor = theme.colorScheme.primary;
+
+
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kHintTextColor),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Add New Tag',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: kTitleColor,
-          ),
+          style: theme.appBarTheme.titleTextStyle,
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.check, color: kSuccessColor),
+            icon: Icon(Icons.check, color: theme.colorScheme.primary),
             onPressed: _addTag,
           ),
         ],
@@ -82,64 +130,64 @@ class _AddTagScreenState extends State<AddTagScreen> {
           children: [
             TextField(
               controller: _nameController,
+              style: TextStyle(color: theme.textTheme.bodyMedium?.color),
               decoration: InputDecoration(
-                hintText: 'Tag Name',
-                hintStyle: const TextStyle(color: kHintTextColor),
+                labelText: 'Tag Name',
+                // ... (các thuộc tính decoration khác như cũ) ...
+                hintStyle: TextStyle(color: theme.hintColor),
                 filled: true,
-                fillColor: kTextFieldFillColor,
+                fillColor: theme.inputDecorationTheme.fillColor ?? (theme.brightness == Brightness.light ? Colors.grey.shade200 : Colors.grey.shade800),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: kBorderColor),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: kBorderColor),
+                  borderSide: BorderSide(color: theme.dividerColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: kBorderColor),
+                  borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
                 ),
               ),
             ),
             const SizedBox(height: kDefaultPadding),
-            const Text(
-              'Color',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: kTitleColor,
-              ),
+            Text(
+              'Tag Color', // Chỉ còn chọn 1 màu (cho chữ)
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: kDefaultPadding,
-                mainAxisSpacing: kDefaultPadding,
+                crossAxisCount: 6,
+                crossAxisSpacing: kDefaultPadding / 2,
+                mainAxisSpacing: kDefaultPadding / 2,
                 childAspectRatio: 1,
               ),
-              itemCount: colors.length,
+              itemCount: textColorOptions.length,
               itemBuilder: (context, index) {
-                final color = colors[index]['text']!;
-                final isSelected = _selectedColor == color;
+                final color = textColorOptions[index];
+                final isSelected = _selectedTextColor == color;
                 return GestureDetector(
                   onTap: () {
                     setState(() {
-                      _selectedColor = color;
+                      _selectedTextColor = color;
                     });
                   },
-                  child: CircleAvatar(
-                    radius: kCircleAvatarRadius,
-                    backgroundColor: color,
+                  child: Container(
+                    width: kCircleAvatarRadius * 1.8,
+                    height: kCircleAvatarRadius * 1.8,
+                    decoration: BoxDecoration(
+                      color: color, // Hiển thị màu sẽ được chọn
+                      shape: BoxShape.circle,
+                      border: isSelected
+                          ? Border.all(color: theme.colorScheme.onSurface, width: 2.5)
+                          : Border.all(color: theme.dividerColor.withOpacity(0.5), width: 1),
+                    ),
                     child: isSelected
-                        ? Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black, width: 2),
-                      ),
-                    )
+                        ? Icon(Icons.check, color: color.computeLuminance() > 0.5 ? Colors.black : Colors.white, size: kCircleAvatarRadius * 0.9)
                         : null,
                   ),
                 );
@@ -149,7 +197,7 @@ class _AddTagScreenState extends State<AddTagScreen> {
             ElevatedButton(
               onPressed: _addTag,
               style: ElevatedButton.styleFrom(
-                backgroundColor: kButtonColor,
+                backgroundColor: currentElevatedButtonColor,
                 minimumSize: const Size(double.infinity, kButtonHeight),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -164,45 +212,10 @@ class _AddTagScreenState extends State<AddTagScreen> {
                 ),
               ),
             ),
+            SizedBox(height: 20,)
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _addTag() async {
-    if (_nameController.text.isNotEmpty && _selectedColor != null) {
-      try {
-        await widget.repository.addTag(
-          Tag(
-            name: _nameController.text,
-            backgroundColor: colors.firstWhere((c) => c['text'] == _selectedColor)['background']!,
-            textColor: _selectedColor!,
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tag added successfully!'),
-            backgroundColor: kSuccessColor,
-          ),
-        );
-        widget.onTagAdded?.call();
-        Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add tag: $e'),
-            backgroundColor: kErrorColor,
-          ),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập tên tag và chọn màu!'),
-          backgroundColor: kErrorColor,
-        ),
-      );
-    }
   }
 }

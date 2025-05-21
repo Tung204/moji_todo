@@ -22,8 +22,8 @@ class TaskAdapter extends TypeAdapter<Task> {
       note: fields[2] as String?,
       dueDate: fields[3] as DateTime?,
       priority: fields[4] as String?,
-      project: fields[5] as String?,
-      tags: (fields[6] as List?)?.cast<String>(),
+      projectId: fields[5] as String?,
+      tagIds: (fields[6] as List?)?.cast<String>(),
       estimatedPomodoros: fields[7] as int?,
       completedPomodoros: fields[8] as int?,
       category: fields[9] as String?,
@@ -36,13 +36,14 @@ class TaskAdapter extends TypeAdapter<Task> {
       userId: fields[14] as String?,
       createdAt: fields[15] as DateTime?,
       originalCategory: fields[16] as String?,
+      completionDate: fields[17] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -54,9 +55,9 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(4)
       ..write(obj.priority)
       ..writeByte(5)
-      ..write(obj.project)
+      ..write(obj.projectId)
       ..writeByte(6)
-      ..write(obj.tags)
+      ..write(obj.tagIds)
       ..writeByte(7)
       ..write(obj.estimatedPomodoros)
       ..writeByte(8)
@@ -76,7 +77,9 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(15)
       ..write(obj.createdAt)
       ..writeByte(16)
-      ..write(obj.originalCategory);
+      ..write(obj.originalCategory)
+      ..writeByte(17)
+      ..write(obj.completionDate);
   }
 
   @override

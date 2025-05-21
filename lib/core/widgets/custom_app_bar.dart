@@ -13,47 +13,49 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      leading: showBackButton
-          ? IconButton(
-        icon: Icon(
-          Icons.arrow_back,
-          color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
-        ),
-        onPressed: () {
-          Navigator.pop(context);
-        },
-      )
-          : null,
-      title: ShaderMask(
-        shaderCallback: (bounds) => LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.secondary,
-            Theme.of(context).colorScheme.primary,
-          ],
-        ).createShader(bounds),
-        child: Text(
-          'DNTU Focus',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      actions: [
-        IconButton(
+    return SafeArea(
+      child: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: showBackButton
+            ? IconButton(
           icon: Icon(
-            Icons.notifications,
+            Icons.arrow_back,
             color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
           ),
-          onPressed: onNotificationPressed ?? () {},
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        )
+            : null,
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.secondary,
+              Theme.of(context).colorScheme.primary,
+            ],
+          ).createShader(bounds),
+          child: Text(
+            'DNTU Focus',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-        if (!showBackButton)
-          _SettingsIconButton(),
-      ],
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.notifications,
+              color: Theme.of(context).iconTheme.color?.withOpacity(0.6),
+            ),
+            onPressed: onNotificationPressed ?? () {},
+          ),
+          if (!showBackButton)
+            _SettingsIconButton(),
+        ],
+      ),
     );
   }
 

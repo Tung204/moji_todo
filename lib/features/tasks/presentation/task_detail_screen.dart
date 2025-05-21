@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:moji_todo/features/tasks/data/models/project_model.dart';
+import 'package:moji_todo/features/tasks/data/models/tag_model.dart'; // Model đã được cập nhật
 import '../../../core/themes/theme.dart';
 import '../domain/task_cubit.dart';
 import '../data/models/task_model.dart';
-import 'utils/tag_colors.dart';
 
 class TaskDetailScreen extends StatelessWidget {
   final Task? task;
 
   const TaskDetailScreen({super.key, required this.task});
 
-  // Hàm định dạng dueDate thành "Today", "Tomorrow", hoặc ngày cụ thể
   String _formatDueDate(DateTime? dueDate) {
-    if (dueDate == null) return 'Hôm nay';
+    if (dueDate == null) return 'Hôm nay'; // Hoặc 'Không có' nếu bạn muốn
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -24,42 +24,62 @@ class TaskDetailScreen extends StatelessWidget {
     } else if (dueDateOnly.isAtSameMomentAs(tomorrow)) {
       return 'Ngày mai';
     } else {
-      return '${dueDate.day}/${dueDate.month}';
+      return '${dueDate.day}/${dueDate.month}/${dueDate.year}';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Debug để kiểm tra theme và màu sắc
-    debugPrint('Theme brightness: ${Theme.of(context).brightness}');
-    debugPrint('CardTheme color: ${Theme.of(context).cardTheme.color}');
-    debugPrint('Error color: ${Theme.of(context).colorScheme.error}');
-    debugPrint('Success color: ${Theme.of(context).extension<SuccessColor>()!.success}');
-
     if (task == null) {
-      return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
+      return MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          padding: const EdgeInsets.only(top: 40),
         ),
-        body: Center(
-          child: Text(
-            'Không tìm thấy task.',
-            style: Theme.of(context).textTheme.bodyMedium,
+        child: SafeArea(
+          child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            body: Center(
+              child: Text(
+                'Không tìm thấy task.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
           ),
         ),
       );
     }
 
     final isInTrash = task!.category == 'Trash';
-    // Lưu context của Scaffold để dùng trong ScaffoldMessenger và Theme
-    final scaffoldContext = context;
+    final scaffoldContext = context; // Giữ lại context của Scaffold
+
+    // Sử dụng context.watch để tự động rebuild khi TaskCubit state thay đổi
+    final taskCubitState = context.watch<TaskCubit>().state;
+    final List<Project> allProjects = taskCubitState.allProjects;
+    final List<Tag> allTags = taskCubitState.allTags; // allTags giờ đã được cập nhật
+
+    String projectNameDisplay = 'Không có dự án';
+    Color projectColorDisplay = Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
+    Project? currentProjectInstance;
+
+    if (task!.projectId != null && task!.projectId != 'no_project_id') {
+      try {
+        currentProjectInstance = allProjects.firstWhere((p) => p.id == task!.projectId);
+        projectNameDisplay = currentProjectInstance.name;
+        projectColorDisplay = currentProjectInstance.color;
+      } catch (e) {
+        // print('Lỗi TaskDetailScreen: Không tìm thấy project với ID: ${task!.projectId} cho task "${task!.title}"');
+        projectNameDisplay = 'ID Dự án: ${task!.projectId}';
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -68,27 +88,29 @@ class TaskDetailScreen extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context, false);
           },
         ),
         title: Text(
           task!.title ?? 'Task không có tiêu đề',
           style: Theme.of(context).textTheme.titleLarge,
+          overflow: TextOverflow.ellipsis,
         ),
         actions: [
           PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: Theme.of(context).iconTheme.color),
             onSelected: (value) async {
               if (value == 'Delete') {
                 showDialog(
                   context: context,
                   builder: (dialogContext) {
                     bool isLoading = false;
-                    return StatefulBuilder(
-                      builder: (dialogContext, setState) {
+                    return StatefulBuilder( //Sử dụng StatefulBuilder cho dialog
+                      builder: (alertContext, setStateDialog) { // Đổi tên setState
                         return AlertDialog(
                           title: Text(
                             isInTrash ? 'Xóa vĩnh viễn' : 'Xóa Task',
-                            style: Theme.of(dialogContext).textTheme.titleLarge,
+                            style: Theme.of(alertContext).textTheme.titleLarge,
                           ),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -97,7 +119,7 @@ class TaskDetailScreen extends StatelessWidget {
                                 isInTrash
                                     ? 'Bạn có chắc muốn xóa vĩnh viễn task "${task!.title}" không?'
                                     : 'Task "${task!.title}" sẽ được chuyển vào Thùng rác. Bạn có muốn tiếp tục?',
-                                style: Theme.of(dialogContext).textTheme.bodyMedium,
+                                style: Theme.of(alertContext).textTheme.bodyMedium,
                               ),
                               if (isLoading) ...[
                                 const SizedBox(height: 16),
@@ -107,126 +129,82 @@ class TaskDetailScreen extends StatelessWidget {
                           ),
                           actions: [
                             TextButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () {
-                                Navigator.pop(dialogContext);
-                              },
-                              child: Text(
-                                'Hủy',
-                                style: Theme.of(dialogContext).textTheme.bodyMedium,
-                              ),
+                              onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+                              child: Text('Hủy', style: Theme.of(alertContext).textTheme.bodyMedium),
                             ),
                             TextButton(
                               onPressed: isLoading
                                   ? null
                                   : () async {
-                                setState(() {
-                                  isLoading = true;
-                                });
+                                setStateDialog(() => isLoading = true); // Sử dụng setStateDialog
                                 try {
                                   if (isInTrash) {
-                                    await dialogContext.read<TaskCubit>().deleteTask(task!);
-                                    Navigator.pop(dialogContext);
-                                    Navigator.pop(scaffoldContext, true);
-                                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Task đã được xóa vĩnh viễn!',
-                                          style: Theme.of(scaffoldContext).textTheme.bodyMedium,
-                                        ),
-                                        backgroundColor:
-                                        Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
+                                    await BlocProvider.of<TaskCubit>(scaffoldContext).deleteTask(task!);
                                   } else {
-                                    await dialogContext.read<TaskCubit>().updateTask(
+                                    await BlocProvider.of<TaskCubit>(scaffoldContext).updateTask(
                                       task!.copyWith(
                                         category: 'Trash',
                                         originalCategory: task!.category ?? 'Planned',
                                       ),
                                     );
-                                    Navigator.pop(dialogContext);
-                                    Navigator.pop(scaffoldContext, true);
-                                    ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Task đã được chuyển vào Thùng rác!',
-                                          style: Theme.of(scaffoldContext).textTheme.bodyMedium,
-                                        ),
-                                        backgroundColor:
-                                        Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
                                   }
-                                } catch (e) {
-                                  setState(() {
-                                    isLoading = false;
-                                  });
+                                  if (!scaffoldContext.mounted) return;
+                                  Navigator.pop(dialogContext);
+                                  Navigator.pop(scaffoldContext, true);
                                   ScaffoldMessenger.of(scaffoldContext).showSnackBar(
                                     SnackBar(
-                                      content: Text(
-                                        'Lỗi: $e',
-                                        style: Theme.of(scaffoldContext).textTheme.bodyMedium,
-                                      ),
-                                      backgroundColor: Theme.of(scaffoldContext).colorScheme.error,
-                                      duration: const Duration(seconds: 2),
+                                      content: Text(isInTrash ? 'Task đã được xóa vĩnh viễn!' : 'Task đã được chuyển vào Thùng rác!'),
+                                      backgroundColor: isInTrash
+                                          ? Theme.of(scaffoldContext).colorScheme.error
+                                          : Theme.of(scaffoldContext).extension<SuccessColor>()?.success ?? Colors.green,
                                     ),
+                                  );
+                                } catch (e) {
+                                  setStateDialog(() => isLoading = false); // Sử dụng setStateDialog
+                                  if (!scaffoldContext.mounted) return;
+                                  ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                                    SnackBar(content: Text('Lỗi: $e'), backgroundColor: Theme.of(scaffoldContext).colorScheme.error),
                                   );
                                 }
                               },
                               child: Text(
                                 isInTrash ? 'Xóa vĩnh viễn' : 'Xóa',
-                                style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(dialogContext).colorScheme.error,
-                                ),
+                                style: Theme.of(alertContext).textTheme.bodyMedium?.copyWith(color: Theme.of(alertContext).colorScheme.error),
                               ),
                             ),
-                            if (isInTrash)
+                            if (isInTrash) // Nút khôi phục
                               TextButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () async {
-                                  setState(() {
-                                    isLoading = true;
-                                  });
+                                onPressed: isLoading ? null : () async {
+                                  setStateDialog(() => isLoading = true);
                                   try {
-                                    await dialogContext.read<TaskCubit>().restoreTask(task!);
+                                    // Giả sử TaskCubit có hàm restoreTaskFromTrash hoặc updateTask để đổi category
+                                    // Ví dụ:
+                                    await BlocProvider.of<TaskCubit>(scaffoldContext).updateTask(
+                                        task!.copyWith(category: task!.originalCategory ?? 'Planned', originalCategory: null)
+                                    );
+                                    // Hoặc nếu có hàm riêng: await BlocProvider.of<TaskCubit>(scaffoldContext).restoreTask(task!);
+
+                                    if(!scaffoldContext.mounted) return;
                                     Navigator.pop(dialogContext);
-                                    Navigator.pop(scaffoldContext, true);
+                                    Navigator.pop(scaffoldContext, true); // Quay lại màn hình trước và báo có thay đổi
                                     ScaffoldMessenger.of(scaffoldContext).showSnackBar(
                                       SnackBar(
-                                        content: Text(
-                                          'Task đã được khôi phục!',
-                                          style: Theme.of(scaffoldContext).textTheme.bodyMedium,
-                                        ),
-                                        backgroundColor:
-                                        Theme.of(scaffoldContext).extension<SuccessColor>()!.success,
-                                        duration: const Duration(seconds: 2),
+                                        content: const Text('Task đã được khôi phục!'),
+                                        backgroundColor: Theme.of(scaffoldContext).extension<SuccessColor>()?.success ?? Colors.green,
                                       ),
                                     );
                                   } catch (e) {
-                                    setState(() {
-                                      isLoading = false;
-                                    });
+                                    setStateDialog(() => isLoading = false);
+                                    if(!scaffoldContext.mounted) return;
                                     ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Lỗi khi khôi phục: $e',
-                                          style: Theme.of(scaffoldContext).textTheme.bodyMedium,
-                                        ),
-                                        backgroundColor: Theme.of(scaffoldContext).colorScheme.error,
-                                        duration: const Duration(seconds: 2),
-                                      ),
+                                      SnackBar(content: Text('Lỗi khi khôi phục: $e'), backgroundColor: Theme.of(scaffoldContext).colorScheme.error),
                                     );
                                   }
                                 },
                                 child: Text(
                                   'Khôi phục',
-                                  style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(dialogContext).extension<SuccessColor>()!.success,
+                                  style: Theme.of(dialogContext).textTheme.labelLarge?.copyWith(
+                                    color: Theme.of(dialogContext).extension<SuccessColor>()?.success ?? Colors.green,
                                   ),
                                 ),
                               ),
@@ -239,12 +217,12 @@ class TaskDetailScreen extends StatelessWidget {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'Pin', child: Text('Ghim')),
-              const PopupMenuItem(value: 'Share', child: Text('Chia sẻ')),
-              const PopupMenuItem(value: 'Duplicate', child: Text('Nhân bản')),
-              const PopupMenuItem(value: 'Comment', child: Text('Bình luận')),
-              const PopupMenuItem(value: 'Location', child: Text('Vị trí')),
-              const PopupMenuItem(value: 'Delete', child: Text('Xóa')),
+              // const PopupMenuItem(value: 'Pin', child: Text('Ghim')), // Tạm ẩn các mục chưa dùng
+              // const PopupMenuItem(value: 'Share', child: Text('Chia sẻ')),
+              // const PopupMenuItem(value: 'Duplicate', child: Text('Nhân bản')),
+              // const PopupMenuItem(value: 'Comment', child: Text('Bình luận')),
+              // const PopupMenuItem(value: 'Location', child: Text('Vị trí')),
+              PopupMenuItem(value: 'Delete', child: Text(isInTrash ? 'Thao tác khác...' : 'Xóa')), // Đổi text cho rõ hơn
             ],
           ),
         ],
@@ -255,116 +233,165 @@ class TaskDetailScreen extends StatelessWidget {
           children: [
             _buildTaskDetailItem(
               context: context,
-              icon: Icons.timer,
+              icon: task!.isCompleted == true ? Icons.check_circle : Icons.radio_button_unchecked,
+              title: 'Trạng thái',
+              value: task!.isCompleted == true ? 'Đã hoàn thành' : 'Chưa hoàn thành',
+              valueColor: task!.isCompleted == true ? Theme.of(context).extension<SuccessColor>()?.success : null,
+              backgroundColor: Theme.of(context).cardTheme.color,
+            ),
+            _buildTaskDetailItem(
+              context: context,
+              icon: Icons.timer_outlined,
               title: 'Pomodoro',
               value: '${task!.completedPomodoros ?? 0}/${task!.estimatedPomodoros ?? 0}',
               backgroundColor: Theme.of(context).cardTheme.color,
             ),
             _buildTaskDetailItem(
               context: context,
-              icon: Icons.calendar_today,
+              icon: Icons.calendar_today_outlined,
               title: 'Ngày đến hạn',
               value: _formatDueDate(task!.dueDate),
               backgroundColor: Theme.of(context).cardTheme.color,
             ),
             _buildTaskDetailItem(
               context: context,
-              icon: Icons.priority_high,
+              icon: Icons.flag_outlined,
               title: 'Độ ưu tiên',
-              value: task!.priority ?? 'Trung bình',
+              value: task!.priority ?? 'Không đặt',
               backgroundColor: Theme.of(context).cardTheme.color,
             ),
             _buildTaskDetailItem(
               context: context,
-              icon: Icons.work,
+              icon: currentProjectInstance?.icon ?? Icons.bookmark_border, // Hiển thị icon của project
               title: 'Dự án',
-              value: task!.project ?? 'Pomodoro App',
+              value: projectNameDisplay,
+              valueColor: projectColorDisplay,
               backgroundColor: Theme.of(context).cardTheme.color,
             ),
             _buildTaskDetailItem(
               context: context,
-              icon: Icons.alarm,
+              icon: Icons.alarm_outlined,
               title: 'Nhắc nhở',
-              value: 'Hôm nay, 10:00 AM',
+              value: 'Chưa đặt',
               backgroundColor: Theme.of(context).cardTheme.color,
             ),
             _buildTaskDetailItem(
               context: context,
-              icon: Icons.repeat,
+              icon: Icons.repeat_outlined,
               title: 'Lặp lại',
               value: 'Không',
               backgroundColor: Theme.of(context).cardTheme.color,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Subtasks',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (task!.subtasks != null && task!.subtasks!.isNotEmpty)
+
+            if (task!.subtasks != null && task!.subtasks!.isNotEmpty) ...[
+              Text('Subtasks', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
+              const SizedBox(height: 8),
               ...task!.subtasks!.map((subtask) => ListTile(
                 leading: Checkbox(
                   value: subtask['completed'] ?? false,
                   onChanged: (value) {
-                    // Cập nhật trạng thái subtask
+                    // TODO: Cập nhật subtask
                   },
+                  shape: const CircleBorder(),
+                  activeColor: Theme.of(context).extension<SuccessColor>()?.success,
                 ),
-                title: Text(subtask['title'] ?? 'Subtask không có tiêu đề'),
+                title: Text(
+                  subtask['title'] ?? 'Subtask không có tiêu đề',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    decoration: (subtask['completed'] ?? false) ? TextDecoration.lineThrough : TextDecoration.none,
+                    color: (subtask['completed'] ?? false)
+                        ? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6)
+                        : Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
               )),
-            TextButton(
-              onPressed: () {
-                // Thêm subtask mới
-              },
-              child: const Text(
-                'Thêm subtask',
-                style: TextStyle(color: Colors.blue),
+            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: TextButton.icon(
+                icon: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
+                label: Text('Thêm subtask', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+                onPressed: () {
+                  // TODO: Logic thêm subtask
+                },
+                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 0), alignment: Alignment.centerLeft),
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Thẻ',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: task!.tags?.map((tag) {
-                final colors = TagColors.getTagColors(tag);
-                return Text(
-                  '#$tag',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colors['text'],
-                  ),
-                );
-              })?.toList() ??
-                  [],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Ghi chú',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(task!.note ?? 'Không có ghi chú'),
-            const SizedBox(height: 16),
-            const Text(
-              'Tệp đính kèm',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+
+            // --- SỬA HIỂN THỊ TAGS ---
+            if (task!.tagIds != null && task!.tagIds!.isNotEmpty) ...[
+              Text('Thẻ', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: task!.tagIds!.map((tagId) {
+                  Tag? currentTag;
+                  try {
+                    currentTag = allTags.firstWhere((t) => t.id == tagId);
+                  } catch (e) {
+                    // print('Lỗi TaskDetailScreen: Không tìm thấy tag với ID: $tagId cho task "${task!.title}"');
+                  }
+                  if (currentTag == null) return const SizedBox.shrink();
+
+                  // Xác định màu chữ trên chip dựa trên độ sáng của màu nền (là textColor của tag)
+                  final bool isDarkTagColor = currentTag.textColor.computeLuminance() < 0.5;
+                  final Color chipLabelColor = isDarkTagColor ? Colors.white : Colors.black;
+
+                  return Chip(
+                    label: Text(
+                      currentTag.name,
+                      style: TextStyle(fontSize: 12, color: chipLabelColor), // Màu chữ trên Chip
+                    ),
+                    backgroundColor: currentTag.textColor, // Dùng textColor của Tag làm màu nền cho Chip
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // --- Hết phần Tags ---
+
+            if (task!.note != null && task!.note!.isNotEmpty) ...[
+              Text('Ghi chú', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color?.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.3))),
+                child: Text(task!.note!, style: Theme.of(context).textTheme.bodyMedium),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text('Tệp đính kèm', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18)),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.attach_file, color: Colors.grey),
-              title: const Text('Design Brief - Pomodoro App.pdf'),
-              trailing: IconButton(
-                icon: const Icon(Icons.download, color: Colors.grey),
-                onPressed: () {
-                  // Tải file
-                },
+              leading: Icon(Icons.attach_file, color: Theme.of(context).iconTheme.color?.withOpacity(0.6)),
+              title: Text(
+                'Chưa có tệp đính kèm',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6)),
               ),
             ),
+            const SizedBox(height: 24),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // TODO: Điều hướng đến màn hình edit task
+          print('Edit button tapped for task: ${task!.title}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Chức năng chỉnh sửa task chưa được triển khai.')),
+          );
+        },
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: Icon(Icons.edit, color: Theme.of(context).colorScheme.onPrimary),
       ),
     );
   }
@@ -374,46 +401,35 @@ class TaskDetailScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String value,
+    Color? valueColor,
     Color? backgroundColor,
   }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color defaultTextColor = isDark ? Theme.of(context).colorScheme.onSurface : Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black87;
+    final Color mutedTextColor = isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7) : Colors.black54;
+    final Color iconColor = isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7) : Colors.grey.shade600;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4.0),
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.transparent,
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(8),
+        color: backgroundColor ?? Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
-                : Colors.grey,
-          ),
+          Icon(icon, color: iconColor, size: 20),
           const SizedBox(width: 16),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.onSurface
-                  : Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-          ),
+          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: defaultTextColor)),
           const Spacer(),
           Expanded(
+            flex: 2,
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
-                    : Colors.grey,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: valueColor ?? mutedTextColor, fontWeight: FontWeight.w500),
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.right,
+              maxLines: 2,
             ),
           ),
         ],

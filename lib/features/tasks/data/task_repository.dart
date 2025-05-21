@@ -2,139 +2,206 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
 import '../data/models/task_model.dart';
+import '../data/models/project_model.dart';
+import '../data/models/tag_model.dart';
 
 class TaskRepository {
   final Box<Task> taskBox;
+  final Box<Project> projectBox;
+  final Box<Tag> tagBox;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance; // THÊM INSTANCE CỦA FirebaseAuth
 
-  TaskRepository({required this.taskBox}) {
-    _initializeSampleTasks();
+  TaskRepository({
+    required this.taskBox,
+    required this.projectBox,
+    required this.tagBox,
+  }) {
+    // Bỏ _initializeSampleTasks() ra khỏi constructor nếu bạn muốn nó được gọi
+    // một cách có kiểm soát hơn, ví dụ sau khi người dùng đăng nhập và dữ liệu đã được khôi phục.
+    // Hoặc, đảm bảo _initializeSampleTasks chỉ chạy nếu taskBox thực sự trống SAU KHI đã lọc theo user.
+    // Hiện tại, nó sẽ chạy nếu taskBox (toàn cục) trống, có thể tạo task mẫu cho user đầu tiên mở app.
+    // _initializeSampleTasks(); // Xem xét lại thời điểm gọi hàm này
   }
 
-  Future<void> _initializeSampleTasks() async {
-    if (taskBox.isEmpty) {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        print('Người dùng chưa đăng nhập, không tạo task mẫu.');
-        return;
-      }
-      final sampleTask = Task(
-        id: 1,
-        title: 'Design User Interface (UI)',
-        dueDate: DateTime.now(),
-        priority: 'High',
-        project: 'Pomodoro App',
-        tags: ['Design', 'Work', 'Productive'],
-        estimatedPomodoros: 6,
-        completedPomodoros: 2,
-        isCompleted: false,
-        userId: user.uid,
-      );
-      await addTask(sampleTask);
+  // HÀM HELPER ĐỂ LẤY USER ID HIỆN TẠI
+  String? get _currentUserId => _auth.currentUser?.uid;
+
+  // HÀM HELPER ĐỂ THEO DÕI THAY ĐỔI CỤC BỘ
+  Future<void> _trackModification(String boxName) async {
+    try {
+      final appStatusBox = await Hive.openBox('app_status');
+      await appStatusBox.put('lastModified_$boxName', DateTime.now().toIso8601String());
+      // print('Tracked modification for $boxName at ${DateTime.now()}');
+    } catch (e) {
+      print('Error tracking modification for $boxName: $e');
     }
   }
+
+  Future<void> initializeSampleTasksForCurrentUser() async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      print('Người dùng chưa đăng nhập, không tạo task mẫu.');
+      return;
+    }
+
+    // Chỉ tạo task mẫu nếu người dùng hiện tại chưa có task nào
+    final userTasks = taskBox.values.where((task) => task.userId == userId).toList();
+    if (userTasks.isNotEmpty) {
+      print('Người dùng đã có task, không tạo task mẫu.');
+      return;
+    }
+
+    String? sampleProjectId;
+    try {
+      // Lấy project mẫu CỦA NGƯỜI DÙNG HIỆN TẠI (nếu có)
+      final defaultProject = projectBox.values.firstWhere(
+            (p) => p.name == 'Pomodoro App' && p.userId == userId,
+      );
+      sampleProjectId = defaultProject.id;
+    } catch (e) {
+      print('Không tìm thấy project "Pomodoro App" của người dùng $userId cho sample task. Lỗi: $e');
+    }
+
+    List<String> sampleTagIds = [];
+    final List<String> sampleTagNames = ['Design', 'Work', 'Productive'];
+    for (String tagName in sampleTagNames) {
+      try {
+        // Lấy tag mẫu CỦA NGƯỜI DÙNG HIỆN TẠI (nếu có)
+        final defaultTag = tagBox.values.firstWhere(
+              (t) => t.name == tagName && t.userId == userId,
+        );
+        sampleTagIds.add(defaultTag.id);
+      } catch (e) {
+        print('Không tìm thấy tag "$tagName" của người dùng $userId cho sample task. Lỗi: $e');
+      }
+    }
+
+    final sampleTask = Task(
+      title: 'Design User Interface (UI)',
+      dueDate: DateTime.now(),
+      priority: 'High',
+      projectId: sampleProjectId,
+      tagIds: sampleTagIds,
+      estimatedPomodoros: 6,
+      completedPomodoros: 2,
+      isCompleted: false,
+      userId: userId, // userId đã được gán ở đây
+      createdAt: DateTime.now(),
+    );
+    await addTask(sampleTask); // addTask sẽ tự xử lý việc gán ID và lưu
+    print('Sample task initialized for user $userId.');
+  }
+
 
   Future<List<Task>> getTasks() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw Exception('Người dùng chưa đăng nhập, không thể lấy danh sách task.');
+    final userId = _currentUserId;
+    if (userId == null) {
+      print('Người dùng chưa đăng nhập, trả về danh sách task rỗng.');
+      return [];
     }
-    final tasks = taskBox.values.toList();
-    return tasks.where((task) => task.userId == user.uid).toList();
+    return taskBox.values.where((task) => task.userId == userId).toList();
   }
 
   Future<void> addTask(Task task) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = _currentUserId;
+    if (userId == null) {
       throw Exception('Người dùng chưa đăng nhập, không thể thêm task.');
     }
 
-    final newId = taskBox.isEmpty ? 1 : (taskBox.values.last.id ?? 0) + 1;
-    task = task.copyWith(
+    // Đảm bảo task có userId đúng của người dùng hiện tại
+    final taskWithCorrectUser = task.copyWith(userId: userId);
+
+    // Tạo ID mới nếu task chưa có ID.
+    // Cách tạo ID này (dựa trên max ID hiện có) có thể gặp vấn đề về hiệu suất
+    // và xung đột nếu có nhiều thao tác đồng thời.
+    // Cân nhắc dùng UUID cho task ID giống như Project/Tag hoặc một cơ chế ID khác.
+    // Hiện tại, giữ nguyên logic tạo ID của bạn.
+    int newId = taskWithCorrectUser.id ??
+        (taskBox.values.where((t) => t.userId == userId).isNotEmpty // Lọc theo user trước khi tìm max
+            ? (taskBox.values.where((t) => t.userId == userId).map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1)
+            : 1);
+
+    final taskToAdd = taskWithCorrectUser.copyWith(
       id: newId,
-      userId: user.uid,
+      // userId đã được gán ở taskWithCorrectUser
+      createdAt: taskWithCorrectUser.createdAt ?? DateTime.now(),
     );
-    await taskBox.put(newId, task);
-    await firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(newId.toString())
-        .set(task.toJson());
+
+    await taskBox.put(newId, taskToAdd); // Sử dụng ID làm key
+    await _trackModification('tasks'); // THEO DÕI THAY ĐỔI
+
+    // Không tự động đồng bộ lên Firestore ở đây nữa. Việc này sẽ do BackupService xử lý.
+    // await firestore
+    //     .collection('users')
+    //     .doc(userId)
+    //     .collection('tasks')
+    //     .doc(newId.toString())
+    //     .set(taskToAdd.toJson());
+    print('Task added to Hive with ID: $newId, Title: ${taskToAdd.title}');
   }
 
   Future<void> updateTask(Task task) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = _currentUserId;
+    if (userId == null) {
       throw Exception('Người dùng chưa đăng nhập, không thể cập nhật task.');
     }
     if (task.id == null) {
-      throw Exception('Task ID cannot be null');
+      throw Exception('Task ID không thể null khi cập nhật.');
     }
-    if (task.userId != user.uid) {
-      throw Exception('Bạn không có quyền cập nhật task này.');
+
+    final existingTask = taskBox.get(task.id);
+    if (existingTask == null || existingTask.userId != userId) {
+      throw Exception('Bạn không có quyền cập nhật task này hoặc task không tồn tại.');
     }
-    await taskBox.put(task.id!, task);
-    final query = await firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .where('id', isEqualTo: task.id)
-        .get();
-    if (query.docs.isNotEmpty) {
-      await query.docs.first.reference.update(task.toJson());
-    } else {
-      await firestore
-          .collection('users')
-          .doc(user.uid)
-          .collection('tasks')
-          .doc(task.id.toString())
-          .set(task.toJson());
-    }
+
+    // Đảm bảo userId và createdAt không bị thay đổi ngoài ý muốn khi cập nhật
+    final taskToUpdate = task.copyWith(
+        userId: existingTask.userId,
+        createdAt: existingTask.createdAt
+    );
+
+    await taskBox.put(task.id!, taskToUpdate);
+    await _trackModification('tasks'); // THEO DÕI THAY ĐỔI
+
+    // Không tự động đồng bộ lên Firestore ở đây nữa.
+    // await firestore
+    //     .collection('users')
+    //     .doc(userId)
+    //     .collection('tasks')
+    //     .doc(task.id.toString())
+    //     .set(taskToUpdate.toJson(), SetOptions(merge: true));
+    print('Task updated in Hive with ID: ${task.id}, Title: ${taskToUpdate.title}');
   }
 
   Future<void> deleteTask(Task task) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userId = _currentUserId;
+    if (userId == null) {
       throw Exception('Người dùng chưa đăng nhập, không thể xóa task.');
     }
     if (task.id == null) {
-      throw Exception('Task ID cannot be null');
+      throw Exception('Task ID không thể null khi xóa.');
     }
-    if (task.userId != user.uid) {
+
+    final existingTask = taskBox.get(task.id);
+    if (existingTask != null && existingTask.userId != userId) {
       throw Exception('Bạn không có quyền xóa task này.');
     }
-    await taskBox.delete(task.id);
-    final query = await firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .where('id', isEqualTo: task.id)
-        .get();
-    if (query.docs.isNotEmpty) {
-      await query.docs.first.reference.delete();
-    }
-  }
-}
 
-extension TaskExtension on Task {
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'note': note,
-      'dueDate': dueDate?.toIso8601String(),
-      'priority': priority,
-      'project': project,
-      'tags': tags,
-      'estimatedPomodoros': estimatedPomodoros,
-      'completedPomodoros': completedPomodoros,
-      'category': category,
-      'isPomodoroActive': isPomodoroActive,
-      'remainingPomodoroSeconds': remainingPomodoroSeconds,
-      'isCompleted': isCompleted,
-      'subtasks': subtasks,
-      'userId': userId,
-    };
+    if (existingTask == null) {
+      print('Task ID ${task.id} không tìm thấy trong Hive để xóa.');
+    } else {
+      await taskBox.delete(task.id!);
+      await _trackModification('tasks'); // THEO DÕI THAY ĐỔI
+    }
+
+    // Không tự động đồng bộ lên Firestore ở đây nữa.
+    // await firestore
+    //     .collection('users')
+    //     .doc(userId)
+    //     .collection('tasks')
+    //     .doc(task.id.toString())
+    //     .delete();
+    print('Task deleted from Hive with ID: ${task.id}');
   }
 }

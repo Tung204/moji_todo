@@ -20,11 +20,13 @@ class Task {
   @HiveField(4)
   String? priority;
 
+  // RENAMED: từ project thành projectId
   @HiveField(5)
-  String? project;
+  String? projectId;
 
+  // RENAMED: từ tags thành tagIds
   @HiveField(6)
-  List<String>? tags;
+  List<String>? tagIds;
 
   @HiveField(7)
   int? estimatedPomodoros;
@@ -54,7 +56,10 @@ class Task {
   DateTime? createdAt;
 
   @HiveField(16)
-  String? originalCategory; // Thêm trường originalCategory để lưu category ban đầu
+  String? originalCategory;
+
+  @HiveField(17)
+  DateTime? completionDate; // Giữ lại trường này
 
   Task({
     this.id,
@@ -62,8 +67,8 @@ class Task {
     this.note,
     this.dueDate,
     this.priority,
-    this.project,
-    this.tags,
+    this.projectId, // MODIFIED
+    this.tagIds,    // MODIFIED
     this.estimatedPomodoros,
     this.completedPomodoros,
     this.category,
@@ -74,6 +79,7 @@ class Task {
     this.userId,
     this.createdAt,
     this.originalCategory,
+    this.completionDate,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -83,8 +89,8 @@ class Task {
       note: json['note'] as String?,
       dueDate: json['dueDate'] != null ? (json['dueDate'] as Timestamp).toDate() : null,
       priority: json['priority'] as String?,
-      project: json['project'] as String?,
-      tags: (json['tags'] as List<dynamic>?)?.cast<String>(),
+      projectId: json['projectId'] as String?, // MODIFIED (key trong JSON cũng đổi thành projectId)
+      tagIds: (json['tagIds'] as List<dynamic>?)?.cast<String>(), // MODIFIED (key trong JSON cũng đổi thành tagIds)
       estimatedPomodoros: json['estimatedPomodoros'] as int?,
       completedPomodoros: json['completedPomodoros'] as int?,
       category: json['category'] as String?,
@@ -95,6 +101,7 @@ class Task {
       userId: json['userId'] as String?,
       createdAt: json['createdAt'] != null ? (json['createdAt'] as Timestamp).toDate() : null,
       originalCategory: json['originalCategory'] as String?,
+      completionDate: json['completionDate'] != null ? (json['completionDate'] as Timestamp).toDate() : null,
     );
   }
 
@@ -105,8 +112,8 @@ class Task {
       'note': note,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
       'priority': priority,
-      'project': project,
-      'tags': tags,
+      'projectId': projectId, // MODIFIED (key trong JSON cũng đổi thành projectId)
+      'tagIds': tagIds,       // MODIFIED (key trong JSON cũng đổi thành tagIds)
       'estimatedPomodoros': estimatedPomodoros,
       'completedPomodoros': completedPomodoros,
       'category': category,
@@ -117,6 +124,7 @@ class Task {
       'userId': userId,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'originalCategory': originalCategory,
+      'completionDate': completionDate != null ? Timestamp.fromDate(completionDate!) : null,
     };
   }
 
@@ -126,8 +134,8 @@ class Task {
     String? note,
     DateTime? dueDate,
     String? priority,
-    String? project,
-    List<String>? tags,
+    String? projectId, // MODIFIED
+    List<String>? tagIds, // MODIFIED
     int? estimatedPomodoros,
     int? completedPomodoros,
     String? category,
@@ -138,6 +146,7 @@ class Task {
     String? userId,
     DateTime? createdAt,
     String? originalCategory,
+    DateTime? completionDate,
   }) {
     return Task(
       id: id ?? this.id,
@@ -145,8 +154,8 @@ class Task {
       note: note ?? this.note,
       dueDate: dueDate ?? this.dueDate,
       priority: priority ?? this.priority,
-      project: project ?? this.project,
-      tags: tags ?? this.tags,
+      projectId: projectId ?? this.projectId, // MODIFIED
+      tagIds: tagIds ?? this.tagIds,          // MODIFIED
       estimatedPomodoros: estimatedPomodoros ?? this.estimatedPomodoros,
       completedPomodoros: completedPomodoros ?? this.completedPomodoros,
       category: category ?? this.category,
@@ -157,6 +166,7 @@ class Task {
       userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       originalCategory: originalCategory ?? this.originalCategory,
+      completionDate: completionDate ?? this.completionDate,
     );
   }
 }

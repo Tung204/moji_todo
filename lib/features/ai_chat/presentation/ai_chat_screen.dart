@@ -127,155 +127,162 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: const CustomAppBar(),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message['role'] == 'user';
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isUser
-                          ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-                          : Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      message['content']!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          if (_isProcessing)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          if (_suggestions.isNotEmpty)
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _suggestions.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: ActionChip(
-                        label: Text(
-                          'Làm mới gợi ý',
-                          style: Theme.of(context).textTheme.bodyMedium,
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        padding: const EdgeInsets.only(top: 40), // Ép thêm padding phía trên
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: const CustomAppBar(),
+          body: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[index];
+                    final isUser = message['role'] == 'user';
+                    return Align(
+                      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isUser
+                              ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                              : Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        labelStyle: Theme.of(context).textTheme.bodyMedium,
-                        onPressed: () {
-                          setState(() {
-                            _suggestions = [];
-                          });
-                          _loadSuggestions();
-                        },
+                        child: Text(
+                          message['content']!,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                          ),
+                        ),
                       ),
                     );
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: ActionChip(
-                      label: Text(
-                        _suggestions[index - 1],
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      labelStyle: Theme.of(context).textTheme.bodyMedium,
-                      onPressed: () async {
-                        await _handleMessage(_suggestions[index - 1]);
-                      },
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      hintText: 'Nhập câu lệnh...',
-                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                      ),
-                      filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).colorScheme.primary,
+              if (_isProcessing)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              if (_suggestions.isNotEmpty)
+                SizedBox(
+                  height: 50,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _suggestions.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: ActionChip(
+                            label: Text(
+                              'Làm mới gợi ý',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            labelStyle: Theme.of(context).textTheme.bodyMedium,
+                            onPressed: () {
+                              setState(() {
+                                _suggestions = [];
+                              });
+                              _loadSuggestions();
+                            },
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        child: ActionChip(
+                          label: Text(
+                            _suggestions[index - 1],
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          labelStyle: Theme.of(context).textTheme.bodyMedium,
+                          onPressed: () async {
+                            await _handleMessage(_suggestions[index - 1]);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: InputDecoration(
+                          hintText: 'Nhập câu lệnh...',
+                          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.send,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: () async {
+                        if (_controller.text.isNotEmpty) {
+                          final message = _controller.text;
+                          _controller.clear();
+                          await _handleMessage(message);
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        _speechEnabled ? Icons.mic : Icons.mic_off,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        if (_speechEnabled) {
+                          _speechToText.listen(
+                            onResult: (result) async {
+                              if (result.finalResult) {
+                                await _handleMessage(result.recognizedWords);
+                              }
+                            },
+                            localeId: 'vi_VN',
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.send,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  onPressed: () async {
-                    if (_controller.text.isNotEmpty) {
-                      final message = _controller.text;
-                      _controller.clear();
-                      await _handleMessage(message);
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    _speechEnabled ? Icons.mic : Icons.mic_off,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  onPressed: () {
-                    if (_speechEnabled) {
-                      _speechToText.listen(
-                        onResult: (result) async {
-                          if (result.finalResult) {
-                            await _handleMessage(result.recognizedWords);
-                          }
-                        },
-                        localeId: 'vi_VN',
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
